@@ -48,8 +48,16 @@ internal object Text {
      * and "…in CSS? Give me an example." look like an entity swap and a genuine paraphrase is
      * refused.
      *
-     * So: only `.` `?` `!` end a sentence, never `:` or `;`; and a period does not end one when the
-     * word before it is an abbreviation or a single letter, which covers `vs.`, `e.g.` and initials.
+     * So: only `.` `?` `!` end a sentence, never `:` or `;`; a period does not end one when the word
+     * before it is an abbreviation or a single letter, which covers `vs.`, `e.g.` and initials; and
+     * a word that opens a sentence is excused **only if it is a word we know to be ordinary**.
+     *
+     * That last rule is the one that matters. Excusing every sentence-opening capital loses the
+     * entity in "I am planning a holiday. Austria is where I want to go." — a false hit, the
+     * expensive direction. Excusing none of them refuses "…? Show me an example." against "…? Give
+     * me an example." — a false rejection, which costs one API call. So the default is to treat a
+     * sentence-opening capital as an entity, and [Vocabulary.SENTENCE_OPENERS] carves out the
+     * grammar words. An unusual opener costs a call; a missed entity costs a wrong answer.
      *
      * Returned lowercased, so `GitHub` and `Github` are the same entity.
      */
@@ -62,7 +70,7 @@ internal object Text {
             if (token.length < 2) continue
             if (!token.first().isUpperCase()) continue
             if (token.lowercase() in NON_ENTITY_CAPITALS) continue
-            if (opensSentence(text, matches, index)) continue
+            if (token.lowercase() in Vocabulary.SENTENCE_OPENERS && opensSentence(text, matches, index)) continue
             result.add(token.lowercase())
         }
         return result

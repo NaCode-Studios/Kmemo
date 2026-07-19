@@ -66,6 +66,12 @@ public class InMemoryStore(
 
     override suspend fun put(entry: CacheEntry) {
         mutex.withLock {
+            // Drop anything already dead before judging the store's dimension. `dimensions` tracks
+            // physical residency while `size()` counts live entries, and the two disagree exactly
+            // when expired entries are still resident — which is when a caller sees "clear it" on a
+            // store that already reports itself empty.
+            dropExpired(clock.instant())
+
             if (dimensions == -1) {
                 dimensions = entry.dimensions
             } else {
@@ -83,6 +89,10 @@ public class InMemoryStore(
     override suspend fun search(scope: String, embedding: FloatArray, limit: Int): List<ScoredEntry> {
         require(limit > 0) { "limit must be positive, was $limit" }
         return mutex.withLock {
+            val now = clock.instant()
+            // Same reason as in put: judge the dimension against what is actually alive, or a store
+            // holding nothing but expired entries rejects a query from the model that replaced them.
+            dropExpired(now)
             if (entries.isEmpty()) return@withLock emptyList()
             check(embedding.size == dimensions) {
                 "query embedding has ${embedding.size} dimensions but the store holds " +
@@ -90,7 +100,6 @@ public class InMemoryStore(
                     "changed since these entries were written."
             }
 
-            val now = clock.instant()
             val expired = mutableListOf<String>()
             val scored = mutableListOf<ScoredEntry>()
             // Iteration does not count as access in a LinkedHashMap, so scanning cannot disturb
@@ -147,11 +156,7 @@ public class InMemoryStore(
      * memory in a cache that is written to far more often than it is read.
      */
     public suspend fun purgeExpired(): Int = mutex.withLock {
-        if (ttlNanos == null) return@withLock 0
-        val now = clock.instant()
-        val expired = entries.entries.filter { isExpired(it.value, now) }.map { it.key }
-        dropAll(expired)
-        expired.size
+        dropExpired(clock.instant())
     }
 
     /** Current size and lifetime eviction counters. */
@@ -177,6 +182,18 @@ public class InMemoryStore(
     }
 
     /**
+     * Removes every expired entry and returns how many went. Assumes the mutex is already held —
+     * [kotlinx.coroutines.sync.Mutex] is not reentrant, so the locking entry point is
+     * [purgeExpired] and everything internal calls this instead.
+     */
+    private fun dropExpired(now: Instant): Int {
+        if (ttlNanos == null) return 0
+        val expired = entries.entries.filter { isExpired(it.value, now) }.map { it.key }
+        dropAll(expired)
+        return expired.size
+    }
+
+    /**
      * Makes room for a new entry, dropping anything already past its TTL before evicting anything
      * still alive.
      *
@@ -186,13 +203,7 @@ public class InMemoryStore(
     private fun evictOverflow() {
         if (entries.size <= maxEntries) return
 
-        if (ttlNanos != null) {
-            val now = clock.instant()
-            val expired = entries.entries.filter { isExpired(it.value, now) }.map { it.key }
-            for (id in expired) {
-                if (entries.remove(id) != null) expirations++
-            }
-        }
+        dropExpired(clock.instant())
 
         while (entries.size > maxEntries) {
             val eldest = entries.keys.iterator().next()

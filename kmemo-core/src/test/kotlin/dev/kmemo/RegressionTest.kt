@@ -296,6 +296,63 @@ class RegressionTest {
         assertEquals(1, store.size())
     }
 
+    // --- third review -------------------------------------------------------------------------
+
+    @Test
+    fun `an entity opening a later sentence is still an entity`() {
+        // Restoring sentence detection fixed a false rejection by opening a false hit: every
+        // sentence-opening capital was excused, including real names.
+        assertTrue(
+            chainRejects(
+                "I am planning a holiday. Austria is where I want to go.",
+                "I am planning a holiday. Australia is where I want to go.",
+            ),
+        )
+        assertTrue(
+            chainRejects(
+                "My build keeps failing. Gradle is the tool I use.",
+                "My build keeps failing. Maven is the tool I use.",
+            ),
+        )
+    }
+
+    @Test
+    fun `an ordinary word opening a later sentence is not an entity`() {
+        assertTrue(
+            !chainRejects(
+                "How do I center a div in CSS? Show me an example.",
+                "How do I center a div in CSS? Give me an example.",
+            ),
+        )
+    }
+
+    @Test
+    fun `a two-token fronted phrase whose cue is one of the tokens stays a hit`() {
+        val guard = DirectionGuard()
+        assertTrue(!rejects(guard, "How do I migrate in Rails?", "In Rails, how do I migrate?"))
+        assertTrue(!rejects(guard, "How do I upgrade Django?", "In Django, how do I upgrade?"))
+    }
+
+    @Test
+    fun `a two-token comparison is still a swap`() {
+        assertTrue(chainRejects("Are there more cats than dogs?", "Are there more dogs than cats?"))
+    }
+
+    @Test
+    fun `a store holding only expired entries accepts a new embedding model`() = runTest {
+        // The common path: no overflow, so evictOverflow returned before releasing the dimension.
+        val clock = MutableClock()
+        val store = InMemoryStore(maxEntries = 10, ttl = 1.hours, clock = clock)
+        val stale = clock.instant().minusSeconds(4 * 60 * 60)
+        store.put(entry("a", vector = floatArrayOf(1.0f, 0.0f), createdAt = stale))
+        store.put(entry("b", vector = floatArrayOf(1.0f, 0.0f), createdAt = stale))
+        assertEquals(0, store.size())
+
+        store.put(entry("c", vector = floatArrayOf(1.0f, 0.0f, 0.0f), createdAt = clock.instant()))
+        assertEquals(1, store.size())
+        assertEquals(1, store.search("default", floatArrayOf(1.0f, 0.0f, 0.0f), limit = 5).size)
+    }
+
     private fun unit(similarity: Double): FloatArray =
         floatArrayOf(similarity.toFloat(), sqrt(1.0 - similarity * similarity).toFloat())
 

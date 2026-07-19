@@ -47,6 +47,21 @@ public object Vocabulary {
     )
 
     /**
+     * Words that may open a sentence without naming anything, read by [Text.entityTokens].
+     *
+     * English capitalizes the first word of every sentence, so a multi-sentence prompt hands the
+     * entity guard a capital that means nothing. Excusing all of them loses real entities —
+     * "…holiday. Austria is where I want to go." — so only words on this list are excused, and
+     * anything else that opens a sentence is still treated as a name.
+     */
+    public val SENTENCE_OPENERS: Set<String> = STOPWORDS + setOf(
+        "explain", "describe", "list", "write", "create", "make", "find", "compare", "summarize",
+        "summarise", "consider", "imagine", "suppose", "note", "see", "check", "use", "add",
+        "remove", "build", "generate", "draft", "outline", "walk", "assume", "given", "please",
+        "also", "then", "finally", "first", "second", "next", "lastly", "additionally", "however",
+    )
+
+    /**
      * Unit and currency tokens, read by [UnitGuard], each mapped to a canonical name.
      *
      * The canonical form is what makes `km` and `kilometers` the same unit. A flat set would treat

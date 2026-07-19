@@ -49,18 +49,17 @@ public class DirectionGuard(
     /**
      * Whether [b] is [a] with some prefix moved to the end — a fronted phrase, not a swap.
      *
-     * Requires at least three tokens. With exactly two, *every* permutation is a rotation, so the
-     * test would wave through the plainest swap there is: "Are there more cats than dogs?" reduces
-     * to `[cats, dogs]`, its reverse to `[dogs, cats]`, and no other guard is watching a pair of
-     * tokens that short.
+     * Two tokens are the awkward case, because there every permutation is a rotation. What
+     * separates the two readings is *where the cue is*. In "are there more cats than dogs" the cue
+     * words are function words, and the two content tokens are the things being compared — swapping
+     * them reverses the question. In "how do I migrate in Rails" the cue is one of the two content
+     * tokens, so the other cannot be its counterpart, and "In Rails, how do I migrate" is the same
+     * question with the phrase moved.
      */
     private fun isRotationOf(a: List<String>, b: List<String>): Boolean {
         if (a.size != b.size) return false
-        if (a.size < MIN_ROTATION_TOKENS) return false
+        if (a.size < 2) return false
+        if (a.size == 2) return a.any { it in cues }
         return (a + a).windowed(b.size).any { it == b }
-    }
-
-    private companion object {
-        private const val MIN_ROTATION_TOKENS = 3
     }
 }
