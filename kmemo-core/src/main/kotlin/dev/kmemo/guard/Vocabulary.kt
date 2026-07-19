@@ -53,6 +53,11 @@ public object Vocabulary {
      * every abbreviation-versus-spelling difference as a unit swap and refuse "Convert 50 km to
      * miles" against "Convert 50 kilometers to miles" — two ways of writing one question.
      *
+     * Two tokens may share a canonical name only when they denote the **same quantity**. Grouping by
+     * "sounds like the same unit" turns this map into a source of false hits: `ton` and `tonne`
+     * differ by 9%, `est` and `edt` by an hour, and collapsing either pair means the cache answers a
+     * question nobody asked. Spelling variants alias; near-synonyms do not.
+     *
      * Ambiguous abbreviations are excluded on purpose: `in` (inch), `m` (metre), `s` (second),
      * `try` (Turkish lira) and `real` (Brazilian real) all appear far more often as ordinary words
      * than as units, and a guard that fires on "how do I try this" is worse than no guard.
@@ -73,7 +78,9 @@ public object Vocabulary {
         unit("kg", "kilogram", "kilograms")
         unit("pound", "lb", "lbs", "pounds")
         unit("ounce", "oz", "ounces")
-        unit("ton", "tons", "tonne", "tonnes")
+        // Short ton (907 kg) and metric tonne (1000 kg) are different units, not spellings.
+        unit("ton", "tons")
+        unit("tonne", "tonnes")
         unit("stone", "stones")
         // volume
         unit("ml")
@@ -138,11 +145,15 @@ public object Vocabulary {
         unit("mph")
         unit("kph", "kmh")
         unit("knots")
-        // time zones
+        // Time zones. UTC and GMT are the same offset; standard and daylight time are one hour
+        // apart, so each keeps its own canonical name.
         unit("utc", "gmt")
-        unit("cet", "cest")
-        unit("est", "edt")
-        unit("pst", "pdt")
+        unit("cet")
+        unit("cest")
+        unit("est")
+        unit("edt")
+        unit("pst")
+        unit("pdt")
         unit("bst")
     }
 
@@ -221,7 +232,7 @@ public object Vocabulary {
         "bullet", "bullets", "timeline", "essay", "haiku", "sonnet", "poem", "story", "summary",
         "summarize", "summarise", "tldr", "outline", "checklist", "tutorial", "walkthrough",
         // requested depth and length
-        "detailed", "details", "depth", "brief", "briefly", "concise", "comprehensive", "thorough",
+        "detailed", "detail", "details", "depth", "brief", "briefly", "concise", "comprehensive", "thorough",
         "exhaustive", "overview", "advanced", "beginner", "eli5", "extensive", "step", "steps",
         "sentence", "sentences", "paragraph", "paragraphs",
     )

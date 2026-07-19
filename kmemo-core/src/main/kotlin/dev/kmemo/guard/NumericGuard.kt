@@ -13,10 +13,15 @@ package dev.kmemo.guard
  * on one side only also counts as a difference — that is what catches `Explain OAuth 2.0` against
  * `Explain OAuth 2.0 to a 5 year old`.
  *
- * A comma only counts as a thousands separator when exactly three digits follow it. Stripping every
- * comma is the obvious implementation and it quietly breaks the guard outside the US: `3,5` would
- * become `35`, and "Convert 3,5 km to miles" would be served the answer cached for 35 km — the
- * precise failure this guard exists to prevent, reintroduced by the normalization meant to help.
+ * A comma is read by what follows it: exactly three digits means grouping and the comma is dropped,
+ * anything else means a decimal point and the comma becomes one. So `1,000` is a thousand and `3,5`
+ * is three and a half.
+ *
+ * Both halves of that rule are load-bearing, and each covers a false hit the other lets through.
+ * Dropping every comma turns `3,5` into `35`, so "Convert 3,5 km to miles" gets the answer cached
+ * for 35 km. Merely *splitting* on the comma instead turns `3,5` into the two numbers `3` and `5` —
+ * which, compared as an unordered multiset, is indistinguishable from `5,3`, so "3,5 kg in pounds"
+ * gets the answer for 5,3 kg. Only parsing the comma produces one number that differs from both.
  */
 public class NumericGuard : MatchGuard {
 
@@ -34,20 +39,25 @@ public class NumericGuard : MatchGuard {
 
     private fun numbersIn(text: String): List<String> =
         NUMBER.findAll(text)
-            .map { it.value.replace(",", "") }
+            .map { normalize(it.value) }
             .sorted()
             .toList()
 
+    /** Drops grouping commas, then reads any comma that is left as a decimal point. */
+    private fun normalize(number: String): String =
+        number.replace(GROUPING_COMMA, "$1").replace(',', '.')
+
     private companion object {
         /**
-         * Digits, with commas accepted only in true grouping position — followed by exactly three
-         * more digits.
+         * Digits with any number of `.` or `,` separators between digit groups.
          *
-         * A looser `\d[\d,]*` swallows any comma next to a digit, which makes `3,5` a single number
-         * that normalizes to `35`, and makes a trailing comma in prose ("port 3000, how do I…")
-         * part of the number. Here `3,5` is read as two numbers instead, which still differs from
-         * the one number in `35` — the guard rejects either way, without inventing a value.
+         * Deliberately permissive: the separators are interpreted in [normalize], not here, so that
+         * `3,5` stays a single number rather than being split into two. A trailing comma in prose
+         * ("port 3000, how do I…") is still excluded, since nothing follows it.
          */
-        private val NUMBER = Regex("""\d+(?:,\d{3})*(?:\.\d+)?""")
+        private val NUMBER = Regex("""\d+(?:[.,]\d+)*""")
+
+        /** A comma followed by exactly three digits: grouping, not a decimal point. */
+        private val GROUPING_COMMA = Regex(""",(\d{3})(?!\d)""")
     }
 }

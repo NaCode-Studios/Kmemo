@@ -82,7 +82,7 @@
       "b": "What is the expense ratio of VOO?",
       "shouldMatch": false,
       "category": "entity-swap",
-      "note": "Two popular index ETFs with three-letter tickers and different fee figures."
+      "note": "Different funds with different holdings; an answer naming one ticker is wrong for the other."
     },
     {
       "a": "How much protein is in 100g of chicken breast?",
@@ -173,7 +173,7 @@
       "b": "What is the resting heart rate range for a 60 year old man?",
       "shouldMatch": false,
       "category": "numeric-swap",
-      "note": "Age changes the reference range in an otherwise word-for-word identical prompt."
+      "note": "Clinical resting range is not age-banded, but any answer states the age it was asked about."
     },
     {
       "a": "How do I migrate my app to React 18?",
@@ -242,14 +242,14 @@
       "a": "How do I enable two factor authentication on GitHub?",
       "b": "How do I disable two factor authentication on GitHub?",
       "shouldMatch": false,
-      "category": "negation",
+      "category": "polarity-antonym",
       "note": "Enable and disable are near synonyms to an embedding model but opposite instructions."
     },
     {
       "a": "How do I turn on format on save in VS Code?",
       "b": "How do I turn off format on save in VS Code?",
       "shouldMatch": false,
-      "category": "negation",
+      "category": "polarity-antonym",
       "note": "Single word polarity flip inverts the setting value the answer should give."
     },
     {

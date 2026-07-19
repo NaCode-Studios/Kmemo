@@ -8,6 +8,15 @@ internal object Text {
     /** Capitalized by grammar rather than by reference. English has exactly one that matters. */
     private val NON_ENTITY_CAPITALS = setOf("i")
 
+    /** A colon or semicolon never ends a sentence, so neither belongs here. */
+    private val SENTENCE_END = setOf('.', '?', '!')
+
+    /** Words whose trailing period abbreviates rather than terminates. */
+    private val ABBREVIATIONS = setOf(
+        "vs", "etc", "eg", "ie", "mr", "mrs", "ms", "dr", "prof", "st", "jr", "sr",
+        "inc", "ltd", "co", "fig", "vol", "no", "approx", "al",
+    )
+
     /** All word tokens, lowercased, in order. */
     fun tokens(text: String): List<String> =
         TOKEN.findAll(text).map { it.value.lowercase() }.toList()
@@ -22,34 +31,51 @@ internal object Text {
     }
 
     /**
-     * Tokens that look like named entities: capitalized, minus the one word that is capitalized
-     * purely because it starts the prompt. `France`, `GitHub` and `OAuth` qualify in "what is the
-     * capital of France"; the leading `What` does not.
+     * Tokens that look like named entities: capitalized, minus the words that are capitalized purely
+     * by grammar. `France`, `GitHub` and `OAuth` qualify in "what is the capital of France"; the
+     * leading `What` does not.
      *
-     * Only the very first token is exempt, not the first token of every sentence. Skipping capitals
-     * after `.` `:` `;` sounds more correct and is much worse in practice, because the punctuation
-     * that precedes an entity is usually not a sentence boundary at all: "Compare Python vs. Java"
-     * would lose `Java`, and a templated "Country: Austria. Give me the capital." would lose
-     * `Austria` — the exact field that varies between two prompts, and the only reason to run this
-     * guard. A stray sentence-opening word costs nothing here, since [EntityGuard] only rejects on
-     * entities unique to *both* sides and a word both prompts share cancels out.
+     * Deciding which capitals are grammar is the whole difficulty, and both obvious answers are
+     * wrong.
+     *
+     * Treating `.` `:` `;` as sentence boundaries disables the guard on exactly the prompts it
+     * exists for: "Compare Python vs. Java" loses `Java` to the abbreviation period, and a templated
+     * "Country: Austria. Give me the capital." loses `Austria` to the colon — the one field that
+     * varies between two prompts.
+     *
+     * Exempting only the very first token of the prompt goes wrong in the other direction: the
+     * opening word of every *later* sentence becomes an entity, so "…in CSS? Show me an example."
+     * and "…in CSS? Give me an example." look like an entity swap and a genuine paraphrase is
+     * refused.
+     *
+     * So: only `.` `?` `!` end a sentence, never `:` or `;`; and a period does not end one when the
+     * word before it is an abbreviation or a single letter, which covers `vs.`, `e.g.` and initials.
      *
      * Returned lowercased, so `GitHub` and `Github` are the same entity.
      */
     fun entityTokens(text: String): Set<String> {
+        val matches = TOKEN.findAll(text).toList()
         val result = LinkedHashSet<String>()
-        var first = true
-        for (match in TOKEN.findAll(text)) {
+        for ((index, match) in matches.withIndex()) {
             val token = match.value
-            val leading = first
-            first = false
-            if (leading) continue
+            if (index == 0) continue
             if (token.length < 2) continue
             if (!token.first().isUpperCase()) continue
             if (token.lowercase() in NON_ENTITY_CAPITALS) continue
+            if (opensSentence(text, matches, index)) continue
             result.add(token.lowercase())
         }
         return result
+    }
+
+    private fun opensSentence(text: String, matches: List<MatchResult>, index: Int): Boolean {
+        val previous = matches[index - 1]
+        val between = text.substring(previous.range.last + 1, matches[index].range.first)
+        val terminator = between.firstOrNull { it in SENTENCE_END } ?: return false
+        if (terminator != '.') return true
+
+        val previousToken = previous.value.lowercase()
+        return previousToken.length > 1 && previousToken !in ABBREVIATIONS
     }
 
     /**

@@ -54,7 +54,8 @@ source; kmemo ships none and depends on no provider SDK.
   Voyage or a local ONNX model; start in memory and move to a vector database without touching
   match logic.
 - **Coroutine-first, small footprint** — every operation is a `suspend` function, and the published
-  artifact depends on `kotlinx-coroutines-core` and nothing else.
+  artifact declares `kotlinx-coroutines-core` as its only dependency (which brings the Kotlin
+  stdlib with it, as every Kotlin library does).
 - **Diagnosable** — every miss reports *why*. A cache with a 4% hit rate is untunable unless you know
   whether prompts land below the threshold or are vetoed by a guard; the fix is opposite in each case.
 
@@ -194,11 +195,13 @@ is often a perfectly good answer.
 | `AntonymGuard` | a word is flipped to its opposite | `enable 2FA` vs `disable 2FA` |
 | `EntityGuard` | named entities are swapped | `capital of Australia` vs `capital of Austria` |
 | `ScopeGuard` | a different answer is asked for | `write a haiku` vs `write a sonnet` |
-| `DirectionGuard` | same words, reversed comparison or conversion | `EUR to USD` vs `USD to EUR` |
+| `DirectionGuard` | same words, reversed comparison or conversion | `Convert 500 EUR to USD` vs `Convert 500 USD to EUR` |
 | `LexicalDivergenceGuard` | the prompts share almost no content words | backstop for everything else |
 
-`LengthRatioGuard` ships too, but stays out of `standard()`: "python list reverse" and "How do I
-reverse a list in Python?" are a four-fold difference in length and the same question.
+`LengthRatioGuard` ships too, but stays out of `standard()`. Terse and verbose phrasings of one
+question routinely differ two- or three-fold in length — "python list reverse" against "How do I
+reverse a list in Python?" is 2.7× — so length is a weak signal that costs hits before it catches
+anything.
 
 The interesting engineering is in **not** over-rejecting:
 
@@ -209,11 +212,11 @@ The interesting engineering is in **not** over-rejecting:
   save" vs "turn **off** format **on** save" is caught even though both prompts contain `on`.
 - `DirectionGuard` fires only on a comparison or conversion cue, and ignores rotations. Moving a
   trailing phrase to the front never changes the question: "How do I move a file in Linux?" and "In
-  Linux, how do I move a file?" stay a hit, while "is A better than B" and "is B better than A" do
-  not.
-- `LexicalDivergenceGuard` matches typos and inflections fuzzily (`instal` → `install`, `cahce` →
-  `cache`, `commit` → `committed`) but caps fuzziness at one edit, deliberately too strict to merge
-  `Austria` with `Australia`.
+  Linux, how do I move a file?" stay a hit, while "Is Postgres better than MySQL?" and "Is MySQL
+  better than Postgres?" do not.
+- `LexicalDivergenceGuard` matches typos within one edit — including transpositions, so `cahce`
+  finds `cache` — and inflections by strict prefix, so `commit` finds `committed`. Neither rule can
+  merge `Austria` with `Australia`: two edits apart, and neither is a prefix of the other.
 
 ### Correctness, measured
 
@@ -226,9 +229,9 @@ control group, so a guard set that rejects everything scores zero rather than lo
 category                  pairs   standard     strict
 comparative-direction         8       100%       100%   must not match
 entity-swap                  13        85%        85%   must not match
-negation                      7       100%       100%   must not match
+negation                      5       100%       100%   must not match
 numeric-swap                 13       100%       100%   must not match
-polarity-antonym              7       100%       100%   must not match
+polarity-antonym              9       100%       100%   must not match
 scope-shift                   8        88%        88%   must not match
 temporal                      7       100%       100%   must not match
 unit-swap                     8       100%       100%   must not match
@@ -239,24 +242,29 @@ verbosity                     7       100%       100%   must match
 word-order                    6       100%       100%   must match
 ```
 
-The three near misses that get through are honest limitations: two need world knowledge (`bake
-salmon fillets` vs `bake chicken breasts`) and one is an unmarked depth qualifier (`how does HTTPS
-work` vs `how does HTTPS work at the packet level`). That is what the `Verifier` hook is for.
+The three near misses that get through are honest limitations, and really two: a salmon-versus-chicken
+swap that appears in the corpus twice and needs world knowledge no lexical rule has, plus an unmarked
+depth qualifier (`how does HTTPS work` vs `how does HTTPS work at the packet level`). That is what the
+`Verifier` hook is for.
 
-Note that `strict()` catches nothing extra on this corpus while rejecting 38% of paraphrases. It
-exists for traffic whose near misses are lexically distant in ways this corpus does not model —
+Note that `strict()` catches nothing extra on this corpus while rejecting 5 of the 38 must-match
+pairs — 13% overall, concentrated as 38% of the `paraphrase` category. It exists for traffic whose near misses are lexically distant in ways this corpus does not model —
 measure it against your own pairs before choosing it.
 
-Running the calibrator over the same corpus with a deliberately adversarial stub embedder that scores
-every near miss above 0.99:
+Running the calibrator over the same corpus with a deliberately adversarial stub embedder — one
+built so that a one-token swap barely moves the vector, putting 25 of the 71 near misses above 0.99:
 
-| | best false-hit rate reachable | precision there |
+| | best false-hit rate reachable | hits at that setting |
 | --- | --- | --- |
-| similarity threshold alone | **35.2%** (no threshold in `0.70..0.99` did better) | 0.19 |
-| similarity + standard guards | **0%**, at threshold 0.81 | 1.00 |
+| similarity threshold alone | **35.2%** (no threshold in `0.70..0.99` did better) | 6 |
+| similarity + standard guards | **0%**, at threshold 0.81 | 7 |
 
-Guards do not merely reduce false hits — they let you run a *lower* threshold safely, which returns
-more hits than the similarity-only configuration managed at any setting.
+The comparison that matters is at a *fixed* threshold, where guards cost nothing and remove almost
+everything: at 0.70, 64 false hits become 3; at 0.81, 56 become 0 — with the identical number of
+real hits in each case. Guards do not trade recall for safety, which is what lets you spend the
+threshold on recall instead: 0.81 with guards returns more hits than 0.96 without, and returns no
+wrong answers. Similarity alone reaches more hits only by dropping to 0.70, where two thirds of what
+it serves is wrong.
 
 > The stub embedder is built to make near misses look identical, so these false-hit figures
 > demonstrate the mechanism honestly. The absolute recall numbers are not representative of a real
@@ -283,7 +291,7 @@ non-English vocabularies.
 ```
 
 The build runs with explicit API mode and `allWarningsAsErrors`. Tests need no external services —
-104 of them, all offline.
+113 of them, all offline.
 
 ## Contributing
 

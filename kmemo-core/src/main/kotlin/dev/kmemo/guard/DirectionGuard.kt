@@ -46,10 +46,21 @@ public class DirectionGuard(
 
     private fun hasDirectionalCue(text: String): Boolean = Text.tokens(text).any { it in cues }
 
-    /** Whether [b] is [a] with some prefix moved to the end — a fronted phrase, not a swap. */
+    /**
+     * Whether [b] is [a] with some prefix moved to the end — a fronted phrase, not a swap.
+     *
+     * Requires at least three tokens. With exactly two, *every* permutation is a rotation, so the
+     * test would wave through the plainest swap there is: "Are there more cats than dogs?" reduces
+     * to `[cats, dogs]`, its reverse to `[dogs, cats]`, and no other guard is watching a pair of
+     * tokens that short.
+     */
     private fun isRotationOf(a: List<String>, b: List<String>): Boolean {
         if (a.size != b.size) return false
-        if (a.size < 2) return true
+        if (a.size < MIN_ROTATION_TOKENS) return false
         return (a + a).windowed(b.size).any { it == b }
+    }
+
+    private companion object {
+        private const val MIN_ROTATION_TOKENS = 3
     }
 }

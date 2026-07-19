@@ -199,6 +199,11 @@ public class InMemoryStore(
             entries.remove(eldest)
             evictions++
         }
+
+        // Purging can empty the map — a warm cache rehydrated with entries that are already past
+        // their TTL does exactly that — and this is the one mutation path that would otherwise
+        // leave the old dimension latched on an empty store.
+        forgetDimensionsIfEmpty()
     }
 
     /**

@@ -224,6 +224,78 @@ class RegressionTest {
         assertEquals(stats.lookups - stats.hits, stats.misses)
     }
 
+    // --- second review: defects introduced by the first round of fixes -----------------------
+
+    @Test
+    fun `a short ton is not a metric tonne`() {
+        // Canonicalising by "sounds like the same unit" collapsed 907 kg onto 1000 kg.
+        assertTrue(chainRejects("Convert 5 tons to kg", "Convert 5 tonnes to kg"))
+    }
+
+    @Test
+    fun `standard time is not daylight time`() {
+        // One hour apart. Lowercase, so EntityGuard does not accidentally cover for it.
+        assertTrue(chainRejects("what is 9 am est in local time", "what is 9 am edt in local time"))
+        assertTrue(chainRejects("what is 9 am pst in local time", "what is 9 am pdt in local time"))
+        assertTrue(chainRejects("what is 9 am cet in local time", "what is 9 am cest in local time"))
+    }
+
+    @Test
+    fun `utc and gmt are still the same offset`() {
+        assertTrue(!chainRejects("what is 9 am utc in local time", "what is 9 am gmt in local time"))
+    }
+
+    @Test
+    fun `a decimal comma survives as one number, so swapped operands stay visible`() {
+        // Splitting "3,5" into [3, 5] made it indistinguishable from "5,3" under multiset compare.
+        assertTrue(rejects(NumericGuard(), "how much is 3,5 kg in pounds", "how much is 5,3 kg in pounds"))
+        assertTrue(rejects(NumericGuard(), "the recipe needs 1,5 liters of milk", "the recipe needs 5,1 liters of milk"))
+        assertTrue(rejects(NumericGuard(), "Convert 3,5 km to miles", "Convert 35 km to miles"))
+    }
+
+    @Test
+    fun `a two-token argument swap is not excused as a rotation`() {
+        // At two tokens every permutation is a rotation, so the rotation test waved this through.
+        assertTrue(chainRejects("Are there more cats than dogs?", "Are there more dogs than cats?"))
+    }
+
+    @Test
+    fun `a second sentence opening with a different word is not an entity swap`() {
+        // Exempting only the first token of the prompt made "Show" and "Give" look like entities.
+        assertTrue(
+            !chainRejects(
+                "How do I center a div in CSS? Show me an example.",
+                "How do I center a div in CSS? Give me an example.",
+            ),
+        )
+    }
+
+    @Test
+    fun `an abbreviation period still does not blind the entity guard`() {
+        assertTrue(chainRejects("Compare Python vs. Java", "Compare Python vs. Ruby"))
+        assertTrue(chainRejects("Country: Austria. Give me the capital.", "Country: Australia. Give me the capital."))
+    }
+
+    @Test
+    fun `asking for more depth is a different question`() {
+        assertTrue(chainRejects("How does HTTPS work?", "How does HTTPS work, in detail?"))
+    }
+
+    @Test
+    fun `a store emptied by eviction accepts a new embedding model`() = runTest {
+        // evictOverflow was the one mutation path that could empty the map without releasing the
+        // latched dimension — exactly the defect the previous round claimed to have fixed.
+        val clock = MutableClock()
+        val store = InMemoryStore(maxEntries = 1, ttl = 1.hours, clock = clock)
+        val stale = clock.instant().minusSeconds(4 * 60 * 60)
+        store.put(entry("a", vector = floatArrayOf(1.0f, 0.0f), createdAt = stale))
+        store.put(entry("b", vector = floatArrayOf(1.0f, 0.0f), createdAt = stale))
+        assertEquals(0, store.size())
+
+        store.put(entry("c", vector = floatArrayOf(1.0f, 0.0f, 0.0f), createdAt = clock.instant()))
+        assertEquals(1, store.size())
+    }
+
     private fun unit(similarity: Double): FloatArray =
         floatArrayOf(similarity.toFloat(), sqrt(1.0 - similarity * similarity).toFloat())
 
