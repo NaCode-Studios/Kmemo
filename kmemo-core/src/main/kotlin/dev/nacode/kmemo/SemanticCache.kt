@@ -154,10 +154,17 @@ public class SemanticCache(
     /** Number of cached entries in [scope], or in the whole cache when [scope] is `null`. */
     public suspend fun size(scope: String? = null): Int = store.size(scope)
 
-    /** Counters since this instance was created. See [CacheStats] for what they tell you. */
+    /**
+     * Counters since this instance was created. See [CacheStats] for what they tell you.
+     *
+     * The counters are read one at a time, so a lookup finishing mid-read could otherwise report
+     * more hits than lookups — and a negative miss count. Reading hits first and clamping keeps the
+     * invariants [CacheStats] documents; the cost is that a concurrent snapshot may under-report a
+     * hit by one, which no one is tuning against.
+     */
     public fun stats(): CacheStats {
-        val lookups = lookupCount.get()
         val hits = hitCount.get()
+        val lookups = maxOf(lookupCount.get(), hits)
         return CacheStats(
             lookups = lookups,
             hits = hits,
@@ -179,8 +186,11 @@ public class SemanticCache(
             return CacheLookup.Miss(MissReason.EMPTY_SCOPE, null, null, null)
         }
 
-        var guardRejection: String? = null
-        var verifierRejected = false
+        // Whichever candidate was refused first — candidates arrive best-first, so this is the
+        // closest one that was refused, and the reason, the prompt and the score all describe that
+        // same entry. Reporting a reason from one candidate next to the similarity of another is
+        // how a diagnostic turns into a wild goose chase.
+        var refusal: Refusal? = null
 
         for (scored in found) {
             // Results are sorted by descending similarity, so the first one below the threshold
@@ -189,36 +199,38 @@ public class SemanticCache(
 
             val rejection = firstRejection(prompt, scored.entry.prompt)
             if (rejection != null) {
-                if (guardRejection == null) guardRejection = rejection
+                if (refusal == null) refusal = Refusal(MissReason.REJECTED_BY_GUARD, scored, rejection)
                 continue
             }
 
             if (verifier?.verify(prompt, scored.entry.prompt, scored.similarity) == false) {
-                verifierRejected = true
+                if (refusal == null) {
+                    refusal = Refusal(
+                        MissReason.REJECTED_BY_VERIFIER,
+                        scored,
+                        "verifier rejected this candidate",
+                    )
+                }
                 continue
             }
 
             return hit(scored)
         }
 
-        val best = found.first()
-        return when {
-            guardRejection != null -> {
-                guardRejectionCount.incrementAndGet()
-                miss(MissReason.REJECTED_BY_GUARD, best, guardRejection)
-            }
-
-            verifierRejected -> {
-                verifierRejectionCount.incrementAndGet()
-                miss(MissReason.REJECTED_BY_VERIFIER, best, "verifier rejected the candidate")
-            }
-
-            else -> {
-                belowThresholdCount.incrementAndGet()
-                miss(MissReason.BELOW_THRESHOLD, best, "best similarity ${best.similarity} < $threshold")
-            }
+        if (refusal == null) {
+            val best = found.first()
+            belowThresholdCount.incrementAndGet()
+            return miss(MissReason.BELOW_THRESHOLD, best, "best similarity ${best.similarity} < $threshold")
         }
+
+        when (refusal.reason) {
+            MissReason.REJECTED_BY_GUARD -> guardRejectionCount.incrementAndGet()
+            else -> verifierRejectionCount.incrementAndGet()
+        }
+        return miss(refusal.reason, refusal.candidate, refusal.detail)
     }
+
+    private class Refusal(val reason: MissReason, val candidate: ScoredEntry, val detail: String)
 
     private fun firstRejection(prompt: String, candidatePrompt: String): String? {
         for (guard in guards) {

@@ -47,41 +47,109 @@ public object Vocabulary {
     )
 
     /**
-     * Unit and currency tokens, read by [UnitGuard].
+     * Unit and currency tokens, read by [UnitGuard], each mapped to a canonical name.
+     *
+     * The canonical form is what makes `km` and `kilometers` the same unit. A flat set would treat
+     * every abbreviation-versus-spelling difference as a unit swap and refuse "Convert 50 km to
+     * miles" against "Convert 50 kilometers to miles" — two ways of writing one question.
      *
      * Ambiguous abbreviations are excluded on purpose: `in` (inch), `m` (metre), `s` (second),
      * `try` (Turkish lira) and `real` (Brazilian real) all appear far more often as ordinary words
      * than as units, and a guard that fires on "how do I try this" is worse than no guard.
      */
-    public val UNITS: Set<String> = setOf(
+    public val UNITS: Map<String, String> = buildMap {
         // length
-        "mm", "cm", "km", "kilometer", "kilometers", "kilometre", "kilometres", "meter", "meters",
-        "metre", "metres", "inch", "inches", "ft", "foot", "feet", "yard", "yards", "mi", "mile",
-        "miles",
+        unit("mm")
+        unit("cm")
+        unit("km", "kilometer", "kilometers", "kilometre", "kilometres")
+        unit("meter", "meters", "metre", "metres")
+        unit("inch", "inches")
+        unit("ft", "foot", "feet")
+        unit("yard", "yards")
+        unit("mile", "mi", "miles")
         // mass
-        "mg", "gram", "grams", "kg", "kilogram", "kilograms", "lb", "lbs", "pound", "pounds", "oz",
-        "ounce", "ounces", "ton", "tons", "tonne", "tonnes", "stone", "stones",
+        unit("mg")
+        unit("gram", "grams")
+        unit("kg", "kilogram", "kilograms")
+        unit("pound", "lb", "lbs", "pounds")
+        unit("ounce", "oz", "ounces")
+        unit("ton", "tons", "tonne", "tonnes")
+        unit("stone", "stones")
         // volume
-        "ml", "cl", "dl", "liter", "liters", "litre", "litres", "gallon", "gallons", "pint",
-        "pints", "quart", "quarts", "cup", "cups", "tbsp", "tsp", "tablespoon", "tablespoons",
-        "teaspoon", "teaspoons",
+        unit("ml")
+        unit("cl")
+        unit("dl")
+        unit("liter", "liters", "litre", "litres")
+        unit("gallon", "gallons")
+        unit("pint", "pints")
+        unit("quart", "quarts")
+        unit("cup", "cups")
+        unit("tbsp", "tablespoon", "tablespoons")
+        unit("tsp", "teaspoon", "teaspoons")
         // temperature
-        "celsius", "centigrade", "fahrenheit", "kelvin",
+        unit("celsius", "centigrade")
+        unit("fahrenheit")
+        unit("kelvin")
         // currency
-        "usd", "eur", "gbp", "jpy", "chf", "cad", "aud", "nzd", "inr", "cny", "hkd", "sgd", "sek",
-        "nok", "dkk", "pln", "czk", "huf", "zar", "brl", "mxn", "krw", "dollar", "dollars", "euro",
-        "euros", "yen", "franc", "francs", "rupee", "rupees", "peso", "pesos", "btc", "bitcoin",
-        "eth", "ether",
+        unit("usd", "dollar", "dollars")
+        unit("eur", "euro", "euros")
+        unit("gbp")
+        unit("jpy", "yen")
+        unit("chf", "franc", "francs")
+        unit("cad")
+        unit("aud")
+        unit("nzd")
+        unit("inr", "rupee", "rupees")
+        unit("cny")
+        unit("hkd")
+        unit("sgd")
+        unit("sek")
+        unit("nok")
+        unit("dkk")
+        unit("pln")
+        unit("czk")
+        unit("huf")
+        unit("zar")
+        unit("brl")
+        unit("mxn", "peso", "pesos")
+        unit("krw")
+        unit("btc", "bitcoin")
+        unit("eth", "ether")
         // digital storage
-        "kb", "mb", "gb", "tb", "pb", "kib", "mib", "gib", "tib", "byte", "bytes", "kilobyte",
-        "kilobytes", "megabyte", "megabytes", "gigabyte", "gigabytes", "terabyte", "terabytes",
+        unit("kb", "kilobyte", "kilobytes")
+        unit("mb", "megabyte", "megabytes")
+        unit("gb", "gigabyte", "gigabytes")
+        unit("tb", "terabyte", "terabytes")
+        unit("pb")
+        unit("kib")
+        unit("mib")
+        unit("gib")
+        unit("tib")
+        unit("byte", "bytes")
         // time and speed
-        "second", "seconds", "minute", "minutes", "hour", "hours", "day", "days", "week", "weeks",
-        "month", "months", "year", "years", "ms", "millisecond", "milliseconds", "mph", "kph",
-        "kmh", "knots",
+        unit("ms", "millisecond", "milliseconds")
+        unit("second", "seconds")
+        unit("minute", "minutes")
+        unit("hour", "hours")
+        unit("day", "days")
+        unit("week", "weeks")
+        unit("month", "months")
+        unit("year", "years")
+        unit("mph")
+        unit("kph", "kmh")
+        unit("knots")
         // time zones
-        "utc", "gmt", "cet", "cest", "est", "edt", "pst", "pdt", "bst",
-    )
+        unit("utc", "gmt")
+        unit("cet", "cest")
+        unit("est", "edt")
+        unit("pst", "pdt")
+        unit("bst")
+    }
+
+    private fun MutableMap<String, String>.unit(canonical: String, vararg variants: String) {
+        put(canonical, canonical)
+        for (variant in variants) put(variant, canonical)
+    }
 
     /**
      * Words that flip an answer, read by [AntonymGuard]. Symmetric: listing `enable to disable`

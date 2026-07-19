@@ -9,10 +9,18 @@ package dev.nacode.kmemo.guard
  *
  * Word order alone cannot be the signal, though: "In Python, how do I sort a dictionary by value?"
  * and "How do I sort a dictionary by value in Python?" are also a reordering, and they must stay a
- * hit. So this guard fires only when a [Vocabulary.DIRECTIONAL_CUES] word is present — a comparison
- * or a conversion, the two constructions where argument order carries meaning — and only when the
- * two prompts use exactly the same words. Different words are somebody else's problem, which keeps
- * "how many miles is 50 km" matching "convert 50 km to miles".
+ * hit. Two conditions narrow the guard to real swaps.
+ *
+ * **A cue must be present** — a comparison or a conversion, the constructions where argument order
+ * carries meaning. And **the words must be the same**; different words are somebody else's problem,
+ * which keeps "how many miles is 50 km" matching "convert 50 km to miles".
+ *
+ * **The reordering must not be a rotation.** Moving a phrase from the end of a sentence to the
+ * front rotates the token list, and it never changes the question: "How do I migrate a file in
+ * Linux?" and "In Linux, how do I migrate a file?" are one prompt. Swapping two arguments around a
+ * cue is a different permutation entirely — no rotation turns `[postgres, better, mysql]` into
+ * `[mysql, better, postgres]`. Without this test the guard rejects every fronted prepositional
+ * phrase whose sentence happens to contain a cue word, which is a paid API call for nothing.
  */
 public class DirectionGuard(
     private val cues: Set<String> = Vocabulary.DIRECTIONAL_CUES,
@@ -28,6 +36,7 @@ public class DirectionGuard(
         val candidateTokens = Text.contentTokens(candidate, stopwords)
         if (queryTokens == candidateTokens) return GuardVerdict.Accept
         if (queryTokens.toSet() != candidateTokens.toSet()) return GuardVerdict.Accept
+        if (isRotationOf(queryTokens, candidateTokens)) return GuardVerdict.Accept
 
         return GuardVerdict.Reject(
             "same terms in reversed order around a comparison or conversion: " +
@@ -36,4 +45,11 @@ public class DirectionGuard(
     }
 
     private fun hasDirectionalCue(text: String): Boolean = Text.tokens(text).any { it in cues }
+
+    /** Whether [b] is [a] with some prefix moved to the end — a fronted phrase, not a swap. */
+    private fun isRotationOf(a: List<String>, b: List<String>): Boolean {
+        if (a.size != b.size) return false
+        if (a.size < 2) return true
+        return (a + a).windowed(b.size).any { it == b }
+    }
 }

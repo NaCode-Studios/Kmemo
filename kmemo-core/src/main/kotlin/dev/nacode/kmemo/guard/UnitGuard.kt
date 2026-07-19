@@ -15,9 +15,12 @@ package dev.nacode.kmemo.guard
  * Like [EntityGuard], it rejects a **substitution** and not an addition. Each prompt must name a
  * unit the other does not, so "375 f to c" still matches "What is 375 degrees Fahrenheit in
  * Celsius?" — one of them simply spells the units out.
+ *
+ * Units are compared by their canonical name, so `km` and `kilometers` are one unit rather than a
+ * swap. See [Vocabulary.UNITS].
  */
 public class UnitGuard(
-    private val units: Set<String> = Vocabulary.UNITS,
+    private val units: Map<String, String> = Vocabulary.UNITS,
 ) : MatchGuard {
 
     override val name: String get() = "unit"
@@ -35,5 +38,5 @@ public class UnitGuard(
     }
 
     private fun unitsIn(text: String): Set<String> =
-        Text.tokens(text).filterTo(LinkedHashSet()) { it in units }
+        Text.tokens(text).mapNotNullTo(LinkedHashSet()) { units[it] }
 }

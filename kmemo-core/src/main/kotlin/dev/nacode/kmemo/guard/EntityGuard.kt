@@ -11,7 +11,9 @@ package dev.nacode.kmemo.guard
  *
  * Three rules keep it from misfiring:
  *
- * **Sentence-initial capitals are ignored.** `What` in "What is Docker" is grammar, not an entity.
+ * **The opening capital is ignored.** `What` in "What is Docker" is grammar, not an entity. Only
+ * the first word is exempt — see [Text.entityTokens] for why treating every `.` `:` `;` as a
+ * sentence boundary silently disables this guard on exactly the prompts it exists for.
  *
  * **It rejects on substitution, not on addition.** Each prompt must name something the other does
  * not: `Austria` here, `Australia` there. One prompt merely mentioning an extra entity is not

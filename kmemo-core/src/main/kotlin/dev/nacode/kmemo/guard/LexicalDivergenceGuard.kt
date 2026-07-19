@@ -46,6 +46,9 @@ public class LexicalDivergenceGuard(
 
         val shared = countShared(queryTokens, candidateTokens)
         val union = queryTokens.size + candidateTokens.size - shared
+        // Only reachable with minTokens = 0 and two prompts made entirely of stopwords. Without
+        // this, the ratio is NaN, NaN >= minOverlap is false, and the guard rejects on no evidence.
+        if (union == 0) return GuardVerdict.Accept
         val overlap = shared.toDouble() / union.toDouble()
         if (overlap >= minOverlap) return GuardVerdict.Accept
 

@@ -4,7 +4,6 @@ package dev.nacode.kmemo.guard
 internal object Text {
 
     private val TOKEN = Regex("[\\p{L}\\p{N}]+")
-    private val SENTENCE_END = setOf('.', '?', '!', ';', ':')
 
     /** Capitalized by grammar rather than by reference. English has exactly one that matters. */
     private val NON_ENTITY_CAPITALS = setOf("i")
@@ -23,32 +22,34 @@ internal object Text {
     }
 
     /**
-     * Tokens that look like named entities: capitalized, but not merely because they open a
-     * sentence. `France`, `GitHub` and `OAuth` qualify in "what is the capital of France"; the
-     * leading `What` does not.
+     * Tokens that look like named entities: capitalized, minus the one word that is capitalized
+     * purely because it starts the prompt. `France`, `GitHub` and `OAuth` qualify in "what is the
+     * capital of France"; the leading `What` does not.
+     *
+     * Only the very first token is exempt, not the first token of every sentence. Skipping capitals
+     * after `.` `:` `;` sounds more correct and is much worse in practice, because the punctuation
+     * that precedes an entity is usually not a sentence boundary at all: "Compare Python vs. Java"
+     * would lose `Java`, and a templated "Country: Austria. Give me the capital." would lose
+     * `Austria` — the exact field that varies between two prompts, and the only reason to run this
+     * guard. A stray sentence-opening word costs nothing here, since [EntityGuard] only rejects on
+     * entities unique to *both* sides and a word both prompts share cancels out.
      *
      * Returned lowercased, so `GitHub` and `Github` are the same entity.
      */
     fun entityTokens(text: String): Set<String> {
         val result = LinkedHashSet<String>()
+        var first = true
         for (match in TOKEN.findAll(text)) {
             val token = match.value
+            val leading = first
+            first = false
+            if (leading) continue
             if (token.length < 2) continue
             if (!token.first().isUpperCase()) continue
             if (token.lowercase() in NON_ENTITY_CAPITALS) continue
-            if (isSentenceInitial(text, match.range.first)) continue
             result.add(token.lowercase())
         }
         return result
-    }
-
-    private fun isSentenceInitial(text: String, start: Int): Boolean {
-        for (i in start - 1 downTo 0) {
-            val char = text[i]
-            if (char.isWhitespace() || char == '"' || char == '\'' || char == '(') continue
-            return char in SENTENCE_END
-        }
-        return true
     }
 
     /**

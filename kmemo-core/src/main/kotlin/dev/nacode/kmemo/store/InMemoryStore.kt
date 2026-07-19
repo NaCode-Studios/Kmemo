@@ -119,17 +119,19 @@ public class InMemoryStore(
     }
 
     override suspend fun remove(id: String): Boolean = mutex.withLock {
-        entries.remove(id) != null
+        val removed = entries.remove(id) != null
+        forgetDimensionsIfEmpty()
+        removed
     }
 
     override suspend fun clear(scope: String?) {
         mutex.withLock {
             if (scope == null) {
                 entries.clear()
-                dimensions = -1
             } else {
                 entries.entries.removeAll { it.value.scope == scope }
             }
+            forgetDimensionsIfEmpty()
         }
     }
 
@@ -171,14 +173,43 @@ public class InMemoryStore(
         for (id in ids) {
             if (entries.remove(id) != null) expirations++
         }
+        forgetDimensionsIfEmpty()
     }
 
+    /**
+     * Makes room for a new entry, dropping anything already past its TTL before evicting anything
+     * still alive.
+     *
+     * Counting matters here. Evicting on raw size would book a dead entry as an eviction, and — far
+     * worse — would throw out a live, recently used entry while expired ones still occupy the map.
+     */
     private fun evictOverflow() {
+        if (entries.size <= maxEntries) return
+
+        if (ttlNanos != null) {
+            val now = clock.instant()
+            val expired = entries.entries.filter { isExpired(it.value, now) }.map { it.key }
+            for (id in expired) {
+                if (entries.remove(id) != null) expirations++
+            }
+        }
+
         while (entries.size > maxEntries) {
             val eldest = entries.keys.iterator().next()
             entries.remove(eldest)
             evictions++
         }
+    }
+
+    /**
+     * An empty store has no model attached to it, so the next writer may use any dimension.
+     *
+     * Without this, clearing a single scope until nothing is left — or removing the last entry —
+     * leaves the old dimension latched, and the next `put` fails with a message telling the caller
+     * to clear a store that is already empty.
+     */
+    private fun forgetDimensionsIfEmpty() {
+        if (entries.isEmpty()) dimensions = -1
     }
 
     public companion object {

@@ -15,13 +15,25 @@ public object Vectors {
     /**
      * Returns a copy of [vector] scaled to unit length.
      *
-     * @throws IllegalArgumentException if [vector] is empty or has zero magnitude — both indicate a
-     *   broken embedder rather than a legitimate value, and silently accepting them would make every
-     *   later similarity meaningless.
+     * This is the only place a broken embedder can be caught, so it is strict: empty, zero-magnitude
+     * and non-finite vectors are all rejected here rather than allowed downstream.
+     *
+     * The non-finite case is the dangerous one. A single `Infinity` or `NaN` component normalizes to
+     * a vector of `NaN`, every similarity computed from it is `NaN`, and `NaN < threshold` is
+     * `false` — so a poisoned vector does not score badly, it *skips the threshold entirely* and is
+     * served as a hit. Worse, sorting puts `NaN` ahead of a perfect 1.0, so one bad entry outranks
+     * every real match in its scope for as long as it lives.
+     *
+     * @throws IllegalArgumentException if [vector] is empty, has zero magnitude, or contains a
+     *   non-finite component.
      */
     public fun normalize(vector: FloatArray): FloatArray {
         require(vector.isNotEmpty()) { "cannot normalize an empty vector" }
         val magnitude = magnitude(vector)
+        require(magnitude.isFinite()) {
+            "embedding contains a non-finite component (NaN or infinity); this is a broken embedder, " +
+                "and letting it through would produce NaN similarities that bypass the threshold"
+        }
         require(magnitude > 0.0) { "cannot normalize a zero-magnitude vector" }
         val result = FloatArray(vector.size)
         for (i in vector.indices) {
