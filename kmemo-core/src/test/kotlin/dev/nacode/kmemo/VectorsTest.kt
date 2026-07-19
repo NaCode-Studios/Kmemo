@@ -60,8 +60,13 @@ class VectorsTest {
         assertEquals(0.0, Vectors.cosineSimilarity(floatArrayOf(0.0f, 0.0f), floatArrayOf(1.0f, 1.0f)), 1e-9)
     }
 
+    /**
+     * Stores read `entry.embedding` and take the dot product against an already-normalized query.
+     * If the entry kept the raw vector, every similarity would be scaled by its magnitude — 50x
+     * here — and the threshold would be meaningless. So the entry itself has to own normalization.
+     */
     @Test
-    fun `an entry normalizes whatever the embedder handed over`() {
+    fun `an entry exposes the normalized vector, not what the embedder handed over`() {
         val entry = CacheEntry(
             id = "id",
             scope = "default",
@@ -71,8 +76,14 @@ class VectorsTest {
             createdAt = Instant.EPOCH,
         )
 
-        assertTrue(Vectors.isNormalized(Vectors.normalize(entry.embedding)))
+        assertTrue(Vectors.isNormalized(entry.embedding), "entry.embedding must be unit length")
+        assertEquals(0.6, entry.embedding[0].toDouble(), 1e-6)
+        assertEquals(0.8, entry.embedding[1].toDouble(), 1e-6)
         assertEquals(2, entry.dimensions)
+
+        // The invariant that makes a plain dot product correct in every CacheStore.
+        val query = Vectors.normalize(floatArrayOf(3.0f, 4.0f))
+        assertEquals(1.0, Vectors.dot(query, entry.embedding), 1e-6)
     }
 
     @Test

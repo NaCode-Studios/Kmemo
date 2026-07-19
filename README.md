@@ -55,6 +55,9 @@ that fill the gap are exactly the ones that get the false-hit problem wrong.
 
 ## Install
 
+> **Not on Maven Central yet.** 0.1.0 is unreleased; build it locally with
+> `./gradlew publishToMavenLocal` and add `mavenLocal()` to your repositories until it ships.
+
 ```kotlin
 dependencies {
     implementation("dev.nacode.kmemo:kmemo-core:0.1.0")
@@ -276,8 +279,8 @@ together and the guards are catching near misses your threshold alone would have
 ## Scope of 0.1
 
 **In:** `SemanticCache`, the `Embedder` and `CacheStore` abstractions, cosine search with a
-configurable threshold, the nine guards, an optional `Verifier` hook, `InMemoryStore` with TTL and
-LRU, `ThresholdCalibrator`, the labelled corpus.
+configurable threshold, the nine default guards plus an opt-in `LengthRatioGuard`, an optional
+`Verifier` hook, `InMemoryStore` with TTL and LRU, `ThresholdCalibrator`, the labelled corpus.
 
 **Not yet:** Redis and Postgres/pgvector adapters, a Spring AI `Advisor`, a LangChain4j wrapper,
 request coalescing for concurrent identical misses, non-English vocabularies (every guard takes its

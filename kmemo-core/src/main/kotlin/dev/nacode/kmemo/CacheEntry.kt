@@ -24,8 +24,7 @@ public class CacheEntry(
     public val prompt: String,
     /** The response to replay when this entry matches. */
     public val response: String,
-    /** Unit-normalized embedding of [prompt]. */
-    public val embedding: FloatArray,
+    embedding: FloatArray,
     /** Write time, used for TTL expiry and for reporting the age of a hit. */
     public val createdAt: Instant,
     /** Free-form caller data, returned untouched on a hit (token counts, model id, trace id...). */
@@ -33,20 +32,26 @@ public class CacheEntry(
 ) {
     init {
         require(id.isNotBlank()) { "id must not be blank" }
-        require(embedding.isNotEmpty()) { "embedding must not be empty" }
     }
+
+    /**
+     * Unit-normalized embedding of [prompt].
+     *
+     * Normalization happens here, once, rather than being asked of every caller — which means a
+     * store rehydrating entries from Redis or Postgres cannot accidentally leave raw vectors in
+     * play and silently compute similarities that are off by their magnitudes.
+     */
+    public val embedding: FloatArray = Vectors.normalize(embedding)
 
     /** Dimensionality of [embedding]. */
     public val dimensions: Int get() = embedding.size
-
-    private val normalizedEmbedding: FloatArray = Vectors.normalize(embedding)
 
     /**
      * Copy of this entry with a different [response], keeping id, embedding and creation time.
      * Useful when refreshing a stale answer without paying to re-embed the prompt.
      */
     public fun withResponse(response: String): CacheEntry =
-        CacheEntry(id, scope, prompt, response, normalizedEmbedding, createdAt, metadata)
+        CacheEntry(id, scope, prompt, response, embedding, createdAt, metadata)
 
     override fun equals(other: Any?): Boolean = this === other || (other is CacheEntry && other.id == id)
 
