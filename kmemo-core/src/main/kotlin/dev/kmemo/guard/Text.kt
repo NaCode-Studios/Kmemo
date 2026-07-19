@@ -11,6 +11,25 @@ internal object Text {
     /** A colon or semicolon never ends a sentence, so neither belongs here. */
     private val SENTENCE_END = setOf('.', '?', '!')
 
+    /**
+     * Whether two prompts say the same thing apart from [ignored] — the words a guard is judging.
+     *
+     * The rule that stops a marker guard from firing on two unrelated prompts. `NegationGuard` sees
+     * that "why can't I connect to the VPN" is negated and "why is my connection to the VPN failing"
+     * is not, and concludes they need different answers. They do not: the negation is incidental
+     * because the prompts are worded differently throughout. Contrast "which foods should I eat
+     * before a run" against "which foods should I **not** eat before a run", where the negation is
+     * the *only* difference and reverses the answer.
+     *
+     * So a marker only counts as evidence when everything around it matches.
+     */
+    fun differsOnlyBy(a: String, b: String, ignored: Set<String>, stopwords: Set<String>): Boolean {
+        val left = contentTokens(a, stopwords).filterNot { it in ignored }
+        val right = contentTokens(b, stopwords).filterNot { it in ignored }
+        if (left.size != right.size) return false
+        return left.indices.all { isSameWord(left[it], right[it]) }
+    }
+
     /** Shortest token allowed to fuzzy-match: below five, one edit separates `cat` from `cut`. */
     private const val MIN_FUZZY_LENGTH = 5
 

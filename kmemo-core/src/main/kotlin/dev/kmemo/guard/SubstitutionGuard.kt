@@ -29,7 +29,7 @@ package dev.kmemo.guard
 public class SubstitutionGuard(
     private val minTokens: Int = DEFAULT_MIN_TOKENS,
     private val stopwords: Set<String> = Vocabulary.STOPWORDS,
-    private val units: Map<String, String> = Vocabulary.UNITS,
+    private val units: Map<String, MeasurementUnit> = Vocabulary.UNITS,
 ) : MatchGuard {
 
     init {

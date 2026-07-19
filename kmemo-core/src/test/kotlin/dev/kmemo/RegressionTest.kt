@@ -277,8 +277,11 @@ class RegressionTest {
     }
 
     @Test
-    fun `asking for more depth is a different question`() {
-        assertTrue(chainRejects("How does HTTPS work?", "How does HTTPS work, in detail?"))
+    fun `a depth request only one side spells out is left to the verifier`() {
+        // ScopeGuard rejects a swapped shape, not an added one. Firing on one-sided evidence
+        // refused "how do I rotate an SSH key" against "what are the steps to rotate an SSH key",
+        // which costs an API call and buys nothing. This residue is what a Verifier is for.
+        assertTrue(!chainRejects("How does HTTPS work?", "How does HTTPS work, in detail?"))
     }
 
     @Test

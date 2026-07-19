@@ -12,6 +12,7 @@ package dev.kmemo.guard
  */
 public class NegationGuard(
     private val markers: Set<String> = Vocabulary.NEGATION_MARKERS,
+    private val stopwords: Set<String> = Vocabulary.STOPWORDS,
 ) : MatchGuard {
 
     override val name: String get() = "negation"
@@ -21,8 +22,13 @@ public class NegationGuard(
         val candidateNegated = isNegated(candidate)
         if (queryNegated == candidateNegated) return GuardVerdict.Accept
 
+        // A negation only reverses the answer when it is the difference. Two prompts worded
+        // differently throughout — "why can't I connect to the VPN" and "why is my connection to
+        // the VPN failing" — happen to differ in negation and mean the same thing.
+        if (!Text.differsOnlyBy(query, candidate, markers, stopwords)) return GuardVerdict.Accept
+
         val negated = if (queryNegated) "query" else "cached prompt"
-        return GuardVerdict.Reject("only the $negated is negated")
+        return GuardVerdict.Reject("otherwise identical, but only the $negated is negated")
     }
 
     private fun isNegated(text: String): Boolean {

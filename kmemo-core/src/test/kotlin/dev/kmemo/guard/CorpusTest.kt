@@ -4,6 +4,7 @@ import dev.kmemo.fixtures.Corpus
 import dev.kmemo.fixtures.CorpusPair
 import dev.kmemo.fixtures.HELD_OUT_CORPUS
 import dev.kmemo.fixtures.TUNED_CORPUS
+import dev.kmemo.fixtures.VALIDATION_CORPUS
 import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -39,26 +40,30 @@ class CorpusTest {
     }
 
     /**
-     * A floor on held-out performance, so a change that only helps the tuned corpus cannot pass
-     * unnoticed.
+     * Floors on the two out-of-sample corpora, so a change that only helps the tuned set cannot
+     * pass unnoticed.
      *
-     * The floor is deliberately set just under the current measurement rather than at an aspiration.
-     * Its job is to fail when the number moves down, not to assert that the number is good.
+     * Each floor sits just under the current measurement rather than at an aspiration. Its job is to
+     * fail when the number moves down, not to claim the number is good.
      */
     @Test
-    fun `held-out performance does not regress`() {
+    fun `out-of-sample performance does not regress`() {
         val guards = MatchGuards.standard()
-        val caught = HELD_OUT_CORPUS.nearMisses.count { rejectionFor(guards, it) != null }
-        val kept = HELD_OUT_CORPUS.paraphrases.count { rejectionFor(guards, it) == null }
-
-        assertTrue(
-            caught >= HELD_OUT_NEAR_MISS_FLOOR,
-            "held-out caught $caught/${HELD_OUT_CORPUS.nearMisses.size}, below the $HELD_OUT_NEAR_MISS_FLOOR floor",
-        )
-        assertTrue(
-            kept >= HELD_OUT_PARAPHRASE_FLOOR,
-            "held-out kept $kept/${HELD_OUT_CORPUS.paraphrases.size}, below the $HELD_OUT_PARAPHRASE_FLOOR floor",
-        )
+        for ((corpus, floors) in mapOf(
+            HELD_OUT_CORPUS to (HELD_OUT_NEAR_MISS_FLOOR to HELD_OUT_PARAPHRASE_FLOOR),
+            VALIDATION_CORPUS to (VALIDATION_NEAR_MISS_FLOOR to VALIDATION_PARAPHRASE_FLOOR),
+        )) {
+            val caught = corpus.nearMisses.count { rejectionFor(guards, it) != null }
+            val kept = corpus.paraphrases.count { rejectionFor(guards, it) == null }
+            assertTrue(
+                caught >= floors.first,
+                "${corpus.name} caught $caught/${corpus.nearMisses.size}, below the ${floors.first} floor",
+            )
+            assertTrue(
+                kept >= floors.second,
+                "${corpus.name} kept $kept/${corpus.paraphrases.size}, below the ${floors.second} floor",
+            )
+        }
     }
 
     @Test
@@ -74,9 +79,14 @@ class CorpusTest {
     @Test
     fun `print corpus report`() {
         println()
-        for (corpus in listOf(TUNED_CORPUS, HELD_OUT_CORPUS)) {
+        for (corpus in listOf(TUNED_CORPUS, HELD_OUT_CORPUS, VALIDATION_CORPUS)) {
             report(corpus)
         }
+        println("Near misses that still get through, on the validation set:")
+        VALIDATION_CORPUS.nearMisses
+            .filter { rejectionFor(MatchGuards.standard(), it) == null }
+            .forEach { println("  [${it.category}] ${it.a}  ||  ${it.b}") }
+        println()
         println("The tuned corpus is in-sample: the guards were fitted against it. Only the held-out")
         println("numbers describe what the guards do to prompts nobody tuned against.")
         println()
@@ -131,8 +141,10 @@ class CorpusTest {
     }
 
     private companion object {
-        private const val TUNED_NEAR_MISS_FLOOR = 64
+        private const val TUNED_NEAR_MISS_FLOOR = 63
         private const val HELD_OUT_NEAR_MISS_FLOOR = 58
-        private const val HELD_OUT_PARAPHRASE_FLOOR = 25
+        private const val HELD_OUT_PARAPHRASE_FLOOR = 35
+        private const val VALIDATION_NEAR_MISS_FLOOR = 65
+        private const val VALIDATION_PARAPHRASE_FLOOR = 43
     }
 }

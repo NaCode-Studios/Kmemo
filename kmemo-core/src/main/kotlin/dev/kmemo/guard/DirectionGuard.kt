@@ -31,6 +31,7 @@ public class DirectionGuard(
 
     override fun evaluate(query: String, candidate: String): GuardVerdict {
         if (!hasDirectionalCue(query) && !hasDirectionalCue(candidate)) return GuardVerdict.Accept
+        if (isSymmetricComparison(query) || isSymmetricComparison(candidate)) return GuardVerdict.Accept
 
         val queryTokens = Text.contentTokens(query, stopwords)
         val candidateTokens = Text.contentTokens(candidate, stopwords)
@@ -47,6 +48,23 @@ public class DirectionGuard(
     private fun hasDirectionalCue(text: String): Boolean = Text.tokens(text).any { it in cues }
 
     /**
+     * Whether the prompt asks the reader to *choose between* two things rather than to judge one
+     * against the other.
+     *
+     * "Is Postgres better than MySQL?" is a yes/no question, and reversing the operands asks the
+     * opposite. "Which is better, Redis or Memcached?" and "Vim vs Emacs for large files" ask for a
+     * winner, and the order the candidates are listed in changes nothing — those are the same
+     * question and must stay a hit.
+     *
+     * `than` is what marks the asymmetric form, so a comparison without it is a selection.
+     */
+    private fun isSymmetricComparison(text: String): Boolean {
+        val tokens = Text.tokens(text)
+        if ("than" in tokens) return false
+        return tokens.any { it in SYMMETRIC_COORDINATORS }
+    }
+
+    /**
      * Whether [b] is [a] with some prefix moved to the end — a fronted phrase, not a swap.
      *
      * Two tokens are the awkward case, because there every permutation is a rotation. What
@@ -56,6 +74,11 @@ public class DirectionGuard(
      * tokens, so the other cannot be its counterpart, and "In Rails, how do I migrate" is the same
      * question with the phrase moved.
      */
+    private companion object {
+        /** Words that list alternatives rather than rank one against another. */
+        private val SYMMETRIC_COORDINATORS = setOf("or", "vs", "versus", "between")
+    }
+
     private fun isRotationOf(a: List<String>, b: List<String>): Boolean {
         if (a.size != b.size) return false
         if (a.size < 2) return false

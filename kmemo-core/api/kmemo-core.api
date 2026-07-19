@@ -306,10 +306,23 @@ public final class dev/kmemo/guard/MatchGuards {
 	public final fun strict ()Ljava/util/List;
 }
 
+public final class dev/kmemo/guard/MeasurementUnit {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/MeasurementUnit;
+	public static synthetic fun copy$default (Ldev/kmemo/guard/MeasurementUnit;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/kmemo/guard/MeasurementUnit;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCanonical ()Ljava/lang/String;
+	public final fun getDimension ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/kmemo/guard/NegationGuard : dev/kmemo/guard/MatchGuard {
 	public fun <init> ()V
-	public fun <init> (Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/Set;Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
 	public fun getName ()Ljava/lang/String;
 }
@@ -343,8 +356,8 @@ public final class dev/kmemo/guard/SubstitutionGuard$Companion {
 
 public final class dev/kmemo/guard/TemporalGuard : dev/kmemo/guard/MatchGuard {
 	public fun <init> ()V
-	public fun <init> (Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/util/Set;Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
 	public fun getName ()Ljava/lang/String;
 }

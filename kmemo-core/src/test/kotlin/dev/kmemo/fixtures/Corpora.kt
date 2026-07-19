@@ -78,3 +78,20 @@ val TUNED_CORPUS: Corpus = Corpus("/near-miss-corpus.json", "tuned")
  * [TUNED_CORPUS]; report both.
  */
 val HELD_OUT_CORPUS: Corpus = Corpus("/held-out-corpus.json", "held-out")
+
+/**
+ * The validation set — 153 pairs across cooking, gardening, home repair, insurance, travel, pets,
+ * cars, music, photography, childcare and more, of which only a sixth is software.
+ *
+ * **Provenance.** Written blind: the author was given a description of what a semantic cache is and
+ * how it fails, and was shown no guard source, no vocabulary and no existing corpus. It was written
+ * *before* the guard fixes it grades, so nothing in it could have been aimed at them.
+ *
+ * **Nine tenths of its prompts are lowercase**, on purpose. Real users type that way, and an earlier
+ * measurement showed capitalization was silently carrying a third of the entity catches — a corpus
+ * written in tidy prose hides exactly that.
+ *
+ * **This one is never tuned against, not once.** [HELD_OUT_CORPUS] stopped being a clean measure the
+ * moment its failures were used to guide fixes. This is the number to quote.
+ */
+val VALIDATION_CORPUS: Corpus = Corpus("/validation-corpus.json", "validation")

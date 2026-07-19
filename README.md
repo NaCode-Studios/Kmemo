@@ -222,61 +222,45 @@ The interesting engineering is in **not** over-rejecting:
 
 ### Correctness, measured
 
-kmemo ships **two** labelled corpora, and the split is the point.
+kmemo ships **three** labelled corpora, and the separation between them is the point. Tuning a guard
+against a corpus and then quoting that corpus as evidence measures the tuning, not the guard.
 
-`near-miss-corpus.json` — 109 pairs, 71 that must never share a cached answer and 38 paraphrases that
-must — is what the guards were **tuned on**. `held-out-corpus.json` — 128 pairs in domains the first
-never touches: clinical dosing, tax jurisdictions, isolation levels, shell dialects, HTTP status
-codes — is what they are **measured on**. Both run on every build.
-
-```
-tuned     corpus: near misses rejected  68/71 (96%),  paraphrases kept 38/38 (100%)
-held-out  corpus: near misses rejected  61/86 (71%),  paraphrases kept 26/42 ( 62%)
-```
-
-
-> **The tuned numbers are in-sample.** The guards were fitted against that corpus over several
-> review rounds, so it measures the fitting as much as the guards. The held-out set exists because
-> the first time anyone tried prompts from outside it, the catch rate was **26%**, not 96%. Adding
-> `SubstitutionGuard` — which reads structure rather than capitalization or word lists — took the
-> held-out figure from 26% to 71%.
->
-> The held-out corpus is never tuned against. Guard changes are tuned on the first corpus and
-> *reported* on the second; the moment a guard is adjusted to make a held-out pair pass, the number
-> stops meaning anything.
-
-What still generalizes badly: `TemporalGuard`, `ScopeGuard`, `DirectionGuard` and
-`LexicalDivergenceGuard` are closed word lists sized to the corpus they were written against, and on
-held-out prompts they catch almost nothing while causing most of the false rejections. `NumericGuard`
-and `SubstitutionGuard` need no vocabulary and carry the result.
-
-The three near misses that get through are honest limitations, and really two: a salmon-versus-chicken
-swap that appears in the corpus twice and needs world knowledge no lexical rule has, plus an unmarked
-depth qualifier (`how does HTTPS work` vs `how does HTTPS work at the packet level`). That is what the
-`Verifier` hook is for.
-
-Note that `strict()` catches nothing extra on this corpus while rejecting 5 of the 38 must-match
-pairs — 13% overall, concentrated as 38% of the `paraphrase` category. It exists for traffic whose near misses are lexically distant in ways this corpus does not model —
-measure it against your own pairs before choosing it.
-
-Running the calibrator over the same corpus with a deliberately adversarial stub embedder — one
-built so that a one-token swap barely moves the vector, putting 25 of the 71 near misses above 0.99:
-
-| | best false-hit rate reachable | hits at that setting |
+| Corpus | Pairs | Role |
 | --- | --- | --- |
-| similarity threshold alone | **35.2%** (no threshold in `0.70..0.99` did better) | 6 |
-| similarity + standard guards | **0%**, at threshold 0.81 | 7 |
+| `near-miss-corpus.json` | 109 | What the guards were **tuned on**. In-sample; a regression test, not a measurement. |
+| `held-out-corpus.json` | 128 | Written after the guards, in domains the first never touches. Its failures were used to guide fixes, so it is no longer pristine. |
+| `validation-corpus.json` | 153 | Written **blind** — its author saw no guard source, no vocabulary, no other corpus — and never tuned against. This is the number to trust. |
 
-The comparison that matters is at a *fixed* threshold, where guards cost nothing and remove almost
-everything: at 0.70, 64 false hits become 3; at 0.81, 56 become 0 — with the identical number of
-real hits in each case. Guards do not trade recall for safety, which is what lets you spend the
-threshold on recall instead: 0.81 with guards returns more hits than 0.96 without, and returns no
-wrong answers. Similarity alone reaches more hits only by dropping to 0.70, where two thirds of what
-it serves is wrong.
+```
+tuned       near misses rejected  65/71  (92%),  paraphrases kept 38/38 (100%)
+held-out    near misses rejected  61/86  (71%),  paraphrases kept 37/42  (88%)
+validation  near misses rejected  68/102 (67%),  paraphrases kept 45/51  (88%)
+```
 
-> The stub embedder is built to make near misses look identical, so these false-hit figures
-> demonstrate the mechanism honestly. The absolute recall numbers are not representative of a real
-> embedding model, which rewards paraphrases in a way the stub deliberately does not.
+Nine tenths of the validation prompts are lowercase, deliberately. Real users type that way, and an
+earlier measurement showed capitalization was quietly carrying a third of the entity catches — a
+corpus written in tidy prose hides exactly that failure. The two out-of-sample corpora agree with
+each other (71%/88% and 67%/88%), which is the evidence that the guards now generalize rather than
+remember.
+
+**How this got here, since the trajectory is the honest part of the story.** The first measurement
+against out-of-sample prompts scored **26%**, against 96% in-sample. Two changes closed most of the
+gap. `SubstitutionGuard` reads structure instead of capitalization: same words in the same order,
+differing in exactly one position, means a term was substituted whatever case it was typed in.
+And the marker guards — negation, temporal, scope — stopped firing on lone keywords and now require
+the rest of the prompt to match, which is why "why can't I connect to the VPN" no longer counts as a
+different question from "why is my connection to the VPN failing".
+
+What the guards still cannot do is anything that needs world knowledge. `deworm a puppy` versus
+`deworm an adult dog`, `boiling point of ethanol` versus `methanol` — no lexical rule separates
+those, and a third of the validation near misses are of that kind. That is what the optional
+`Verifier` is for.
+
+Run it yourself:
+
+```bash
+./gradlew :kmemo-core:test --tests '*CorpusTest*'
+```
 
 ## Roadmap
 

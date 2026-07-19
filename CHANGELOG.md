@@ -6,7 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `SubstitutionGuard` — rejects prompts identical but for one word, reading structure rather than
+  capitalization. It is what raised out-of-sample near-miss detection from 26% to about 70%.
+- `validation-corpus.json` — 153 pairs written blind, never tuned against, nine tenths lowercase.
+  With `near-miss-corpus.json` (tuned on) and `held-out-corpus.json`, the project now reports three
+  numbers and says which one to trust.
+- `MeasurementUnit` — units carry the dimension they measure, so `UnitGuard` no longer reads a mass
+  appearing where a currency does as a swapped unit.
+
 ### Changed
+
+- The marker guards (`NegationGuard`, `TemporalGuard`) require the rest of the prompt to match
+  before a keyword counts as evidence. A lone `not` or `current` was refusing genuine paraphrases —
+  "why can't I connect to the VPN" against "why is my connection to the VPN failing" — while
+  catching nothing out of sample.
+- `ScopeGuard` and `EntityGuard` reject a substitution, never an addition. `EntityGuard` also
+  recognises an acronym written out in full, so `GDPR` matches `General Data Protection Regulation`.
+- `DirectionGuard` distinguishes an asymmetric comparison (`is A better than B`) from a symmetric
+  selection (`which is better, A or B`), which reverses meaning only in the first case.
 
 - Aligned with the NaCode Studios library conventions: coordinates are `io.github.nacode-studios`,
   the package is `dev.kmemo`, and the build tracks its public API with

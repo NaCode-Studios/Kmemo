@@ -185,11 +185,21 @@ class GuardsTest {
     }
 
     @Test
-    fun `scope guard rejects a request for more depth`() {
+    fun `scope guard rejects a swapped format`() {
         assertRejects(
             ScopeGuard(),
-            "What is a Kalman filter?",
-            "Derive the Kalman filter equations step by step",
+            "Give me a code example of a Python decorator",
+            "Explain the theory behind Python decorators",
+        )
+    }
+
+    @Test
+    fun `scope guard accepts a format named on one side only`() {
+        // An addition is not a swap: only one of these names a shape, and they are one question.
+        assertAccepts(
+            ScopeGuard(),
+            "How do I rotate an SSH host key on a server?",
+            "What are the steps to rotate an SSH host key on a server?",
         )
     }
 

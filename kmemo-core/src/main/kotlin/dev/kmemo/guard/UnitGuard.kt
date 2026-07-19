@@ -20,7 +20,7 @@ package dev.kmemo.guard
  * swap. See [Vocabulary.UNITS].
  */
 public class UnitGuard(
-    private val units: Map<String, String> = Vocabulary.UNITS,
+    private val units: Map<String, MeasurementUnit> = Vocabulary.UNITS,
 ) : MatchGuard {
 
     override val name: String get() = "unit"
@@ -32,11 +32,20 @@ public class UnitGuard(
         val onlyInCandidate = candidateUnits - queryUnits
         if (onlyInQuery.isEmpty() || onlyInCandidate.isEmpty()) return GuardVerdict.Accept
 
+        // Only units of the same kind are comparable. A mass appearing where a currency appears is
+        // two ways of writing one question — "250 euros in British pounds" against "250 EUR in
+        // GBP" — not a swapped unit.
+        val dimensions = onlyInQuery.map { it.dimension }.toSet()
+        val swapped = onlyInQuery.filter { left -> onlyInCandidate.any { it.dimension == left.dimension } }
+        if (swapped.isEmpty()) return GuardVerdict.Accept
+
+        val counterparts = onlyInCandidate.filter { it.dimension in dimensions }
         return GuardVerdict.Reject(
-            "units swapped: query says $onlyInQuery where cached prompt says $onlyInCandidate",
+            "units swapped: query says ${swapped.map { it.canonical }} " +
+                "where cached prompt says ${counterparts.map { it.canonical }}",
         )
     }
 
-    private fun unitsIn(text: String): Set<String> =
+    private fun unitsIn(text: String): Set<MeasurementUnit> =
         Text.tokens(text).mapNotNullTo(LinkedHashSet()) { units[it] }
 }

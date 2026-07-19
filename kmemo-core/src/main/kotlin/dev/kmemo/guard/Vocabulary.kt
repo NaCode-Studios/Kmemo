@@ -11,6 +11,20 @@ package dev.kmemo.guard
  * "the next step" has nothing to do with time. Same reasoning kept the ambiguous unit abbreviations
  * (`in`, `m`, `s`) out of [UNITS] — they collide with ordinary English words far too often.
  */
+/**
+ * A unit of measure: its canonical name, and the kind of quantity it measures.
+ *
+ * [dimension] is what stops [UnitGuard] comparing across kinds. `pound` is a mass and `gbp` is a
+ * currency, so "250 euros in British pounds" and "250 EUR in GBP" look like a unit swap while being
+ * the same question written two ways. Units are only comparable when they measure the same thing.
+ */
+public data class MeasurementUnit(
+    /** Name shared by every spelling of this unit. */
+    public val canonical: String,
+    /** The kind of quantity — `length`, `mass`, `currency`, `timezone`, and so on. */
+    public val dimension: String,
+)
+
 public object Vocabulary {
 
     /**
@@ -38,6 +52,11 @@ public object Vocabulary {
         "might", "must", "cant", "dont", "doesnt", "isnt", "arent", "wasnt", "werent", "didnt",
         "wont", "couldnt", "shouldnt", "wouldnt", "hasnt", "havent", "hadnt", "im", "ive", "id",
         "youre", "theyre", "lets", "s", "t", "d", "ll", "re", "ve", "m",
+        // What a tokenizer that splits on apostrophes leaves behind: "doesn't" becomes "doesn" and
+        // "t". Without these, the stem counts as a content word and every contraction looks like a
+        // prompt with an extra term in it.
+        "doesn", "don", "isn", "aren", "wasn", "weren", "didn", "won", "couldn", "shouldn",
+        "wouldn", "hasn", "haven", "hadn", "ain", "shan", "mustn", "needn",
         // politeness and conversational filler
         "please", "thanks", "thank", "thankyou", "hi", "hello", "hey", "kindly", "sorry", "ok",
         "okay", "sure", "well", "actually", "basically", "really", "maybe",
@@ -77,104 +96,109 @@ public object Vocabulary {
      * `try` (Turkish lira) and `real` (Brazilian real) all appear far more often as ordinary words
      * than as units, and a guard that fires on "how do I try this" is worse than no guard.
      */
-    public val UNITS: Map<String, String> = buildMap {
+    public val UNITS: Map<String, MeasurementUnit> = buildMap {
         // length
-        unit("mm")
-        unit("cm")
-        unit("km", "kilometer", "kilometers", "kilometre", "kilometres")
-        unit("meter", "meters", "metre", "metres")
-        unit("inch", "inches")
-        unit("ft", "foot", "feet")
-        unit("yard", "yards")
-        unit("mile", "mi", "miles")
+        unit("length", "mm")
+        unit("length", "cm")
+        unit("length", "km", "kilometer", "kilometers", "kilometre", "kilometres")
+        unit("length", "meter", "meters", "metre", "metres")
+        unit("length", "inch", "inches")
+        unit("length", "ft", "foot", "feet")
+        unit("length", "yard", "yards")
+        unit("length", "mile", "mi", "miles")
         // mass
-        unit("mg")
-        unit("gram", "grams")
-        unit("kg", "kilogram", "kilograms")
-        unit("pound", "lb", "lbs", "pounds")
-        unit("ounce", "oz", "ounces")
+        unit("mass", "mg")
+        unit("mass", "gram", "grams")
+        unit("mass", "kg", "kilogram", "kilograms")
+        unit("mass", "pound", "lb", "lbs", "pounds")
+        unit("mass", "ounce", "oz", "ounces")
         // Short ton (907 kg) and metric tonne (1000 kg) are different units, not spellings.
-        unit("ton", "tons")
-        unit("tonne", "tonnes")
-        unit("stone", "stones")
+        unit("mass", "ton", "tons")
+        unit("mass", "tonne", "tonnes")
+        unit("mass", "stone", "stones")
         // volume
-        unit("ml")
-        unit("cl")
-        unit("dl")
-        unit("liter", "liters", "litre", "litres")
-        unit("gallon", "gallons")
-        unit("pint", "pints")
-        unit("quart", "quarts")
-        unit("cup", "cups")
-        unit("tbsp", "tablespoon", "tablespoons")
-        unit("tsp", "teaspoon", "teaspoons")
+        unit("volume", "ml")
+        unit("volume", "cl")
+        unit("volume", "dl")
+        unit("volume", "liter", "liters", "litre", "litres")
+        unit("volume", "gallon", "gallons")
+        unit("volume", "pint", "pints")
+        unit("volume", "quart", "quarts")
+        unit("volume", "cup", "cups")
+        unit("volume", "tbsp", "tablespoon", "tablespoons")
+        unit("volume", "tsp", "teaspoon", "teaspoons")
         // temperature
-        unit("celsius", "centigrade")
-        unit("fahrenheit")
-        unit("kelvin")
+        unit("temperature", "celsius", "centigrade")
+        unit("temperature", "fahrenheit")
+        unit("temperature", "kelvin")
         // currency
-        unit("usd", "dollar", "dollars")
-        unit("eur", "euro", "euros")
-        unit("gbp")
-        unit("jpy", "yen")
-        unit("chf", "franc", "francs")
-        unit("cad")
-        unit("aud")
-        unit("nzd")
-        unit("inr", "rupee", "rupees")
-        unit("cny")
-        unit("hkd")
-        unit("sgd")
-        unit("sek")
-        unit("nok")
-        unit("dkk")
-        unit("pln")
-        unit("czk")
-        unit("huf")
-        unit("zar")
-        unit("brl")
-        unit("mxn", "peso", "pesos")
-        unit("krw")
-        unit("btc", "bitcoin")
-        unit("eth", "ether")
+        unit("currency", "usd", "dollar", "dollars")
+        unit("currency", "eur", "euro", "euros")
+        unit("currency", "gbp")
+        unit("currency", "jpy", "yen")
+        unit("currency", "chf", "franc", "francs")
+        unit("currency", "cad")
+        unit("currency", "aud")
+        unit("currency", "nzd")
+        unit("currency", "inr", "rupee", "rupees")
+        unit("currency", "cny")
+        unit("currency", "hkd")
+        unit("currency", "sgd")
+        unit("currency", "sek")
+        unit("currency", "nok")
+        unit("currency", "dkk")
+        unit("currency", "pln")
+        unit("currency", "czk")
+        unit("currency", "huf")
+        unit("currency", "zar")
+        unit("currency", "brl")
+        unit("currency", "mxn", "peso", "pesos")
+        unit("currency", "krw")
+        unit("currency", "btc", "bitcoin")
+        unit("currency", "eth", "ether")
         // digital storage
-        unit("kb", "kilobyte", "kilobytes")
-        unit("mb", "megabyte", "megabytes")
-        unit("gb", "gigabyte", "gigabytes")
-        unit("tb", "terabyte", "terabytes")
-        unit("pb")
-        unit("kib")
-        unit("mib")
-        unit("gib")
-        unit("tib")
-        unit("byte", "bytes")
+        unit("data", "kb", "kilobyte", "kilobytes")
+        unit("data", "mb", "megabyte", "megabytes")
+        unit("data", "gb", "gigabyte", "gigabytes")
+        unit("data", "tb", "terabyte", "terabytes")
+        unit("data", "pb")
+        unit("data", "kib")
+        unit("data", "mib")
+        unit("data", "gib")
+        unit("data", "tib")
+        unit("data", "byte", "bytes")
         // time and speed
-        unit("ms", "millisecond", "milliseconds")
-        unit("second", "seconds")
-        unit("minute", "minutes")
-        unit("hour", "hours")
-        unit("day", "days")
-        unit("week", "weeks")
-        unit("month", "months")
-        unit("year", "years")
-        unit("mph")
-        unit("kph", "kmh")
-        unit("knots")
+        unit("time", "ms", "millisecond", "milliseconds")
+        unit("time", "second", "seconds")
+        unit("time", "minute", "minutes")
+        unit("time", "hour", "hours")
+        unit("time", "day", "days")
+        unit("time", "week", "weeks")
+        unit("time", "month", "months")
+        unit("time", "year", "years")
+        unit("speed", "mph")
+        unit("speed", "kph", "kmh")
+        unit("speed", "knots")
         // Time zones. UTC and GMT are the same offset; standard and daylight time are one hour
         // apart, so each keeps its own canonical name.
-        unit("utc", "gmt")
-        unit("cet")
-        unit("cest")
-        unit("est")
-        unit("edt")
-        unit("pst")
-        unit("pdt")
-        unit("bst")
+        unit("timezone", "utc", "gmt")
+        unit("timezone", "cet")
+        unit("timezone", "cest")
+        unit("timezone", "est")
+        unit("timezone", "edt")
+        unit("timezone", "pst")
+        unit("timezone", "pdt")
+        unit("timezone", "bst")
     }
 
-    private fun MutableMap<String, String>.unit(canonical: String, vararg variants: String) {
-        put(canonical, canonical)
-        for (variant in variants) put(variant, canonical)
+    private fun MutableMap<String, MeasurementUnit>.unit(
+        dimension: String,
+        canonical: String,
+        vararg variants: String,
+    ) {
+        val value = MeasurementUnit(canonical, dimension)
+        put(canonical, value)
+        for (variant in variants) put(variant, value)
     }
 
     /**
@@ -248,7 +272,7 @@ public object Vocabulary {
         "summarize", "summarise", "tldr", "outline", "checklist", "tutorial", "walkthrough",
         // requested depth and length
         "detailed", "detail", "details", "depth", "brief", "briefly", "concise", "comprehensive", "thorough",
-        "exhaustive", "overview", "advanced", "beginner", "eli5", "extensive", "step", "steps",
+        "exhaustive", "overview", "advanced", "beginner", "eli5", "extensive",
         "sentence", "sentences", "paragraph", "paragraphs",
     )
 
