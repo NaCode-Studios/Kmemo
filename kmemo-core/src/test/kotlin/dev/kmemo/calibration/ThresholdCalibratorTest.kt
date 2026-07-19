@@ -1,7 +1,7 @@
 package dev.kmemo.calibration
 
 import dev.kmemo.fixtures.ConceptEmbedder
-import dev.kmemo.fixtures.NearMissCorpus
+import dev.kmemo.fixtures.TUNED_CORPUS
 import dev.kmemo.guard.MatchGuards
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -36,7 +36,7 @@ class ThresholdCalibratorTest {
      */
     @Test
     fun `guards buy false-hit rate that no threshold can`() = runTest {
-        val pairs = NearMissCorpus.asPromptPairs()
+        val pairs = TUNED_CORPUS.asPromptPairs()
         val embedder = ConceptEmbedder()
 
         val withoutGuards = ThresholdCalibrator(embedder, MatchGuards.none()).calibrate(pairs)
@@ -61,7 +61,7 @@ class ThresholdCalibratorTest {
     @Test
     fun `the recommendation stays inside the false-hit budget when one is reachable`() = runTest {
         val report = ThresholdCalibrator(ConceptEmbedder(), MatchGuards.standard())
-            .calibrate(NearMissCorpus.asPromptPairs(), maxFalseHitRate = 0.05)
+            .calibrate(TUNED_CORPUS.asPromptPairs(), maxFalseHitRate = 0.05)
 
         assertTrue(
             report.recommended.falseHitRate <= 0.05,
@@ -72,7 +72,7 @@ class ThresholdCalibratorTest {
     @Test
     fun `a lower threshold never returns fewer hits`() = runTest {
         val report = ThresholdCalibrator(ConceptEmbedder(), MatchGuards.none())
-            .calibrate(NearMissCorpus.asPromptPairs())
+            .calibrate(TUNED_CORPUS.asPromptPairs())
 
         report.outcomes.zipWithNext { lower, higher ->
             assertTrue(

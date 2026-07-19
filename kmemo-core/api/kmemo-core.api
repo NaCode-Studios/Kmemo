@@ -328,6 +328,19 @@ public final class dev/kmemo/guard/ScopeGuard : dev/kmemo/guard/MatchGuard {
 	public fun getName ()Ljava/lang/String;
 }
 
+public final class dev/kmemo/guard/SubstitutionGuard : dev/kmemo/guard/MatchGuard {
+	public static final field Companion Ldev/kmemo/guard/SubstitutionGuard$Companion;
+	public static final field DEFAULT_MIN_TOKENS I
+	public fun <init> ()V
+	public fun <init> (ILjava/util/Set;Ljava/util/Map;)V
+	public synthetic fun <init> (ILjava/util/Set;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/SubstitutionGuard$Companion {
+}
+
 public final class dev/kmemo/guard/TemporalGuard : dev/kmemo/guard/MatchGuard {
 	public fun <init> ()V
 	public fun <init> (Ljava/util/Set;)V
@@ -350,6 +363,7 @@ public final class dev/kmemo/guard/Vocabulary {
 	public final fun getDIRECTIONAL_CUES ()Ljava/util/Set;
 	public final fun getNEGATION_MARKERS ()Ljava/util/Set;
 	public final fun getSCOPE_MARKERS ()Ljava/util/Set;
+	public final fun getSENTENCE_OPENERS ()Ljava/util/Set;
 	public final fun getSTOPWORDS ()Ljava/util/Set;
 	public final fun getTEMPORAL_MARKERS ()Ljava/util/Set;
 	public final fun getUNITS ()Ljava/util/Map;

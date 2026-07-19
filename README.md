@@ -36,12 +36,12 @@ val answer = cache.getOrPut(prompt) { llm.complete(it) }
 kmemo caches responses for embeddings you already have — `openAi.embed` above is your own embedding
 source; kmemo ships none and depends on no provider SDK.
 
-> **Status — early development.** The cache, the nine guards, the in-memory store and the threshold
+> **Status — early development.** The cache, the ten guards, the in-memory store and the threshold
 > calibrator are implemented and tested against a labelled corpus. APIs may change before `1.0`.
 
 ## Why kmemo
 
-- **Guards against false hits** — nine lexical checks catch near misses a threshold cannot: swapped
+- **Guards against false hits** — ten lexical checks catch near misses a threshold cannot: swapped
   numbers, units, entities, time references, negation, flipped antonyms, reversed comparisons, a
   different answer being asked for. They run against a labelled corpus on every build, and the
   numbers are reported honestly — see [Correctness, measured](#correctness-measured) for what they
@@ -194,7 +194,8 @@ is often a perfectly good answer.
 | `TemporalGuard` | different absolute time reference | `weather today` vs `weather tomorrow` |
 | `NegationGuard` | one prompt is negated, the other is not | `should I eat X` vs `should I not eat X` |
 | `AntonymGuard` | a word is flipped to its opposite | `enable 2FA` vs `disable 2FA` |
-| `EntityGuard` | named entities are swapped | `capital of Australia` vs `capital of Austria` |
+| `EntityGuard` | capitalized named entities are swapped | `capital of Australia` vs `capital of Austria` |
+| `SubstitutionGuard` | prompts are identical but for one word | `sales tax in oregon` vs `sales tax in washington` |
 | `ScopeGuard` | a different answer is asked for | `write a haiku` vs `write a sonnet` |
 | `DirectionGuard` | same words, reversed comparison or conversion | `Convert 500 EUR to USD` vs `Convert 500 USD to EUR` |
 | `LexicalDivergenceGuard` | the prompts share almost no content words | backstop for everything else |
@@ -221,45 +222,33 @@ The interesting engineering is in **not** over-rejecting:
 
 ### Correctness, measured
 
-kmemo ships a corpus of **109 labelled prompt pairs** (`near-miss-corpus.json`): 71 that must never
-share a cached answer, and 38 genuine paraphrases that must. The near misses are mostly a single
-token apart, because that is where a semantic cache actually breaks. The corpus carries its own
-control group, so a guard set that rejects everything scores zero rather than looking perfect.
+kmemo ships **two** labelled corpora, and the split is the point.
+
+`near-miss-corpus.json` — 109 pairs, 71 that must never share a cached answer and 38 paraphrases that
+must — is what the guards were **tuned on**. `held-out-corpus.json` — 128 pairs in domains the first
+never touches: clinical dosing, tax jurisdictions, isolation levels, shell dialects, HTTP status
+codes — is what they are **measured on**. Both run on every build.
 
 ```
-category                  pairs   standard     strict
-comparative-direction         8       100%       100%   must not match
-entity-swap                  13        85%        85%   must not match
-negation                      5       100%       100%   must not match
-numeric-swap                 13       100%       100%   must not match
-polarity-antonym              9       100%       100%   must not match
-scope-shift                   8        88%        88%   must not match
-temporal                      7       100%       100%   must not match
-unit-swap                     8       100%       100%   must not match
-paraphrase                   13       100%        62%   must match
-politeness                    6       100%       100%   must match
-typo                          6       100%       100%   must match
-verbosity                     7       100%       100%   must match
-word-order                    6       100%       100%   must match
+tuned     corpus: near misses rejected  68/71 (96%),  paraphrases kept 38/38 (100%)
+held-out  corpus: near misses rejected  61/86 (71%),  paraphrases kept 26/42 ( 62%)
 ```
 
-> **The numbers above are in-sample.** The guards were tuned against this corpus over three review
-> rounds, so the table measures the corpus at least as much as it measures the guards. On a held-out
-> set of 128 pairs written afterwards, in domains the corpus does not cover — clinical dosing, tax
-> jurisdictions, database isolation levels, shell dialects, HTTP status codes — the same chain
-> rejects **22 of 86 near misses (26%)** and keeps **27 of 42 paraphrases (64%)**.
+
+> **The tuned numbers are in-sample.** The guards were fitted against that corpus over several
+> review rounds, so it measures the fitting as much as the guards. The held-out set exists because
+> the first time anyone tried prompts from outside it, the catch rate was **26%**, not 96%. Adding
+> `SubstitutionGuard` — which reads structure rather than capitalization or word lists — took the
+> held-out figure from 26% to 71%.
 >
-> The corpus demonstrates the cause with its own data: lowercasing every prompt in it, changing
-> nothing but letter case, drops its catch rate from 96% to 79%. A third of the catches ride on
-> capitalization convention rather than on meaning.
->
-> What generalizes is `NumericGuard`, which reads digits and needs no vocabulary, and `EntityGuard`
-> *when the distinguishing word happens to be capitalized*. The guards built on closed word lists —
-> `TemporalGuard`, `ScopeGuard`, `DirectionGuard`, `AntonymGuard` — are sized to the 109 pairs they
-> were fitted against, and on the held-out set they caught nothing while causing false rejections.
->
-> Read the table as a regression test, not as a forecast for your traffic. Calibrate against your
-> own pairs, and use a `Verifier` for the distinctions no word list can make.
+> The held-out corpus is never tuned against. Guard changes are tuned on the first corpus and
+> *reported* on the second; the moment a guard is adjusted to make a held-out pair pass, the number
+> stops meaning anything.
+
+What still generalizes badly: `TemporalGuard`, `ScopeGuard`, `DirectionGuard` and
+`LexicalDivergenceGuard` are closed word lists sized to the corpus they were written against, and on
+held-out prompts they catch almost nothing while causing most of the false rejections. `NumericGuard`
+and `SubstitutionGuard` need no vocabulary and carry the result.
 
 The three near misses that get through are honest limitations, and really two: a salmon-versus-chicken
 swap that appears in the corpus twice and needs world knowledge no lexical rule has, plus an unmarked
@@ -292,7 +281,7 @@ it serves is wrong.
 ## Roadmap
 
 **Now** — `SemanticCache` with scopes, stats and typed misses; `Embedder` and `CacheStore` seams;
-nine guards plus an opt-in `LengthRatioGuard`; an optional `Verifier`; `InMemoryStore` with TTL and
+ten guards plus an opt-in `LengthRatioGuard`; an optional `Verifier`; `InMemoryStore` with TTL and
 LRU; `ThresholdCalibrator`; the labelled corpus.
 
 **Next** — Redis and Postgres/pgvector stores, a Spring AI `Advisor` and a LangChain4j wrapper

@@ -11,6 +11,15 @@ internal object Text {
     /** A colon or semicolon never ends a sentence, so neither belongs here. */
     private val SENTENCE_END = setOf('.', '?', '!')
 
+    /** Shortest token allowed to fuzzy-match: below five, one edit separates `cat` from `cut`. */
+    private const val MIN_FUZZY_LENGTH = 5
+
+    /** Longest suffix an inflection may add: enough for `-ed`, `-ing`, `-s`, not for a new word. */
+    private const val MAX_SUFFIX_GROWTH = 3
+
+    /** Below four letters, an anagram is as likely to be a different word as a typo. */
+    private const val MIN_REARRANGEMENT_LENGTH = 4
+
     /** Words whose trailing period abbreviates rather than terminates. */
     private val ABBREVIATIONS = setOf(
         "vs", "etc", "eg", "ie", "mr", "mrs", "ms", "dr", "prof", "st", "jr", "sr",
@@ -84,6 +93,40 @@ internal object Text {
 
         val previousToken = previous.value.lowercase()
         return previousToken.length > 1 && previousToken !in ABBREVIATIONS
+    }
+
+    /**
+     * Whether two tokens are the same word written differently: a typo, a transposition, a spelling
+     * variant, or an inflection.
+     *
+     * `organise`/`organize` and `colour`/`color` are one edit apart. `raed`/`read` is a
+     * transposition, which [withinOneTypo] only sees for tokens long enough to fuzzy-match, so short
+     * tokens fall back to comparing letters — a rearrangement of the same letters is a typo far more
+     * often than it is a different word. `commit`/`committed` is neither, so inflection is handled
+     * separately by strict prefix.
+     *
+     * None of these rules can merge `austria` with `australia`, or `oregon` with `washington`.
+     */
+    fun isSameWord(a: String, b: String): Boolean {
+        if (a == b) return true
+        if (a.length < MIN_FUZZY_LENGTH || b.length < MIN_FUZZY_LENGTH) {
+            // Short tokens get the two edits that cannot turn one word into another one: dropping or
+            // adding a letter (`mak`/`make`), and reordering them (`raed`/`read`). Substitution is
+            // withheld, because at this length it is the whole difference between `cat` and `cut`.
+            return isRearrangementOf(a, b) || (a.length != b.length && withinOneTypo(a, b))
+        }
+        if (withinOneTypo(a, b)) return true
+        if (isRearrangementOf(a, b)) return true
+
+        val (shorter, longer) = if (a.length <= b.length) a to b else b to a
+        return longer.length - shorter.length <= MAX_SUFFIX_GROWTH && longer.startsWith(shorter)
+    }
+
+    /** Same letters in a different order, for tokens long enough for that to be meaningful. */
+    private fun isRearrangementOf(a: String, b: String): Boolean {
+        if (a.length != b.length || a.length < MIN_REARRANGEMENT_LENGTH) return false
+        if (a.none { it.isLetter() }) return false
+        return a.toCharArray().sorted() == b.toCharArray().sorted()
     }
 
     /**

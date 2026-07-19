@@ -63,29 +63,13 @@ public class LexicalDivergenceGuard(
         val available = candidateTokens.toMutableList()
         var shared = 0
         for (token in queryTokens) {
-            val index = available.indexOfFirst { it == token || isSameWord(it, token) }
+            val index = available.indexOfFirst { it == token || Text.isSameWord(it, token) }
             if (index >= 0) {
                 available.removeAt(index)
                 shared++
             }
         }
         return shared
-    }
-
-    /**
-     * Whether two tokens are close enough to be the same word: one typo apart, or one an inflection
-     * of the other (`commit` / `committed`, `decorator` / `decorators`).
-     *
-     * Inflection is tested as a strict prefix rather than by edit distance, which is what keeps
-     * `austria` and `australia` apart — they share five leading characters but neither is a prefix
-     * of the other.
-     */
-    private fun isSameWord(a: String, b: String): Boolean {
-        if (a.length < MIN_FUZZY_LENGTH || b.length < MIN_FUZZY_LENGTH) return false
-        if (Text.withinOneTypo(a, b)) return true
-
-        val (shorter, longer) = if (a.length <= b.length) a to b else b to a
-        return longer.length - shorter.length <= MAX_SUFFIX_GROWTH && longer.startsWith(shorter)
     }
 
     private fun format(value: Double): String = "%.2f".format(Locale.ROOT, value)
@@ -96,14 +80,5 @@ public class LexicalDivergenceGuard(
 
         /** Content words needed on both sides before an overlap ratio is worth trusting. */
         public const val DEFAULT_MIN_TOKENS: Int = 5
-
-        /**
-         * Shortest token allowed to match fuzzily. Below five characters, one edit is the distance
-         * between `cat` and `cut`, or `USD` and `USE`.
-         */
-        private const val MIN_FUZZY_LENGTH = 5
-
-        /** Longest suffix an inflection may add: enough for `-ed`, `-ing`, `-s`, not for a new word. */
-        private const val MAX_SUFFIX_GROWTH = 3
     }
 }

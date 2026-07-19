@@ -1,0 +1,772 @@
+{
+  "pairs": [
+    {
+      "a": "Is 400 mcg of folic acid enough for a pregnant adult?",
+      "b": "Is 400 mg of folic acid enough for a pregnant adult?",
+      "shouldMatch": false,
+      "category": "med-dose"
+    },
+    {
+      "a": "How many micrograms of vitamin D are in a 2000 IU capsule?",
+      "b": "How many milligrams of vitamin D are in a 2000 IU capsule?",
+      "shouldMatch": false,
+      "category": "med-dose"
+    },
+    {
+      "a": "What counts as a normal fasting glucose reading in mg/dL?",
+      "b": "What counts as a normal fasting glucose reading in mmol/L?",
+      "shouldMatch": false,
+      "category": "med-dose"
+    },
+    {
+      "a": "Can I take 200 mg of ibuprofen every four hours?",
+      "b": "Can I take 200 mg of naproxen every four hours?",
+      "shouldMatch": false,
+      "category": "med-dose"
+    },
+    {
+      "a": "What is the maximum daily dose of acetaminophen for a healthy adult?",
+      "b": "What is the maximum daily dose of aspirin for a healthy adult?",
+      "shouldMatch": false,
+      "category": "med-dose"
+    },
+    {
+      "a": "how much amoxicillin does a 20 kg child need per day",
+      "b": "how much azithromycin does a 20 kg child need per day",
+      "shouldMatch": false,
+      "category": "med-dose"
+    },
+    {
+      "a": "What is the usual starting dose of Lipitor?",
+      "b": "What is the usual starting dose of Crestor?",
+      "shouldMatch": false,
+      "category": "med-dose"
+    },
+    {
+      "a": "how long does 10 mg of melatonin stay in your system",
+      "b": "how long does 10 mg of diphenhydramine stay in your system",
+      "shouldMatch": false,
+      "category": "med-dose"
+    },
+    {
+      "a": "Is it safe to give a toddler a teaspoon of cough syrup?",
+      "b": "Is it safe to give a toddler a tablespoon of cough syrup?",
+      "shouldMatch": false,
+      "category": "med-dose"
+    },
+    {
+      "a": "What is the sales tax rate in Portland?",
+      "b": "What is the sales tax rate in Seattle?",
+      "shouldMatch": false,
+      "category": "legal-tax"
+    },
+    {
+      "a": "how much sales tax do i pay on a laptop in oregon",
+      "b": "how much sales tax do i pay on a laptop in washington",
+      "shouldMatch": false,
+      "category": "legal-tax"
+    },
+    {
+      "a": "What is the statute of limitations on a breach of contract claim in Ontario?",
+      "b": "What is the statute of limitations on a breach of contract claim in Quebec?",
+      "shouldMatch": false,
+      "category": "legal-tax"
+    },
+    {
+      "a": "is a handwritten will legally valid in scotland",
+      "b": "is a handwritten will legally valid in england",
+      "shouldMatch": false,
+      "category": "legal-tax"
+    },
+    {
+      "a": "what is the capital gains tax rate when i sell a second home",
+      "b": "what is the capital gains tax rate when i sell a primary residence",
+      "shouldMatch": false,
+      "category": "legal-tax"
+    },
+    {
+      "a": "How much notice must a landlord give before ending a tenancy in France?",
+      "b": "How much notice must a landlord give before ending a tenancy in Germany?",
+      "shouldMatch": false,
+      "category": "legal-tax"
+    },
+    {
+      "a": "can i record a phone call without telling the other person in california",
+      "b": "can i record a phone call without telling the other person in texas",
+      "shouldMatch": false,
+      "category": "legal-tax"
+    },
+    {
+      "a": "what is the vat registration threshold for a sole trader in ireland",
+      "b": "what is the vat registration threshold for a sole trader in poland",
+      "shouldMatch": false,
+      "category": "legal-tax"
+    },
+    {
+      "a": "Does the fetch API follow redirects by default in Node?",
+      "b": "Does the fetch API follow redirects by default in Deno?",
+      "shouldMatch": false,
+      "category": "version-api"
+    },
+    {
+      "a": "does array.sort mutate the original array in javascript",
+      "b": "does array.toSorted mutate the original array in javascript",
+      "shouldMatch": false,
+      "category": "version-api"
+    },
+    {
+      "a": "What is the default transaction isolation level in postgres?",
+      "b": "What is the default transaction isolation level in mysql?",
+      "shouldMatch": false,
+      "category": "version-api"
+    },
+    {
+      "a": "Does Java's String.split drop trailing empty strings?",
+      "b": "Does Python's str.split drop trailing empty strings?",
+      "shouldMatch": false,
+      "category": "version-api"
+    },
+    {
+      "a": "in pandas does groupby sort the keys by default",
+      "b": "in pandas does groupby drop na keys by default",
+      "shouldMatch": false,
+      "category": "version-api"
+    },
+    {
+      "a": "does a dict preserve insertion order in python",
+      "b": "does a map preserve insertion order in go",
+      "shouldMatch": false,
+      "category": "version-api"
+    },
+    {
+      "a": "how does integer overflow behave in c",
+      "b": "how does integer overflow behave in rust",
+      "shouldMatch": false,
+      "category": "version-api"
+    },
+    {
+      "a": "are strings mutable in go",
+      "b": "are strings mutable in ruby",
+      "shouldMatch": false,
+      "category": "version-api"
+    },
+    {
+      "a": "does the modulo operator return a negative result for negative operands in python",
+      "b": "does the modulo operator return a negative result for negative operands in javascript",
+      "shouldMatch": false,
+      "category": "version-api"
+    },
+    {
+      "a": "Who led the Premier League in assists last season?",
+      "b": "Who led La Liga in assists last season?",
+      "shouldMatch": false,
+      "category": "sports"
+    },
+    {
+      "a": "how many goals did the top scorer net in the premier league last season",
+      "b": "how many goals did the top scorer net in la liga last season",
+      "shouldMatch": false,
+      "category": "sports"
+    },
+    {
+      "a": "What is the NBA record for most points in a regular season game?",
+      "b": "What is the NBA record for most points in a playoff game?",
+      "shouldMatch": false,
+      "category": "sports"
+    },
+    {
+      "a": "which team has the most super bowl wins",
+      "b": "which team has the most super bowl appearances",
+      "shouldMatch": false,
+      "category": "sports"
+    },
+    {
+      "a": "what is the world record for the mens marathon",
+      "b": "what is the world record for the womens marathon",
+      "shouldMatch": false,
+      "category": "sports"
+    },
+    {
+      "a": "how do i read a parquet file into a dataframe",
+      "b": "how do i read an avro file into a dataframe",
+      "shouldMatch": false,
+      "category": "file-format"
+    },
+    {
+      "a": "How do I convert a WAV file to MP3 with ffmpeg?",
+      "b": "How do I convert a WAV file to FLAC with ffmpeg?",
+      "shouldMatch": false,
+      "category": "file-format"
+    },
+    {
+      "a": "how do i open a .heic image on windows",
+      "b": "how do i open a .webp image on windows",
+      "shouldMatch": false,
+      "category": "file-format"
+    },
+    {
+      "a": "how do i escape a comma inside a csv field",
+      "b": "how do i escape a tab inside a tsv field",
+      "shouldMatch": false,
+      "category": "file-format"
+    },
+    {
+      "a": "Should I strip the BOM from a UTF-8 file before parsing it?",
+      "b": "Should I strip the BOM from a UTF-16 file before parsing it?",
+      "shouldMatch": false,
+      "category": "file-format"
+    },
+    {
+      "a": "what is the maximum row limit in an xlsx spreadsheet",
+      "b": "what is the maximum row limit in an xls spreadsheet",
+      "shouldMatch": false,
+      "category": "file-format"
+    },
+    {
+      "a": "what anomalies are still possible under read committed in postgres",
+      "b": "what anomalies are still possible under repeatable read in postgres",
+      "shouldMatch": false,
+      "category": "db-isolation"
+    },
+    {
+      "a": "does serializable isolation prevent phantom reads",
+      "b": "does read committed isolation prevent phantom reads",
+      "shouldMatch": false,
+      "category": "db-isolation"
+    },
+    {
+      "a": "What is the default transaction isolation level in SQL Server?",
+      "b": "What is the default transaction isolation level in Oracle?",
+      "shouldMatch": false,
+      "category": "db-isolation"
+    },
+    {
+      "a": "does select for update block other readers in postgres",
+      "b": "does select for share block other readers in postgres",
+      "shouldMatch": false,
+      "category": "db-isolation"
+    },
+    {
+      "a": "what does a bad gateway error mean on my website",
+      "b": "what does a gateway timeout error mean on my website",
+      "shouldMatch": false,
+      "category": "http-status"
+    },
+    {
+      "a": "why is the api returning a too many requests error",
+      "b": "why is the api returning a service unavailable error",
+      "shouldMatch": false,
+      "category": "http-status"
+    },
+    {
+      "a": "When should an endpoint return 401 instead of 403?",
+      "b": "When should an endpoint return 401 instead of 404?",
+      "shouldMatch": false,
+      "category": "http-status"
+    },
+    {
+      "a": "does a browser cache a permanent redirect",
+      "b": "does a browser cache a temporary redirect",
+      "shouldMatch": false,
+      "category": "http-status"
+    },
+    {
+      "a": "Does \\d match unicode digits in PCRE?",
+      "b": "Does \\d match unicode digits in RE2?",
+      "shouldMatch": false,
+      "category": "regex-flavour"
+    },
+    {
+      "a": "how do i use a lookbehind in javascript regex",
+      "b": "how do i use a lookbehind in python regex",
+      "shouldMatch": false,
+      "category": "regex-flavour"
+    },
+    {
+      "a": "is word boundary supported in grep basic regular expressions",
+      "b": "is word boundary supported in egrep extended regular expressions",
+      "shouldMatch": false,
+      "category": "regex-flavour"
+    },
+    {
+      "a": "how do i replace only the second occurrence with sed",
+      "b": "how do i replace only the second occurrence with perl",
+      "shouldMatch": false,
+      "category": "regex-flavour"
+    },
+    {
+      "a": "how do i set an environment variable permanently in bash",
+      "b": "how do i set an environment variable permanently in fish",
+      "shouldMatch": false,
+      "category": "os-shell"
+    },
+    {
+      "a": "How do I list which process has a file open on Linux?",
+      "b": "How do I list which process has a file open on Windows?",
+      "shouldMatch": false,
+      "category": "os-shell"
+    },
+    {
+      "a": "how do i base64 encode a string on macos",
+      "b": "how do i base64 encode a string on ubuntu",
+      "shouldMatch": false,
+      "category": "os-shell"
+    },
+    {
+      "a": "what does sed -i do without a backup suffix in gnu sed",
+      "b": "what does sed -i do without a backup suffix in bsd sed",
+      "shouldMatch": false,
+      "category": "os-shell"
+    },
+    {
+      "a": "how do i make a script run at login in zsh",
+      "b": "how do i make a script run at login in ksh",
+      "shouldMatch": false,
+      "category": "os-shell"
+    },
+    {
+      "a": "how do i split a string into an array in bash",
+      "b": "how do i split a string into an array in powershell",
+      "shouldMatch": false,
+      "category": "os-shell"
+    },
+    {
+      "a": "is sodium bicarbonate safe to use on an aluminium pan",
+      "b": "is sodium hydroxide safe to use on an aluminium pan",
+      "shouldMatch": false,
+      "category": "chemical"
+    },
+    {
+      "a": "what happens if i mix bleach and ammonia",
+      "b": "what happens if i mix bleach and vinegar",
+      "shouldMatch": false,
+      "category": "chemical"
+    },
+    {
+      "a": "what is the boiling point of ethanol at sea level",
+      "b": "what is the boiling point of methanol at sea level",
+      "shouldMatch": false,
+      "category": "chemical"
+    },
+    {
+      "a": "what is the melting point of pure copper",
+      "b": "what is the melting point of pure bronze",
+      "shouldMatch": false,
+      "category": "chemical"
+    },
+    {
+      "a": "can i use baking soda instead of baking powder in pancakes",
+      "b": "can i use baking powder instead of baking soda in pancakes",
+      "shouldMatch": false,
+      "category": "recipe-sub"
+    },
+    {
+      "a": "what can i substitute for buttermilk in a cake",
+      "b": "what can i substitute for butter in a cake",
+      "shouldMatch": false,
+      "category": "recipe-sub"
+    },
+    {
+      "a": "can i replace eggs with applesauce in brownies",
+      "b": "can i replace eggs with flaxseed in brownies",
+      "shouldMatch": false,
+      "category": "recipe-sub"
+    },
+    {
+      "a": "is it fine to swap active dry yeast for instant yeast in bread",
+      "b": "is it fine to swap active dry yeast for fresh yeast in bread",
+      "shouldMatch": false,
+      "category": "recipe-sub"
+    },
+    {
+      "a": "What currency do people use in Switzerland?",
+      "b": "What currency do people use in Sweden?",
+      "shouldMatch": false,
+      "category": "currency"
+    },
+    {
+      "a": "what currency do they use in denmark",
+      "b": "what currency do they use in poland",
+      "shouldMatch": false,
+      "category": "currency"
+    },
+    {
+      "a": "what is the currency code for the japanese yen",
+      "b": "what is the currency code for the chinese yuan",
+      "shouldMatch": false,
+      "category": "currency"
+    },
+    {
+      "a": "Is the euro accepted for cash payments in Croatia?",
+      "b": "Is the euro accepted for cash payments in Hungary?",
+      "shouldMatch": false,
+      "category": "currency"
+    },
+    {
+      "a": "what does econnrefused mean when my app connects to the database",
+      "b": "what does etimedout mean when my app connects to the database",
+      "shouldMatch": false,
+      "category": "error-code"
+    },
+    {
+      "a": "What causes a SIGSEGV in a C program?",
+      "b": "What causes a SIGABRT in a C program?",
+      "shouldMatch": false,
+      "category": "error-code"
+    },
+    {
+      "a": "why does docker kill my container with exit code 137",
+      "b": "why does docker kill my container with exit code 139",
+      "shouldMatch": false,
+      "category": "error-code"
+    },
+    {
+      "a": "how do i fix a segmentation fault in my c program",
+      "b": "how do i fix a bus error in my c program",
+      "shouldMatch": false,
+      "category": "error-code"
+    },
+    {
+      "a": "does japan observe daylight saving time",
+      "b": "does new zealand observe daylight saving time",
+      "shouldMatch": false,
+      "category": "timezone"
+    },
+    {
+      "a": "What time is 10am CST in IST?",
+      "b": "What time is 10am CDT in IST?",
+      "shouldMatch": false,
+      "category": "timezone"
+    },
+    {
+      "a": "when do the clocks go forward in the uk",
+      "b": "when do the clocks go forward in australia",
+      "shouldMatch": false,
+      "category": "timezone"
+    },
+    {
+      "a": "Is Arizona on Mountain Time all year round?",
+      "b": "Is Colorado on Mountain Time all year round?",
+      "shouldMatch": false,
+      "category": "timezone"
+    },
+    {
+      "a": "can i claim damage in small claims court",
+      "b": "can i claim damages in small claims court",
+      "shouldMatch": false,
+      "category": "plural"
+    },
+    {
+      "a": "how many taxes do i pay as a freelancer",
+      "b": "how much tax do i pay as a freelancer",
+      "shouldMatch": false,
+      "category": "plural"
+    },
+    {
+      "a": "how many cheeses should go on a charcuterie board",
+      "b": "how much cheese should go on a charcuterie board",
+      "shouldMatch": false,
+      "category": "quantity-word"
+    },
+    {
+      "a": "how many wines should i serve at a dinner party",
+      "b": "how much wine should i serve at a dinner party",
+      "shouldMatch": false,
+      "category": "quantity-word"
+    },
+    {
+      "a": "my conversion rate went up 5 percent last month, what is it now",
+      "b": "my conversion rate went up 5 percentage points last month, what is it now",
+      "shouldMatch": false,
+      "category": "percent-points"
+    },
+    {
+      "a": "unemployment rose by 2 percent this quarter, how bad is that",
+      "b": "unemployment rose by 2 percentage points this quarter, how bad is that",
+      "shouldMatch": false,
+      "category": "percent-points"
+    },
+    {
+      "a": "what is my gross monthly income if i earn 90000 a year",
+      "b": "what is my net monthly income if i earn 90000 a year",
+      "shouldMatch": false,
+      "category": "gross-net"
+    },
+    {
+      "a": "how much do i take home from a 90000 salary before tax",
+      "b": "how much do i take home from a 90000 salary after tax",
+      "shouldMatch": false,
+      "category": "gross-net"
+    },
+    {
+      "a": "what was the gross profit of the company last year",
+      "b": "what was the net profit of the company last year",
+      "shouldMatch": false,
+      "category": "gross-net"
+    },
+    {
+      "a": "does the quoted price include vat",
+      "b": "does the quoted price exclude vat",
+      "shouldMatch": false,
+      "category": "gross-net"
+    },
+    {
+      "a": "what is my gross margin on this product",
+      "b": "what is my net margin on this product",
+      "shouldMatch": false,
+      "category": "gross-net"
+    },
+    {
+      "a": "Why can't I connect to my company VPN from home?",
+      "b": "Why is my connection to the company VPN failing when I am at home?",
+      "shouldMatch": true,
+      "category": "negation"
+    },
+    {
+      "a": "How do I run a container without root privileges?",
+      "b": "How do I run a rootless container?",
+      "shouldMatch": true,
+      "category": "negation"
+    },
+    {
+      "a": "What should I not eat when I am taking an iron supplement?",
+      "b": "Which foods interfere with iron absorption from a supplement?",
+      "shouldMatch": true,
+      "category": "negation"
+    },
+    {
+      "a": "How do I check the current branch in git?",
+      "b": "How do I see which branch I am on in git?",
+      "shouldMatch": true,
+      "category": "temporal"
+    },
+    {
+      "a": "How do I print the current working directory from a shell script?",
+      "b": "How do I show which directory my shell script is running in?",
+      "shouldMatch": true,
+      "category": "temporal"
+    },
+    {
+      "a": "What is the latest LTS release of Node?",
+      "b": "Which Node release is the newest long term support one?",
+      "shouldMatch": true,
+      "category": "temporal"
+    },
+    {
+      "a": "How much is 250 euros in British pounds?",
+      "b": "What is 250 EUR in GBP?",
+      "shouldMatch": true,
+      "category": "unit-currency"
+    },
+    {
+      "a": "What is 40 pounds sterling worth in US dollars?",
+      "b": "What is 40 GBP worth in USD?",
+      "shouldMatch": true,
+      "category": "unit-currency"
+    },
+    {
+      "a": "How do I rotate an SSH host key on a server?",
+      "b": "What are the steps to rotate an SSH host key on a server?",
+      "shouldMatch": true,
+      "category": "scope"
+    },
+    {
+      "a": "How do I set up a systemd timer?",
+      "b": "Walk me through the steps for setting up a systemd timer.",
+      "shouldMatch": true,
+      "category": "scope"
+    },
+    {
+      "a": "What does GDPR require when a user asks for their data to be erased?",
+      "b": "What does the General Data Protection Regulation require when a user asks for their data to be erased?",
+      "shouldMatch": true,
+      "category": "entity-abbrev"
+    },
+    {
+      "a": "What is TDD?",
+      "b": "Can you explain what Test Driven Development is?",
+      "shouldMatch": true,
+      "category": "entity-abbrev"
+    },
+    {
+      "a": "Which is better for session storage, Redis or Memcached?",
+      "b": "Which is better for session storage, Memcached or Redis?",
+      "shouldMatch": true,
+      "category": "word-order"
+    },
+    {
+      "a": "Vim vs Emacs for editing very large files",
+      "b": "Emacs vs Vim for editing very large files",
+      "shouldMatch": true,
+      "category": "word-order"
+    },
+    {
+      "a": "How do I make an environment variable persist across reboots on Linux?",
+      "b": "How do I make an environment variable permanent on Linux?",
+      "shouldMatch": true,
+      "category": "synonym"
+    },
+    {
+      "a": "How do I check disk usage per directory on Linux?",
+      "b": "Show me how to see which folders are taking up space on Linux",
+      "shouldMatch": true,
+      "category": "imperative"
+    },
+    {
+      "a": "What is a deadlock in a relational database?",
+      "b": "I am new to databases, could you explain what a deadlock is in a relational database?",
+      "shouldMatch": true,
+      "category": "filler"
+    },
+    {
+      "a": "How do I read a gzipped file in Python?",
+      "b": "how do i raed a gziped file in pythno",
+      "shouldMatch": true,
+      "category": "typo"
+    },
+    {
+      "a": "How do I flush the DNS cache on macOS?",
+      "b": "how do i flsuh the dns cahce on macos",
+      "shouldMatch": true,
+      "category": "typo"
+    },
+    {
+      "a": "What is the difference between a mutex and a semaphore?",
+      "b": "whats teh diffrence betwen a mutex and a semaphore",
+      "shouldMatch": true,
+      "category": "typo"
+    },
+    {
+      "a": "What is the best way to organise a large CSS codebase?",
+      "b": "What is the best way to organize a large CSS codebase?",
+      "shouldMatch": true,
+      "category": "british-american"
+    },
+    {
+      "a": "How do I set the colour of a table border in CSS?",
+      "b": "How do I set the color of a table border in CSS?",
+      "shouldMatch": true,
+      "category": "british-american"
+    },
+    {
+      "a": "How do I normalise a column of values in a spreadsheet?",
+      "b": "How do I normalize a column of values in a spreadsheet?",
+      "shouldMatch": true,
+      "category": "british-american"
+    },
+    {
+      "a": "How does the garbage collector free unused objects in the JVM?",
+      "b": "How are unused objects freed by the garbage collector in the JVM?",
+      "shouldMatch": true,
+      "category": "passive-active"
+    },
+    {
+      "a": "Who signs the payroll tax return for a limited company?",
+      "b": "By whom is the payroll tax return for a limited company signed?",
+      "shouldMatch": true,
+      "category": "passive-active"
+    },
+    {
+      "a": "How do I tail a log file and filter it at the same time?",
+      "b": "Hi, could you please show me how to tail a log file while filtering it? Thanks a lot.",
+      "shouldMatch": true,
+      "category": "politeness"
+    },
+    {
+      "a": "How do I rename a branch in git?",
+      "b": "Good afternoon, I was wondering how I would rename a branch in git?",
+      "shouldMatch": true,
+      "category": "politeness"
+    },
+    {
+      "a": "How do I stop my SSH session from timing out?",
+      "b": "My connection to the server keeps dropping after a few minutes of sitting idle, what setting fixes that?",
+      "shouldMatch": true,
+      "category": "heavy-reword"
+    },
+    {
+      "a": "How do I reduce the size of a Docker image?",
+      "b": "My Docker image is enormous, what can I do to slim it down?",
+      "shouldMatch": true,
+      "category": "heavy-reword"
+    },
+    {
+      "a": "What is the difference between a soft link and a hard link?",
+      "b": "Explain how soft links and hard links differ.",
+      "shouldMatch": true,
+      "category": "imperative"
+    },
+    {
+      "a": "How do I configure CORS on an API gateway?",
+      "b": "How do I configure cross origin resource sharing on an API gateway?",
+      "shouldMatch": true,
+      "category": "abbrev"
+    },
+    {
+      "a": "What does IOPS mean for an SSD?",
+      "b": "What does input output operations per second mean for an SSD?",
+      "shouldMatch": true,
+      "category": "abbrev"
+    },
+    {
+      "a": "How do I merge two hashes in Ruby?",
+      "b": "How do I combine two hashes into one in Ruby?",
+      "shouldMatch": true,
+      "category": "synonym"
+    },
+    {
+      "a": "How do I parse an ISO 8601 timestamp in Java?",
+      "b": "I am working on a REST client and need to parse an ISO 8601 timestamp in Java, how do I do that?",
+      "shouldMatch": true,
+      "category": "added-context"
+    },
+    {
+      "a": "What causes a memory leak in a long running Node process?",
+      "b": "Why would a Node process that stays up for a long time keep growing in memory?",
+      "shouldMatch": true,
+      "category": "synonym"
+    },
+    {
+      "a": "How do I mount an NFS share on boot?",
+      "b": "Show me how to mount an NFS share automatically at boot.",
+      "shouldMatch": true,
+      "category": "imperative"
+    },
+    {
+      "a": "What is the difference between a stack and a heap allocation?",
+      "b": "How does stack allocation differ from heap allocation?",
+      "shouldMatch": true,
+      "category": "reword"
+    },
+    {
+      "a": "How do I schedule a job to run every weekday morning with cron?",
+      "b": "What cron expression runs a job on weekday mornings?",
+      "shouldMatch": true,
+      "category": "reword"
+    },
+    {
+      "a": "How do I check which ports are listening on a server?",
+      "b": "hey could u tel me how to chek which ports are listenting on a server",
+      "shouldMatch": true,
+      "category": "typo"
+    },
+    {
+      "a": "How do I compare two branches in git?",
+      "b": "What is the way to see the differences between two git branches?",
+      "shouldMatch": true,
+      "category": "reword"
+    },
+    {
+      "a": "How do I handle a failed payment webhook?",
+      "b": "I am building a subscription billing flow and need to know how to handle a failed payment webhook.",
+      "shouldMatch": true,
+      "category": "added-context"
+    },
+    {
+      "a": "How do I convert a timestamp to a readable date in bash?",
+      "b": "How do I turn a unix timestamp into a human readable date in bash?",
+      "shouldMatch": true,
+      "category": "synonym"
+    }
+  ]
+}
