@@ -41,10 +41,11 @@ source; kmemo ships none and depends on no provider SDK.
 
 ## Why kmemo
 
-- **Guards against false hits** — nine lexical checks catch the near misses a threshold cannot:
-  swapped numbers, units, entities, time references, negation, flipped antonyms, reversed
-  comparisons, a different answer being asked for. Measured, not asserted: **68 of 71 near misses
-  rejected, 0 of 38 genuine paraphrases rejected**, on every build.
+- **Guards against false hits** — nine lexical checks catch near misses a threshold cannot: swapped
+  numbers, units, entities, time references, negation, flipped antonyms, reversed comparisons, a
+  different answer being asked for. They run against a labelled corpus on every build, and the
+  numbers are reported honestly — see [Correctness, measured](#correctness-measured) for what they
+  do and do not cover.
 - **Safety by default** — the costs are asymmetric. A wrong rejection costs one API call, the exact
   call you would have made without a cache. A wrong acceptance costs a wrong answer. Defaults follow
   that, and guards abstain rather than guess.
@@ -241,6 +242,24 @@ typo                          6       100%       100%   must match
 verbosity                     7       100%       100%   must match
 word-order                    6       100%       100%   must match
 ```
+
+> **The numbers above are in-sample.** The guards were tuned against this corpus over three review
+> rounds, so the table measures the corpus at least as much as it measures the guards. On a held-out
+> set of 128 pairs written afterwards, in domains the corpus does not cover — clinical dosing, tax
+> jurisdictions, database isolation levels, shell dialects, HTTP status codes — the same chain
+> rejects **22 of 86 near misses (26%)** and keeps **27 of 42 paraphrases (64%)**.
+>
+> The corpus demonstrates the cause with its own data: lowercasing every prompt in it, changing
+> nothing but letter case, drops its catch rate from 96% to 79%. A third of the catches ride on
+> capitalization convention rather than on meaning.
+>
+> What generalizes is `NumericGuard`, which reads digits and needs no vocabulary, and `EntityGuard`
+> *when the distinguishing word happens to be capitalized*. The guards built on closed word lists —
+> `TemporalGuard`, `ScopeGuard`, `DirectionGuard`, `AntonymGuard` — are sized to the 109 pairs they
+> were fitted against, and on the held-out set they caught nothing while causing false rejections.
+>
+> Read the table as a regression test, not as a forecast for your traffic. Calibrate against your
+> own pairs, and use a `Verifier` for the distinctions no word list can make.
 
 The three near misses that get through are honest limitations, and really two: a salmon-versus-chicken
 swap that appears in the corpus twice and needs world knowledge no lexical rule has, plus an unmarked
