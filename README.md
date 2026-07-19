@@ -86,6 +86,10 @@ val answer = cache.getOrPut(prompt) { llm.complete(it) }
 `getOrPut` embeds the prompt **once** and reuses the vector for both the lookup and the write. Doing
 it by hand with `get` then `put` costs two embedding calls on every miss.
 
+Concurrent callers asking the same thing are coalesced: the first computes, the rest wait and are
+served its answer. A cold cache under load is otherwise worse than no cache — fifty requests for one
+prompt arrive together, all miss, and all pay.
+
 ### Reading a miss
 
 ```kotlin
@@ -269,8 +273,7 @@ ten guards plus an opt-in `LengthRatioGuard`; an optional `Verifier`; `InMemoryS
 LRU; `ThresholdCalibrator`; the labelled corpus.
 
 **Next** — Redis and Postgres/pgvector stores, a Spring AI `Advisor` and a LangChain4j wrapper
-(neither framework ships a semantic cache), request coalescing for concurrent identical misses, and
-non-English vocabularies.
+(neither framework ships a semantic cache), and non-English vocabularies.
 
 ## Building and testing
 

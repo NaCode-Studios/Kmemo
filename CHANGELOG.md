@@ -13,6 +13,9 @@ All notable changes to this project are documented here. The format follows
 - `validation-corpus.json` — 153 pairs written blind, never tuned against, nine tenths lowercase.
   With `near-miss-corpus.json` (tuned on) and `held-out-corpus.json`, the project now reports three
   numbers and says which one to trust.
+- Request coalescing: concurrent `getOrPut` calls for the same prompt and scope wait for the first
+  instead of each calling the model. On by default, since a cold cache under load is exactly when
+  duplicate calls are most likely and most expensive.
 - `MeasurementUnit` — units carry the dimension they measure, so `UnitGuard` no longer reads a mass
   appearing where a currency does as a swapped unit.
 

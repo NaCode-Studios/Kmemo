@@ -6,6 +6,9 @@ import dev.kmemo.fixtures.FixedEmbedder
 import dev.kmemo.fixtures.HashingEmbedder
 import dev.kmemo.guard.MatchGuards
 import dev.kmemo.store.InMemoryStore
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import kotlin.math.sqrt
 import kotlin.test.Test
@@ -224,6 +227,65 @@ class SemanticCacheTest {
 
         assertEquals(1, cache.size())
         assertNull(cache.get("the first question about lists"))
+    }
+
+    @Test
+    fun `concurrent misses on the same prompt call the model once`() = runTest {
+        // The case that makes a cold cache worse than no cache: a burst of identical requests,
+        // all missing, all paying. The first computes; the rest wait and are served its answer.
+        val cache = SemanticCache(HashingEmbedder())
+        val started = CompletableDeferred<Unit>()
+        var calls = 0
+
+        val answers = (1..20).map {
+            async {
+                cache.getOrPut("what is the capital of France?") {
+                    calls++
+                    started.complete(Unit)
+                    "Paris"
+                }
+            }
+        }.awaitAll()
+
+        assertEquals(1, calls)
+        assertTrue(answers.all { it == "Paris" })
+        assertEquals(1, cache.size())
+    }
+
+    @Test
+    fun `different prompts are not serialized behind each other`() = runTest {
+        val cache = SemanticCache(HashingEmbedder())
+        var calls = 0
+
+        (1..10).map { index ->
+            async { cache.getOrPut("a distinct question number $index about lists") { calls++; "answer $index" } }
+        }.awaitAll()
+
+        assertEquals(10, calls)
+        assertEquals(10, cache.size())
+    }
+
+    @Test
+    fun `coalescing can be turned off`() = runTest {
+        // Counting calls would prove nothing here — a single-threaded test dispatcher may well run
+        // the callers one after another and fill the cache before the second reaches compute. So
+        // every caller parks on a barrier that only opens once all five have arrived: reaching it
+        // is only possible if all five are inside compute at the same time.
+        val cache = SemanticCache(HashingEmbedder(), coalesceConcurrentMisses = false)
+        val allInside = CompletableDeferred<Unit>()
+        var inside = 0
+
+        (1..5).map {
+            async {
+                cache.getOrPut("the very same prompt about lists") {
+                    if (++inside == 5) allInside.complete(Unit)
+                    allInside.await()
+                    "answer"
+                }
+            }
+        }.awaitAll()
+
+        assertEquals(5, inside)
     }
 
     /** A unit vector in the plane whose dot product with `unit(1.0)` is exactly [similarity]. */
