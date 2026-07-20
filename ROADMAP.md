@@ -47,15 +47,15 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   153), the last written blind. Blind validation: near misses rejected **67%**, paraphrases kept
   **88%**.
 
-Not yet published to Maven Central — `0.1.0` is built locally with `publishToMavenLocal`. Shipping it
-is M1.
+Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07-19). The next
+release — `0.2.0` — is the M2–M3 work below.
 
 ## Progress
 
 | Milestone | Status |
 | --- | --- |
 | **0.1.0 core** | ✅ Implemented and tested. |
-| **M1** · Ship `0.1.0` to Maven Central | ✅ Release + docs pipeline ready; the publish awaits secrets. |
+| **M1** · Ship `0.1.0` to Maven Central | ✅ Shipped — `0.1.0` live on Maven Central + GitHub Packages. |
 | **M2** · Per-guard measurement & observability | ✅ Shipped. |
 | **M3** · The Verifier, completed | ✅ Shipped (speculative batch verification deferred by decision). |
 | **M4** · Store conformance suite (TCK) | Planned. |
@@ -93,12 +93,11 @@ decided the way it was, and covering the near misses lexical rules cannot.
 
 ### M1 · Ship `0.1.0` to Maven Central — `S`
 
-Turn the built-but-unpublished core into an artifact people can depend on. The pipeline is in place;
-the publish itself waits only on the Maven Central and signing secrets.
+Turn the built core into an artifact people can depend on. **Done — `0.1.0` is live on Maven Central
+and GitHub Packages** (tag `v0.1.0`); the milestone is kept as the record of how Kmemo ships.
 
 - Publish `kmemo-core` to Maven Central under `io.github.nacode-studios` (signing, `sources` + `javadoc`
-  jars) and mirror to GitHub Packages, via the tag-driven `release.yml`. The "not published yet" notice
-  comes off the README with the first tagged release. ✅ pipeline ready.
+  jars) and mirror to GitHub Packages, via the tag-driven `release.yml`. ✅ shipped.
 - Rich POM metadata (`description`, `url`, `scm`, license, developers) and a Dokka API-docs site on
   GitHub Pages (`docs.yml`), linked from the README. ✅
 - `apiCheck` runs in CI as a release gate — `./gradlew build` verifies the `*.api` compatibility

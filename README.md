@@ -71,9 +71,6 @@ dependencies {
 }
 ```
 
-> **Not published yet.** `0.1.0` is unreleased. Until it ships, build it locally with
-> `./gradlew publishToMavenLocal` and add `mavenLocal()` to your repositories.
-
 You also need an embedding source. Any function from `String` to `FloatArray` will do.
 
 ## Usage

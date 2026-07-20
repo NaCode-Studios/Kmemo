@@ -8,7 +8,7 @@ plugins {
 
 subprojects {
     group = "io.github.nacode-studios"
-    version = "0.1.0"
+    version = "0.2.0"
 }
 
 // Aggregate the documented modules into one HTML API site, published to GitHub Pages by docs.yml.
