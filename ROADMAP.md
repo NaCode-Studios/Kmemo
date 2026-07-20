@@ -78,7 +78,7 @@ Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07
 | **M1** · Ship `0.1.0` to Maven Central | ✅ Shipped in `0.1.0`. |
 | **M2** · Per-guard measurement & observability | ✅ Shipped in `0.2.0`. |
 | **M3** · The Verifier, completed | ✅ Shipped in `0.2.0`. |
-| **M4** · Store conformance suite (TCK) | Planned. |
+| **M4** · Store conformance suite (TCK) | 🚧 In progress (targeting `0.3.0`). |
 | **M5** · Redis store | Planned. |
 | **M6** · Postgres / pgvector store | Planned. |
 | **M7** · Scaling the in-memory store (ANN) | Planned. |
@@ -186,6 +186,10 @@ backend only has to store vectors and return the nearest `k` in a scope. This ti
 with real adapters and a shared conformance suite, and makes the default store scale.
 
 ### M4 · Store conformance suite (TCK) — `S`
+
+**Status: 🚧 In progress (targeting `0.3.0`).** Delivered on the `tier-1-stores` branch: a dedicated
+`kmemo-store-tck` module with `CacheStoreContract` (20 cases over the seam) and a reusable `FakeClock`;
+`InMemoryStore` passes it. Redis (M5) and Postgres (M6) subclass the same contract.
 
 Write the contract tests once, before the adapters, so every store is held to the same three rules the
 `CacheStore` KDoc already states (never return an expired or out-of-scope entry; at most `limit`

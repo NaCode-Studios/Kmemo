@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Store conformance suite (M4): a new `kmemo-store-tck` module exposing `CacheStoreContract` — the
+  reusable test every `CacheStore` must pass (put / replace-by-id, scope isolation, TTL expiry, `limit`
+  and best-first ordering, `touch`, `remove` / `clear(scope)` / `size`, and real-threaded concurrent
+  access) — plus a `FakeClock` for deterministic TTL tests. `InMemoryStore` is now held to it, and every
+  future store adapter ships green against the same contract or does not ship.
+
 ## [0.2.0] - 2026-07-20
 
 ### Added

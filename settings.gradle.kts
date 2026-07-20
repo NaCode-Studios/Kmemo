@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 rootProject.name = "Kmemo"
 
 include(":kmemo-core")
+include(":kmemo-store-tck")

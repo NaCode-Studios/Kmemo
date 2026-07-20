@@ -23,6 +23,8 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kotlinx.serialization.json)
+    // The shared store conformance suite; InMemoryStore is held to the same contract as every adapter.
+    testImplementation(project(":kmemo-store-tck"))
 }
 
 tasks.test {

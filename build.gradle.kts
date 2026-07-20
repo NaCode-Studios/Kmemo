@@ -11,6 +11,12 @@ subprojects {
     version = "0.2.0"
 }
 
+apiValidation {
+    // kmemo-store-tck ships test-support code (an abstract JUnit test class), not a public runtime
+    // API, so it is not part of the binary-compatibility contract.
+    ignoredProjects.add("kmemo-store-tck")
+}
+
 // Aggregate the documented modules into one HTML API site, published to GitHub Pages by docs.yml.
 dependencies {
     dokka(project(":kmemo-core"))
