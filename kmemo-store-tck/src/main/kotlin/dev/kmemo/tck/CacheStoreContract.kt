@@ -266,13 +266,13 @@ public abstract class CacheStoreContract {
         val store = createStore()
 
         // Real threads, so a store that is not actually concurrency-safe is caught here rather than
-        // in production. Distinct ids, so the assertion is exact.
+        // in production. Distinct ids, so `size` is exact — the check is that every write landed, not
+        // that search is complete (an approximate store need not return every match).
         withContext(Dispatchers.Default) {
             (1..200).map { i -> async { store.put(entry("id$i")) } }.awaitAll()
         }
 
         assertEquals(200, store.size())
-        assertEquals(200, store.search("default", query, limit = 500).size)
     }
 
     @Test

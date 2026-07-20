@@ -79,9 +79,9 @@ Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07
 | **M2** · Per-guard measurement & observability | ✅ Shipped in `0.2.0`. |
 | **M3** · The Verifier, completed | ✅ Shipped in `0.2.0`. |
 | **M4** · Store conformance suite (TCK) | 🚧 In progress (targeting `0.3.0`). |
-| **M5** · Redis store | Planned. |
-| **M6** · Postgres / pgvector store | Planned. |
-| **M7** · Scaling the in-memory store (ANN) | Planned. |
+| **M5** · Redis store | 🚧 In progress (targeting `0.3.0`). |
+| **M6** · Postgres / pgvector store | 🚧 In progress (targeting `0.3.0`). |
+| **M7** · Scaling the in-memory store (ANN) | 🚧 In progress (targeting `0.3.0`). |
 | **M8** · Resilience: embedder failures & negative results | Planned. |
 | **M9** · Observability: metrics, tracing, logging | Planned. |
 | **M10** · Performance: batching, write-behind, benchmarks | Planned. |
@@ -204,6 +204,11 @@ results, best-first; concurrency-safe).
 
 ### M5 · Redis store — `M`
 
+**Status: 🚧 In progress (targeting `0.3.0`).** Delivered on the `tier-1-stores` branch: `kmemo-store-redis`
+using RediSearch `FT.SEARCH` KNN on a Lettuce coroutine client — scope as a `TAG`, a clock-driven
+`expires_at` filter plus a real Redis key TTL, and the RediSearch-absent case failing fast. Green against
+the M4 conformance suite via Testcontainers.
+
 The most-requested backend and the one that proves cross-process sharing (neither Spring AI nor
 LangChain4j ships a semantic cache — see M13/M14).
 
@@ -215,6 +220,11 @@ LangChain4j ships a semantic cache — see M13/M14).
 
 ### M6 · Postgres / pgvector store — `L`
 
+**Status: 🚧 In progress (targeting `0.3.0`).** Delivered on the `tier-1-stores` branch: `kmemo-store-postgres`
+on pgvector (`<=>`), scope an indexed column, an `expires_at` predicate driven by the injected clock, the
+table auto-created (or provisioned from the shipped `schema.sql`), and the JDBC driver left as the caller's
+only added dependency. Green against the M4 conformance suite via Testcontainers.
+
 The backend teams already run, and the one that makes "durable semantic cache" a one-dependency
 choice.
 
@@ -225,6 +235,12 @@ choice.
 - Green against the M4 conformance suite; Testcontainers integration test on a real Postgres + pgvector.
 
 ### M7 · Scaling the in-memory store (ANN) — `L`
+
+**Status: 🚧 In progress (targeting `0.3.0`).** Delivered on the `tier-1-stores` branch: an opt-in
+pure-Kotlin HNSW store (`kmemo-store-hnsw`) whose candidates are rescored exactly (recall measured ≥ 0.9
+vs an exact ranking), and an optional `maxBytes` memory bound on `InMemoryStore` (LRU-evicted alongside
+`maxEntries`, with a `bytes` figure in its stats). The exact scan stays the default and the correctness
+reference; recall/latency benchmarking is M10.
 
 `InMemoryStore.search` is an exact linear scan — correct and fine to tens of thousands of entries,
 O(n) beyond that. Give the default store a path to large caches without changing the seam.

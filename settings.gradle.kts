@@ -16,3 +16,6 @@ rootProject.name = "Kmemo"
 
 include(":kmemo-core")
 include(":kmemo-store-tck")
+include(":kmemo-store-redis")
+include(":kmemo-store-postgres")
+include(":kmemo-store-hnsw")

@@ -20,4 +20,7 @@ apiValidation {
 // Aggregate the documented modules into one HTML API site, published to GitHub Pages by docs.yml.
 dependencies {
     dokka(project(":kmemo-core"))
+    dokka(project(":kmemo-store-redis"))
+    dokka(project(":kmemo-store-postgres"))
+    dokka(project(":kmemo-store-hnsw"))
 }

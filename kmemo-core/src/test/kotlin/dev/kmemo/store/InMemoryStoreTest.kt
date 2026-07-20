@@ -165,9 +165,34 @@ class InMemoryStoreTest {
     }
 
     @Test
+    fun `the byte bound evicts the least recently used entry`() = runTest {
+        // Each 2-dim entry is ~162 bytes, so 350 holds two but not three.
+        val store = InMemoryStore(maxBytes = 350)
+        store.put(entry("a"))
+        store.put(entry("b"))
+        store.touch("a") // "b" is now the least recently used
+        store.put(entry("c"))
+
+        val remaining = store.search("default", query, limit = 10).map { it.entry.id }.toSet()
+        assertEquals(setOf("a", "c"), remaining)
+        assertTrue(store.stats().bytes <= 350)
+    }
+
+    @Test
+    fun `stats estimate resident bytes and return to zero when emptied`() = runTest {
+        val store = InMemoryStore()
+        store.put(entry("a"))
+        assertTrue(store.stats().bytes > 0)
+
+        store.remove("a")
+        assertEquals(0L, store.stats().bytes)
+    }
+
+    @Test
     fun `an invalid configuration fails at construction`() {
         assertFailsWith<IllegalArgumentException> { InMemoryStore(maxEntries = 0) }
         assertFailsWith<IllegalArgumentException> { InMemoryStore(ttl = 0.minutes) }
+        assertFailsWith<IllegalArgumentException> { InMemoryStore(maxBytes = 0) }
     }
 
     private fun entry(

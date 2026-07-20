@@ -1,0 +1,11 @@
+public final class dev/kmemo/store/hnsw/HnswStore : dev/kmemo/CacheStore {
+	public synthetic fun <init> (IIILkotlin/time/Duration;Ljava/time/Clock;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (IIILkotlin/time/Duration;Ljava/time/Clock;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun put (Ldev/kmemo/CacheEntry;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun remove (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun search (Ljava/lang/String;[FILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun size (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun touch (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
