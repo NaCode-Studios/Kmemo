@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-20
+
 ### Added
 
 - Fail-closed verifier semantics and `SemanticCache(verifierTimeout = …)` — a `Verifier` that throws
@@ -66,5 +68,6 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
 - Published to Maven Central and GitHub Packages under `io.github.nacode-studios` (package
   `dev.kmemo`), with the public API tracked by binary-compatibility-validator (`./gradlew apiCheck`).
 
-[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/NaCode-Studios/Kmemo/releases/tag/v0.1.0

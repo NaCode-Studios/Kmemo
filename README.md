@@ -67,7 +67,7 @@ Requires **JDK 17+**. Artifacts are published to Maven Central under `io.github.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:0.1.0")
+    implementation("io.github.nacode-studios:kmemo-core:0.2.0")
 }
 ```
 
