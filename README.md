@@ -268,12 +268,18 @@ Run it yourself:
 
 ## Roadmap
 
-**Now** — `SemanticCache` with scopes, stats and typed misses; `Embedder` and `CacheStore` seams;
-ten guards plus an opt-in `LengthRatioGuard`; an optional `Verifier`; `InMemoryStore` with TTL and
-LRU; `ThresholdCalibrator`; the labelled corpus.
+**Now (`0.1.0`)** — `SemanticCache` with scopes, stats and typed misses; `Embedder` and `CacheStore`
+seams; ten guards plus an opt-in `LengthRatioGuard`; an optional `Verifier`; `InMemoryStore` with TTL
+and LRU; `ThresholdCalibrator`; three labelled corpora with a blind validation split. Built and
+tested; publishing to Maven Central is the next step.
 
-**Next** — Redis and Postgres/pgvector stores, a Spring AI `Advisor` and a LangChain4j wrapper
-(neither framework ships a semantic cache), and non-English vocabularies.
+**Next** — publish `0.1.0`; per-guard measurement and a completed `Verifier` path for the near misses
+lexical rules cannot see; Redis and Postgres/pgvector stores behind the same `CacheStore` seam;
+resilience and observability (metrics, tracing) for a request path; framework integrations — a Spring
+AI `Advisor` and a LangChain4j wrapper (neither framework ships a semantic cache) — with a runnable
+demo; non-English vocabularies; and the road to `1.0`, with Kotlin Multiplatform after that.
+
+See **[ROADMAP.md](ROADMAP.md)** for the full milestone plan (`M1`–`M18`).
 
 ## Building and testing
 
