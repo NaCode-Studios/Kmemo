@@ -28,7 +28,34 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   new guard or matcher earns its place against that corpus before it ships. Positioning competes on
   false-hit protection, diagnosability, DX and footprint — not on being the fastest ANN index.
 
-## Status — `0.3.0` (current)
+## Status — `0.4.0` (current)
+
+`0.4.0` is the **Tier 2 "production reliability & observability"** release: the failure behaviour,
+telemetry and hot-path performance a team needs before putting Kmemo on a request path.
+
+- **Resilience (M8):** an `EmbedFailurePolicy` so a `getOrPut` can fall back to `compute` when the
+  embedder is down — never worse than no cache, and `CancellationException` always propagates; an opt-in
+  `RetryingEmbedder` / `Embedder.retrying(…)` with jittered exponential backoff; an opt-in negative cache
+  (`negativeCacheSize` / `negativeCacheTtl`) that reuses a just-missed prompt's embedding so a sequential
+  burst of the same brand-new prompt embeds once; and `SemanticCache.warm(entries)` for batch-embedded
+  startup preloading. Negative caching only ever reuses a vector — it never suppresses the search — so it
+  cannot manufacture a false hit.
+- **Observability (M9):** a zero-dependency `CacheEvent` stream (`CacheListener`, with `CacheEvents`
+  bridging it to a `Flow`) covering hit / miss / write / eviction with per-stage latencies;
+  `kmemo-micrometer`, a Micrometer `MeterBinder` for hit rate, per-`MissReason` and per-guard counters and
+  embed / search / verify timers; and `kmemo-slf4j`, a structured logging listener with prompt redaction
+  on by default and an optional correlation id. Emission is gated on having listeners, so the default
+  hot path builds no events and measures nothing.
+- **Performance (M10):** `getOrPutAll(prompts)`, embedding a whole batch in one `Embedder.embedAll` call;
+  opt-in, ordered **write-behind** (`writeBehindScope`) that takes the store write off the caller's
+  critical path; a `kmemo-benchmarks` JMH module (lookup latency vs cache size, guard-chain cost, exact
+  vs ANN, and a plain `HashMap` exact baseline); and a zero-boxing pass that keeps embeddings as
+  `FloatArray` end-to-end and removes the one boxed `Double` sort key on the search path.
+
+Targeting Maven Central and GitHub Packages as `0.4.0`. The next release — `0.5.0` — opens **Tier 3**
+(DX & reach, M11–M12).
+
+## Status — `0.3.0`
 
 `0.3.0` is the **Tier 1 "stores beyond memory"** release: the `CacheStore` seam — match logic in the
 cache, a backend only stores vectors and returns the nearest `k` in a scope — proven with real adapters
@@ -101,9 +128,9 @@ Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07
 | **M5** · Redis store | ✅ Shipped in `0.3.0`. |
 | **M6** · Postgres / pgvector store | ✅ Shipped in `0.3.0`. |
 | **M7** · Scaling the in-memory store (ANN) | ✅ Shipped in `0.3.0`. |
-| **M8** · Resilience: embedder failures & negative results | Planned. |
-| **M9** · Observability: metrics, tracing, logging | Planned. |
-| **M10** · Performance: batching, write-behind, benchmarks | Planned. |
+| **M8** · Resilience: embedder failures & negative results | ✅ Shipped in `0.4.0`. |
+| **M9** · Observability: metrics, tracing, logging | ✅ Shipped in `0.4.0`. |
+| **M10** · Performance: batching, write-behind, benchmarks | ✅ Shipped in `0.4.0`. |
 | **M11** · Ergonomics: BOM, config DSL, typed & streaming responses | Planned. |
 | **M12** · Multilingual vocabularies & guard packs | Planned. |
 | **M13** · Spring Boot starter + Spring AI advisor | Planned. |
@@ -279,6 +306,12 @@ numbers in their dashboards, and a hot path that does not become the bottleneck 
 
 ### M8 · Resilience: embedder failures & negative results — `M`
 
+**Status: ✅ Shipped in `0.4.0`.** Delivered: `EmbedFailurePolicy`
+(`PROPAGATE` / `FALL_BACK_TO_COMPUTE`, `CancellationException` always propagated); `RetryingEmbedder`
+and `Embedder.retrying(…)` with jittered exponential backoff; an opt-in negative cache
+(`negativeCacheSize` / `negativeCacheTtl`) that reuses a just-missed prompt's embedding without ever
+suppressing the search; and `SemanticCache.warm(entries)` for batch-embedded startup preloading.
+
 The `Embedder` is a network call the cache makes on **every** lookup. Its failure modes are currently
 the caller's problem; own them.
 
@@ -292,6 +325,14 @@ the caller's problem; own them.
 
 ### M9 · Observability: metrics, tracing, structured logging — `M`
 
+**Status: ✅ Shipped in `0.4.0`.** Delivered: a zero-dependency
+`CacheEvent` stream (`CacheListener`; `CacheEvents` republishes it as a `Flow`) covering hit / miss /
+write / eviction with per-stage latencies and the guard name on a rejection; `kmemo-micrometer`, a
+`MeterBinder` for hit rate, per-`MissReason` and per-guard counters and embed / search / verify timers
+(scope left untagged to bound cardinality); and `kmemo-slf4j`, a structured logging listener with prompt
+redaction on by default and an optional correlation id. OpenTelemetry is left to a future adapter on the
+same seam.
+
 Make Kmemo legible to the tools teams already run, building on the per-guard counters from M2.
 
 - A Micrometer `MeterBinder` (and/or OpenTelemetry) exposing hit rate, per-`MissReason` and per-guard
@@ -303,6 +344,13 @@ Make Kmemo legible to the tools teams already run, building on the per-guard cou
   polling `stats()`.
 
 ### M10 · Performance: batching, write-behind & benchmarks — `L`
+
+**Status: ✅ Shipped in `0.4.0`.** Delivered: `getOrPutAll(prompts)`
+over the existing `Embedder.embedAll` batch default; opt-in ordered write-behind (`writeBehindScope`,
+falling through to a synchronous write when the buffer is full so no write is lost); a `kmemo-benchmarks`
+JMH module (lookup vs cache size, guard-chain cost, exact vs ANN, plain-`HashMap` baseline); and a
+zero-boxing pass — `FloatArray` end-to-end, with the one boxed sort key on the search path removed.
+Per-scope latency percentiles beyond the JMH figures are left to the deployed metrics.
 
 Optimize the paths that run on every request and prove the footprint/latency story with numbers.
 

@@ -6,6 +6,53 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-21
+
+`0.4.0` is the **Tier 2 "production reliability & observability"** release: predictable failure
+behaviour, telemetry in the tools teams already run, and a hot path that does not become the bottleneck
+it was meant to remove.
+
+### Added
+
+- Embed-failure policy (M8): `SemanticCache(embedFailurePolicy = …)` — `PROPAGATE` (the default) or
+  `FALL_BACK_TO_COMPUTE`, which degrades a `getOrPut` to an uncached model call when the embedder throws,
+  so a lookup is never worse than no cache. The fall-back cannot write back (there is no embedding to key
+  it), and `CancellationException` always propagates. `lookup` / `get` / `put` always propagate.
+- Retrying embedder (M8): `RetryingEmbedder` and the `Embedder.retrying(…)` extension — opt-in, jittered
+  exponential backoff around `embed` / `embedAll`, never retrying `CancellationException`.
+- Negative caching (M8): opt-in `SemanticCache(negativeCacheSize = …, negativeCacheTtl = …)` remembers a
+  just-missed prompt's embedding so an immediate repeat of the same brand-new prompt embeds once, not
+  once per caller. It only ever reuses a vector — it never suppresses the store search — so it cannot
+  cause a false hit.
+- Bulk preload (M8): `SemanticCache.warm(entries)` seeds a cache from known prompt/response pairs (an
+  FAQ, a golden set), embedding the whole batch in one call.
+- Event stream (M9): a zero-dependency `CacheEvent` (`Hit` / `Miss` / `Write` / `Eviction`) delivered to
+  `CacheListener`s inline, with per-stage latencies and the guard name on a rejection; `CacheEvents`
+  republishes the stream as a `Flow`. Emission is gated on having listeners, so the default hot path
+  builds no events and measures nothing. `InMemoryStore(listener = …)` emits eviction/expiry events.
+- Micrometer metrics (M9): a new `kmemo-micrometer` module — `KmemoMetrics`, a `MeterBinder` exposing hit
+  rate, per-`MissReason` and per-guard counters, and embed / search / verify timers. Scope is left
+  untagged to keep cardinality bounded.
+- SLF4J logging (M9): a new `kmemo-slf4j` module — `Slf4jCacheListener`, a structured log line per event
+  with prompt redaction on by default (prompts can carry PII) and an optional correlation id.
+- Batch embedding (M10): `SemanticCache.getOrPutAll(prompts)` looks up many prompts at once, embedding
+  the whole batch in a single `Embedder.embedAll` call — the win where a provider prices per request, not
+  per token.
+- Write-behind puts (M10): opt-in `SemanticCache(writeBehindScope = …)` returns from a `getOrPut` miss as
+  soon as `compute` does and applies the store write off the caller's critical path, in order, by one
+  worker. A full buffer falls through to a synchronous write, so no write is ever lost; `put` and `warm`
+  always write through.
+- Benchmarks (M10): a new `kmemo-benchmarks` JMH module (not published) — lookup latency vs cache size,
+  guard-chain cost, exact scan vs HNSW, and a plain-`HashMap` exact baseline. Compiled on every `check`,
+  run on demand with `./gradlew :kmemo-benchmarks:jmh`.
+
+### Changed
+
+- `InMemoryStore.search` now sorts candidates with a primitive comparator instead of
+  `sortByDescending { it.similarity }`, whose selector boxed a `Double` per entry across the whole scope
+  on the lookup hot path. Behaviour is unchanged; the allocation is gone (part of the M10 zero-boxing
+  pass, which confirmed embeddings stay `FloatArray` end-to-end).
+
 ## [0.3.0] - 2026-07-21
 
 `0.3.0` is the **Tier 1 "stores beyond memory"** release: the `CacheStore` seam proven with real backends

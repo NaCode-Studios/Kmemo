@@ -8,13 +8,15 @@ plugins {
 
 subprojects {
     group = "io.github.nacode-studios"
-    version = "0.3.0"
+    version = "0.4.0"
 }
 
 apiValidation {
     // kmemo-store-tck ships test-support code (an abstract JUnit test class), not a public runtime
     // API, so it is not part of the binary-compatibility contract.
     ignoredProjects.add("kmemo-store-tck")
+    // kmemo-benchmarks is a JMH harness, not a published library — it has no public API to guard.
+    ignoredProjects.add("kmemo-benchmarks")
 }
 
 // Aggregate the documented modules into one HTML API site, published to GitHub Pages by docs.yml.
@@ -23,4 +25,6 @@ dependencies {
     dokka(project(":kmemo-store-redis"))
     dokka(project(":kmemo-store-postgres"))
     dokka(project(":kmemo-store-hnsw"))
+    dokka(project(":kmemo-micrometer"))
+    dokka(project(":kmemo-slf4j"))
 }

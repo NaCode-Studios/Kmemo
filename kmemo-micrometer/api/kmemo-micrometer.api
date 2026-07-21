@@ -1,0 +1,8 @@
+public final class dev/kmemo/micrometer/KmemoMetrics : dev/kmemo/CacheListener, io/micrometer/core/instrument/binder/MeterBinder {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/Iterable;)V
+	public synthetic fun <init> (Ljava/lang/Iterable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun bindTo (Lio/micrometer/core/instrument/MeterRegistry;)V
+	public fun onEvent (Ldev/kmemo/CacheEvent;)V
+}
+

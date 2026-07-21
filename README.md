@@ -68,7 +68,7 @@ Requires **JDK 17+**. Artifacts are published to Maven Central under `io.github.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:0.3.0")
+    implementation("io.github.nacode-studios:kmemo-core:0.4.0")
 }
 ```
 
@@ -180,11 +180,47 @@ A high `belowThreshold` means your traffic repeats less than you assumed, or you
 tight for your model. A high `guardRejections` means the opposite — prompts are landing close
 together and the guards are catching near misses your threshold alone would have served.
 
+For dashboards and logs, subscribe to the event stream instead of polling. It is free when unused — no
+listeners, no events built:
+
+```kotlin
+// Metrics (kmemo-micrometer) and structured logs (kmemo-slf4j), both just CacheListeners:
+val metrics = KmemoMetrics().also { it.bindTo(meterRegistry) }
+val cache = SemanticCache(embedder, listeners = listOf(metrics, Slf4jCacheListener()))
+
+// …or tap the raw CacheEvent stream (hit / miss / write / eviction) as a Flow:
+val events = CacheEvents()
+val cache = SemanticCache(embedder, listeners = listOf(events))
+scope.launch { events.events.collect { event -> /* ship it */ } }
+```
+
+### Resilience
+
+The `Embedder` is a network call on every lookup, so own its failure. Fall back to the model when it is
+down, retry transient blips, and remember a brand-new prompt's embedding so a burst embeds once:
+
+```kotlin
+val cache = SemanticCache(
+    embedder = myEmbedder.retrying(maxAttempts = 4),           // jittered backoff, opt-in
+    embedFailurePolicy = EmbedFailurePolicy.FALL_BACK_TO_COMPUTE, // never worse than no cache
+    negativeCacheSize = 10_000,                                 // a repeated miss embeds once
+)
+cache.warm(faqPairs.map { WarmEntry(it.question, it.answer) }) // batch-embedded startup preload
+```
+
 ## Architecture
 
 | Module | Contents |
 | --- | --- |
-| `kmemo-core` | `SemanticCache`, the `Embedder` and `CacheStore` seams, the guard chain, `InMemoryStore`, `ThresholdCalibrator` — and no provider or database knowledge. |
+| `kmemo-core` | `SemanticCache`, the `Embedder` and `CacheStore` seams, the guard chain, `InMemoryStore`, `ThresholdCalibrator`, resilience (`EmbedFailurePolicy`, `Embedder.retrying`, negative caching, `warm`), the `CacheEvent` stream — and no provider or database knowledge. |
+| `kmemo-store-redis` | A `CacheStore` on Redis (RediSearch `FT.SEARCH` KNN), for a cache shared across processes. |
+| `kmemo-store-postgres` | A durable `CacheStore` on Postgres / pgvector (`<=>`), for a one-dependency persistent cache. |
+| `kmemo-store-hnsw` | An opt-in in-process approximate (HNSW) `CacheStore` that scales past the exact scan. |
+| `kmemo-micrometer` | A Micrometer `MeterBinder` — hit rate, per-reason and per-guard counters, embed/search/verify timers. |
+| `kmemo-slf4j` | An SLF4J `CacheListener` — a structured log line per event, prompt redaction on by default. |
+
+Every module past `kmemo-core` is opt-in and never lands on the core classpath; the core still depends
+only on `kotlinx-coroutines-core`.
 
 A lookup is decided in four stages, each cheaper than the one it protects:
 
@@ -281,18 +317,23 @@ Run it yourself:
 
 ## Roadmap
 
+**Shipped (`0.4.0`)** — **production reliability & observability**: resilience (an `EmbedFailurePolicy`
+fall-back, `Embedder.retrying(…)`, opt-in negative caching, `warm(...)` preload), observability (a
+zero-dependency `CacheEvent` stream, plus `kmemo-micrometer` metrics and `kmemo-slf4j` structured
+logging), and performance (`getOrPutAll(...)` batch embedding, opt-in write-behind, a `kmemo-benchmarks`
+JMH module, and a zero-boxing search path).
+
 **Shipped (`0.3.0`)** — **stores beyond memory**: a shared store conformance suite (`kmemo-store-tck`),
 Redis (`kmemo-store-redis`, RediSearch KNN) and Postgres / pgvector (`kmemo-store-postgres`) adapters
 behind the same `CacheStore` seam, an opt-in in-process HNSW index (`kmemo-store-hnsw`), and a `maxBytes`
 bound on `InMemoryStore` — on top of `0.2.0`'s per-guard measurement (`guardRejectionsByGuard`,
 `explain(...)`) and completed `Verifier` path, and the `0.1.0` core. All on Maven Central and GitHub Packages.
 
-**Next (`0.4.0`)** — Tier 2: resilience (embedder failures, negative caching), observability (metrics,
-tracing, structured logging), and performance (batch embedding, write-behind, benchmarks).
+**Next (`0.5.0`)** — Tier 3: ergonomics (a BOM, a config DSL, typed & streaming responses) and
+multilingual vocabularies & guard packs.
 
-**Later** — resilience and observability (metrics, tracing) for a request path; framework integrations —
-a Spring AI `Advisor` and a LangChain4j wrapper (neither framework ships a semantic cache) — with a
-runnable demo; non-English vocabularies; and the road to `1.0`, with Kotlin Multiplatform after that.
+**Later** — framework integrations — a Spring AI `Advisor` and a LangChain4j wrapper (neither framework
+ships a semantic cache) — with a runnable demo; and the road to `1.0`, with Kotlin Multiplatform after that.
 
 See **[ROADMAP.md](ROADMAP.md)** for the full milestone plan (`M1`–`M18`), and the shared
 **[roadmap conventions](ROADMAP-CONVENTIONS.md)**.
