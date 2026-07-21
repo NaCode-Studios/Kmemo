@@ -4,6 +4,10 @@ dokka = "2.2.0"
 mavenPublish = "0.35.0"
 coroutines = "1.11.0"
 serialization = "1.11.0"
+lettuce = "6.5.1.RELEASE"
+postgresql = "42.7.4"
+hikari = "6.2.1"
+testcontainers = "1.20.4"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -11,6 +15,20 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 # Test-only: reads the near-miss corpus. The published artifact depends on coroutines and nothing else.
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+# Test-support: maps kotlin.test annotations (@Test/@BeforeTest) to JUnit 5 for the store TCK's main
+# source set, which adapter modules subclass.
+kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
+
+# Store adapters (opt-in modules; never on the kmemo-core classpath).
+lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
+kotlinx-coroutines-jdk8 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8", version.ref = "coroutines" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+
+# Integration testing: a real backend in Docker (skipped when Docker is absent).
+testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
+testcontainers = { module = "org.testcontainers:testcontainers" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

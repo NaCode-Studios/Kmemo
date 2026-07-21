@@ -18,13 +18,19 @@ kotlin {
 }
 
 dependencies {
-    api(libs.kotlinx.coroutines.core)
+    api(project(":kmemo-core"))
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
+    // The store talks JDBC (java.sql) to a caller-supplied DataSource; the Postgres driver is the
+    // caller's single runtime dependency, kept off this module's compile classpath on purpose.
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.kotlinx.serialization.json)
-    // The shared store conformance suite; InMemoryStore is held to the same contract as every adapter.
     testImplementation(project(":kmemo-store-tck"))
+    testImplementation(libs.postgresql)
+    testImplementation(libs.hikaricp)
+    testImplementation(platform(libs.testcontainers.bom))
+    testImplementation(libs.testcontainers.postgresql)
 }
 
 tasks.test {
@@ -32,27 +38,22 @@ tasks.test {
     testLogging {
         events("passed", "skipped", "failed")
         exceptionFormat = TestExceptionFormat.FULL
-        showStandardStreams = true
     }
 }
 
 mavenPublishing {
     publishToMavenCentral()
 
-    // Maven Central requires signatures, but a developer running publishToMavenLocal has no key and
-    // should not be stopped by that — an unconditional signAllPublications() fails the local build
-    // with "no configured signatory". The release workflow sets
-    // ORG_GRADLE_PROJECT_signingInMemoryKey, which Gradle surfaces as this project property, so CI
-    // still signs everything it publishes.
     if (providers.gradleProperty("signingInMemoryKey").isPresent) {
         signAllPublications()
     }
 
-    coordinates("io.github.nacode-studios", "kmemo-core", version.toString())
+    coordinates("io.github.nacode-studios", "kmemo-store-postgres", version.toString())
     pom {
-        name.set("Kmemo Core")
+        name.set("Kmemo Postgres store")
         description.set(
-            "Semantic cache for LLM calls on Kotlin/JVM, with guards against false cache hits.",
+            "Postgres (pgvector) CacheStore for Kmemo, the semantic cache for LLM calls on Kotlin/JVM — " +
+                "a durable, one-dependency semantic cache over JDBC with pgvector nearest-neighbour search.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")
@@ -77,7 +78,6 @@ mavenPublishing {
     }
 }
 
-// Secondary distribution: GitHub Packages (Maven Central remains the primary registry).
 publishing {
     repositories {
         maven {

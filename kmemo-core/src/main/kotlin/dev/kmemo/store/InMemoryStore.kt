@@ -15,10 +15,12 @@ import java.time.Duration as JavaDuration
 public data class InMemoryStoreStats(
     /** Live entries, expired ones excluded. */
     public val size: Int,
-    /** Entries dropped to stay within `maxEntries`, since construction. */
+    /** Entries dropped to stay within `maxEntries` or `maxBytes`, since construction. */
     public val evictions: Long,
     /** Entries dropped for being past their TTL, since construction. */
     public val expirations: Long,
+    /** Estimated resident bytes of the entries held (embeddings dominate: `dimensions * 4` each). */
+    public val bytes: Long = 0,
 )
 
 /**
@@ -39,16 +41,21 @@ public data class InMemoryStoreStats(
  * @param ttl how long an entry stays valid, or `null` to keep entries until they are evicted.
  *   Expired entries are never returned by [search] and are dropped as they are encountered.
  * @param clock time source; substitute a fixed clock in tests instead of sleeping.
+ * @param maxBytes optional cap on estimated resident bytes (embeddings dominate: `dimensions * 4`
+ *   each), evicted least-recently-used just like `maxEntries`, so a cache in a memory-constrained
+ *   service cannot grow without bound. `null` (the default) bounds by count only.
  */
 public class InMemoryStore(
     private val maxEntries: Int = DEFAULT_MAX_ENTRIES,
     ttl: Duration? = null,
     private val clock: Clock = Clock.systemUTC(),
+    private val maxBytes: Long? = null,
 ) : CacheStore {
 
     init {
         require(maxEntries > 0) { "maxEntries must be positive, was $maxEntries" }
         require(ttl == null || ttl.isPositive()) { "ttl must be positive, was $ttl" }
+        require(maxBytes == null || maxBytes > 0) { "maxBytes must be positive, was $maxBytes" }
     }
 
     private val ttlNanos: JavaDuration? = ttl?.let { JavaDuration.ofNanos(it.inWholeNanoseconds) }
@@ -60,6 +67,9 @@ public class InMemoryStore(
 
     private var evictions = 0L
     private var expirations = 0L
+
+    /** Running estimate of resident bytes, kept in step with [entries] on every mutation. */
+    private var currentBytes = 0L
 
     /** Dimension of everything stored so far, or `-1` while empty. Guards against model swaps. */
     private var dimensions = -1
@@ -81,7 +91,9 @@ public class InMemoryStore(
                         "mixed in one store — clear it, or give the new model its own store."
                 }
             }
-            entries[entry.id] = entry
+            val previous = entries.put(entry.id, entry)
+            if (previous != null) currentBytes -= bytesOf(previous)
+            currentBytes += bytesOf(entry)
             evictOverflow()
         }
     }
@@ -128,17 +140,23 @@ public class InMemoryStore(
     }
 
     override suspend fun remove(id: String): Boolean = mutex.withLock {
-        val removed = entries.remove(id) != null
+        val removed = entries.remove(id)
+        if (removed != null) currentBytes -= bytesOf(removed)
         forgetDimensionsIfEmpty()
-        removed
+        removed != null
     }
 
     override suspend fun clear(scope: String?) {
         mutex.withLock {
             if (scope == null) {
                 entries.clear()
+                currentBytes = 0L
             } else {
-                entries.entries.removeAll { it.value.scope == scope }
+                entries.entries.removeAll { entry ->
+                    (entry.value.scope == scope).also { matched ->
+                        if (matched) currentBytes -= bytesOf(entry.value)
+                    }
+                }
             }
             forgetDimensionsIfEmpty()
         }
@@ -166,6 +184,7 @@ public class InMemoryStore(
             size = entries.values.count { !isExpired(it, now) },
             evictions = evictions,
             expirations = expirations,
+            bytes = currentBytes,
         )
     }
 
@@ -176,7 +195,11 @@ public class InMemoryStore(
 
     private fun dropAll(ids: List<String>) {
         for (id in ids) {
-            if (entries.remove(id) != null) expirations++
+            val removed = entries.remove(id)
+            if (removed != null) {
+                expirations++
+                currentBytes -= bytesOf(removed)
+            }
         }
         forgetDimensionsIfEmpty()
     }
@@ -201,20 +224,31 @@ public class InMemoryStore(
      * worse — would throw out a live, recently used entry while expired ones still occupy the map.
      */
     private fun evictOverflow() {
-        if (entries.size <= maxEntries) return
+        val overCount = entries.size > maxEntries
+        val overBytes = maxBytes != null && currentBytes > maxBytes
+        if (!overCount && !overBytes) return
 
         dropExpired(clock.instant())
 
         while (entries.size > maxEntries) {
-            val eldest = entries.keys.iterator().next()
-            entries.remove(eldest)
-            evictions++
+            evictEldest()
+        }
+        // Then trim by memory, keeping at least the entry just written even if it alone is oversized.
+        while (maxBytes != null && currentBytes > maxBytes && entries.size > 1) {
+            evictEldest()
         }
 
         // Purging can empty the map — a warm cache rehydrated with entries that are already past
         // their TTL does exactly that — and this is the one mutation path that would otherwise
         // leave the old dimension latched on an empty store.
         forgetDimensionsIfEmpty()
+    }
+
+    private fun evictEldest() {
+        val eldest = entries.keys.iterator().next()
+        val removed = entries.remove(eldest)
+        if (removed != null) currentBytes -= bytesOf(removed)
+        evictions++
     }
 
     /**
@@ -228,6 +262,15 @@ public class InMemoryStore(
         if (entries.isEmpty()) dimensions = -1
     }
 
+    /**
+     * Estimated resident bytes of [entry]. Embeddings dominate (`dimensions * 4`); the prompt and
+     * response are counted too, plus a flat allowance for object and map-entry overhead. This is an
+     * estimate for the memory bound, not an exact heap measurement.
+     */
+    private fun bytesOf(entry: CacheEntry): Long =
+        entry.dimensions.toLong() * Float.SIZE_BYTES +
+            entry.prompt.length + entry.response.length + ENTRY_OVERHEAD
+
     public companion object {
         /**
          * Default cap. Chosen so a full linear scan stays fast enough to be invisible next to an
@@ -237,5 +280,8 @@ public class InMemoryStore(
 
         private const val INITIAL_CAPACITY = 64
         private const val LOAD_FACTOR = 0.75f
+
+        /** Flat per-entry allowance (object headers, map entry, id/scope strings) for the byte estimate. */
+        private const val ENTRY_OVERHEAD = 128L
     }
 }

@@ -37,9 +37,9 @@ val answer = cache.getOrPut(prompt) { llm.complete(it) }
 Kmemo caches responses for embeddings you already have — `openAi.embed` above is your own embedding
 source; Kmemo ships none and depends on no provider SDK.
 
-> **Status — `0.2`, early development.** Published to Maven Central; the cache, the ten guards, the
-> in-memory store, the threshold calibrator and an optional verifier are implemented and measured against
-> a labelled corpus. The API may change before `1.0`.
+> **Status — `0.3`, early development.** Published to Maven Central; the cache, the ten guards, the
+> in-memory store, the threshold calibrator and an optional verifier — plus opt-in Redis, Postgres and
+> HNSW stores — implemented and measured against a labelled corpus. The API may change before `1.0`.
 
 ## Why Kmemo
 
@@ -68,7 +68,7 @@ Requires **JDK 17+**. Artifacts are published to Maven Central under `io.github.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:0.2.0")
+    implementation("io.github.nacode-studios:kmemo-core:0.3.0")
 }
 ```
 
@@ -281,14 +281,14 @@ Run it yourself:
 
 ## Roadmap
 
-**Shipped (`0.2.0`)** — `SemanticCache` with scopes, stats and typed misses; `Embedder` and `CacheStore`
-seams; ten guards plus an opt-in `LengthRatioGuard`; `InMemoryStore` with TTL and LRU; `ThresholdCalibrator`;
-three labelled corpora with a blind validation split — all in `0.1.0`. `0.2.0` adds per-guard measurement
-(`guardRejectionsByGuard`, `explain(...)`) and the completed `Verifier` path (fail-closed semantics, verdict
-caching) for the near misses lexical rules cannot see. Both are on Maven Central and GitHub Packages.
+**Shipped (`0.3.0`)** — **stores beyond memory**: a shared store conformance suite (`kmemo-store-tck`),
+Redis (`kmemo-store-redis`, RediSearch KNN) and Postgres / pgvector (`kmemo-store-postgres`) adapters
+behind the same `CacheStore` seam, an opt-in in-process HNSW index (`kmemo-store-hnsw`), and a `maxBytes`
+bound on `InMemoryStore` — on top of `0.2.0`'s per-guard measurement (`guardRejectionsByGuard`,
+`explain(...)`) and completed `Verifier` path, and the `0.1.0` core. All on Maven Central and GitHub Packages.
 
-**Next (`0.3.0`)** — stores beyond memory: a shared store conformance suite (TCK), then Redis and
-Postgres / pgvector adapters behind the same `CacheStore` seam, and an ANN path for the in-memory store.
+**Next (`0.4.0`)** — Tier 2: resilience (embedder failures, negative caching), observability (metrics,
+tracing, structured logging), and performance (batch embedding, write-behind, benchmarks).
 
 **Later** — resilience and observability (metrics, tracing) for a request path; framework integrations —
 a Spring AI `Advisor` and a LangChain4j wrapper (neither framework ships a semantic cache) — with a

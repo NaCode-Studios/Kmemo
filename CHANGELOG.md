@@ -6,6 +6,35 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-21
+
+`0.3.0` is the **Tier 1 "stores beyond memory"** release: the `CacheStore` seam proven with real backends
+and a shared conformance suite, plus a path for the default store to scale.
+
+### Added
+
+- Store conformance suite (M4): a new `kmemo-store-tck` module exposing `CacheStoreContract` — the
+  reusable test every `CacheStore` must pass (put / replace-by-id, scope isolation, TTL expiry, `limit`
+  and best-first ordering, `touch`, `remove` / `clear(scope)` / `size`, and real-threaded concurrent
+  access) — plus a `FakeClock` for deterministic TTL tests. `InMemoryStore` is now held to it, and every
+  future store adapter ships green against the same contract or does not ship.
+- Redis store (M5): `kmemo-store-redis` — a `CacheStore` backed by Redis with RediSearch, for a cache
+  shared across processes. Nearest-neighbour search is `FT.SEARCH ... KNN` on an exact `FLAT` index, so
+  the adapter reimplements no match logic; scope is a `TAG` field, and TTL is a clock-driven `expires_at`
+  filter plus a real Redis key TTL for reclamation. Built on a Lettuce coroutine client; green against the
+  M4 conformance suite under Testcontainers.
+- Postgres / pgvector store (M6): `kmemo-store-postgres` — a durable `CacheStore` over JDBC using
+  pgvector's cosine-distance operator (`<=>`), scope as an indexed column, and an `expires_at` predicate
+  driven by the injected clock. The table is created on first use (or provision it from the shipped
+  `schema.sql`); the Postgres driver is the caller's only added runtime dependency. Green against the M4
+  conformance suite under Testcontainers.
+- HNSW store and byte-aware bounds (M7): `kmemo-store-hnsw` — an opt-in, pure-Kotlin approximate-nearest-
+  neighbour `CacheStore` that scales past the exact in-memory scan. The graph only proposes candidates,
+  which are then rescored exactly, so scope, TTL, `size` and `remove` stay exact and only recall is
+  approximate (measured ≥ 0.9 vs exact search). `InMemoryStore` also gains an optional `maxBytes` memory
+  bound (evicted LRU alongside `maxEntries`) and a `bytes` figure in its stats, so a cache in a
+  memory-constrained service cannot grow without bound.
+
 ## [0.2.0] - 2026-07-20
 
 ### Added
@@ -68,6 +97,7 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
 - Published to Maven Central and GitHub Packages under `io.github.nacode-studios` (package
   `dev.kmemo`), with the public API tracked by binary-compatibility-validator (`./gradlew apiCheck`).
 
-[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/NaCode-Studios/Kmemo/releases/tag/v0.1.0
