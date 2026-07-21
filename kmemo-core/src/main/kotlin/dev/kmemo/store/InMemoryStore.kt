@@ -1,7 +1,10 @@
 package dev.kmemo.store
 
 import dev.kmemo.CacheEntry
+import dev.kmemo.CacheEvent
+import dev.kmemo.CacheListener
 import dev.kmemo.CacheStore
+import dev.kmemo.EvictionCause
 import dev.kmemo.ScoredEntry
 import dev.kmemo.Vectors
 import kotlinx.coroutines.sync.Mutex
@@ -44,12 +47,18 @@ public data class InMemoryStoreStats(
  * @param maxBytes optional cap on estimated resident bytes (embeddings dominate: `dimensions * 4`
  *   each), evicted least-recently-used just like `maxEntries`, so a cache in a memory-constrained
  *   service cannot grow without bound. `null` (the default) bounds by count only.
+ * @param listener optional sink notified with a [CacheEvent.Eviction] whenever an entry is evicted
+ *   (for capacity or memory) or dropped for being expired — the store owns eviction, so the store is
+ *   what reports it. Called inline while the store's lock is held, so it must be fast and non-blocking
+ *   (see [CacheListener]); pass the same listener you give [dev.kmemo.SemanticCache] to see the whole
+ *   event stream in one place. `null` (the default) emits nothing.
  */
 public class InMemoryStore(
     private val maxEntries: Int = DEFAULT_MAX_ENTRIES,
     ttl: Duration? = null,
     private val clock: Clock = Clock.systemUTC(),
     private val maxBytes: Long? = null,
+    private val listener: CacheListener? = null,
 ) : CacheStore {
 
     init {
@@ -199,6 +208,7 @@ public class InMemoryStore(
             if (removed != null) {
                 expirations++
                 currentBytes -= bytesOf(removed)
+                emitEviction(removed, EvictionCause.EXPIRED)
             }
         }
         forgetDimensionsIfEmpty()
@@ -231,11 +241,11 @@ public class InMemoryStore(
         dropExpired(clock.instant())
 
         while (entries.size > maxEntries) {
-            evictEldest()
+            evictEldest(EvictionCause.CAPACITY)
         }
         // Then trim by memory, keeping at least the entry just written even if it alone is oversized.
         while (maxBytes != null && currentBytes > maxBytes && entries.size > 1) {
-            evictEldest()
+            evictEldest(EvictionCause.MEMORY)
         }
 
         // Purging can empty the map — a warm cache rehydrated with entries that are already past
@@ -244,11 +254,28 @@ public class InMemoryStore(
         forgetDimensionsIfEmpty()
     }
 
-    private fun evictEldest() {
+    private fun evictEldest(cause: EvictionCause) {
         val eldest = entries.keys.iterator().next()
         val removed = entries.remove(eldest)
-        if (removed != null) currentBytes -= bytesOf(removed)
+        if (removed != null) {
+            currentBytes -= bytesOf(removed)
+            emitEviction(removed, cause)
+        }
         evictions++
+    }
+
+    /**
+     * Reports one automatic removal to [listener], if there is one. Errors are swallowed — a telemetry
+     * sink must never break a store mutation. Runs inline under the store lock, hence the fast-listener
+     * requirement; nothing here suspends, so the coroutine [Mutex] is safe.
+     */
+    private fun emitEviction(entry: CacheEntry, cause: EvictionCause) {
+        val target = listener ?: return
+        try {
+            target.onEvent(CacheEvent.Eviction(entry.scope, entry.prompt, entry.id, cause))
+        } catch (_: Exception) {
+            // A listener's failure is its own; see CacheListener's contract.
+        }
     }
 
     /**

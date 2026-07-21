@@ -15,6 +15,63 @@ public final class dev/kmemo/CacheEntry {
 	public final fun withResponse (Ljava/lang/String;)Ldev/kmemo/CacheEntry;
 }
 
+public abstract interface class dev/kmemo/CacheEvent {
+	public abstract fun getScope ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/CacheEvent$Eviction : dev/kmemo/CacheEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/kmemo/EvictionCause;)V
+	public final fun getCause ()Ldev/kmemo/EvictionCause;
+	public final fun getEntryId ()Ljava/lang/String;
+	public final fun getPrompt ()Ljava/lang/String;
+	public fun getScope ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/CacheEvent$Hit : dev/kmemo/CacheEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;DLjava/lang/String;Ldev/kmemo/EventTimings;)V
+	public final fun getEntryId ()Ljava/lang/String;
+	public final fun getMatchedPrompt ()Ljava/lang/String;
+	public final fun getPrompt ()Ljava/lang/String;
+	public fun getScope ()Ljava/lang/String;
+	public final fun getSimilarity ()D
+	public final fun getTimings ()Ldev/kmemo/EventTimings;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/CacheEvent$Miss : dev/kmemo/CacheEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/kmemo/MissReason;Ljava/lang/Double;Ljava/lang/String;Ljava/lang/String;Ldev/kmemo/EventTimings;)V
+	public final fun getBestSimilarity ()Ljava/lang/Double;
+	public final fun getDetail ()Ljava/lang/String;
+	public final fun getGuardName ()Ljava/lang/String;
+	public final fun getPrompt ()Ljava/lang/String;
+	public final fun getReason ()Ldev/kmemo/MissReason;
+	public fun getScope ()Ljava/lang/String;
+	public final fun getTimings ()Ldev/kmemo/EventTimings;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/CacheEvent$Write : dev/kmemo/CacheEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getEntryId ()Ljava/lang/String;
+	public final fun getPrompt ()Ljava/lang/String;
+	public fun getScope ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/CacheEvents : dev/kmemo/CacheListener {
+	public static final field Companion Ldev/kmemo/CacheEvents$Companion;
+	public static final field DEFAULT_BUFFER_CAPACITY I
+	public fun <init> ()V
+	public fun <init> (I)V
+	public synthetic fun <init> (IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getEvents ()Lkotlinx/coroutines/flow/SharedFlow;
+	public fun onEvent (Ldev/kmemo/CacheEvent;)V
+}
+
+public final class dev/kmemo/CacheEvents$Companion {
+}
+
 public final class dev/kmemo/CacheExplanation {
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;DLjava/util/List;)V
 	public final fun getCandidates ()Ljava/util/List;
@@ -23,6 +80,10 @@ public final class dev/kmemo/CacheExplanation {
 	public final fun getScope ()Ljava/lang/String;
 	public final fun getThreshold ()D
 	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/kmemo/CacheListener {
+	public abstract fun onEvent (Ldev/kmemo/CacheEvent;)V
 }
 
 public abstract interface class dev/kmemo/CacheLookup {
@@ -120,6 +181,14 @@ public final class dev/kmemo/CandidateTrace {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/kmemo/EmbedFailurePolicy : java/lang/Enum {
+	public static final field FALL_BACK_TO_COMPUTE Ldev/kmemo/EmbedFailurePolicy;
+	public static final field PROPAGATE Ldev/kmemo/EmbedFailurePolicy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/kmemo/EmbedFailurePolicy;
+	public static fun values ()[Ldev/kmemo/EmbedFailurePolicy;
+}
+
 public abstract interface class dev/kmemo/Embedder {
 	public abstract fun embed (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun embedAll (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -127,6 +196,28 @@ public abstract interface class dev/kmemo/Embedder {
 
 public final class dev/kmemo/Embedder$DefaultImpls {
 	public static fun embedAll (Ldev/kmemo/Embedder;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/kmemo/EventTimings {
+	public static final field Companion Ldev/kmemo/EventTimings$Companion;
+	public fun <init> (JJJ)V
+	public final fun getEmbedNanos ()J
+	public final fun getSearchNanos ()J
+	public final fun getVerifierNanos ()J
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/EventTimings$Companion {
+	public final fun getNONE ()Ldev/kmemo/EventTimings;
+}
+
+public final class dev/kmemo/EvictionCause : java/lang/Enum {
+	public static final field CAPACITY Ldev/kmemo/EvictionCause;
+	public static final field EXPIRED Ldev/kmemo/EvictionCause;
+	public static final field MEMORY Ldev/kmemo/EvictionCause;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/kmemo/EvictionCause;
+	public static fun values ()[Ldev/kmemo/EvictionCause;
 }
 
 public final class dev/kmemo/MissReason : java/lang/Enum {
@@ -137,6 +228,27 @@ public final class dev/kmemo/MissReason : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/kmemo/MissReason;
 	public static fun values ()[Ldev/kmemo/MissReason;
+}
+
+public final class dev/kmemo/RetryingEmbedder : dev/kmemo/Embedder {
+	public static final field Companion Ldev/kmemo/RetryingEmbedder$Companion;
+	public static final field DEFAULT_FACTOR D
+	public static final field DEFAULT_JITTER D
+	public static final field DEFAULT_MAX_ATTEMPTS I
+	public synthetic fun <init> (Ldev/kmemo/Embedder;IJJDDLkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/kmemo/Embedder;IJJDDLkotlin/jvm/functions/Function1;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun embed (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun embedAll (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/kmemo/RetryingEmbedder$Companion {
+	public final fun getDEFAULT_INITIAL_DELAY-UwyO8pc ()J
+	public final fun getDEFAULT_MAX_DELAY-UwyO8pc ()J
+}
+
+public final class dev/kmemo/RetryingEmbedderKt {
+	public static final fun retrying-DIOjvaQ (Ldev/kmemo/Embedder;IJJDDLkotlin/jvm/functions/Function1;)Ldev/kmemo/RetryingEmbedder;
+	public static synthetic fun retrying-DIOjvaQ$default (Ldev/kmemo/Embedder;IJJDDLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/kmemo/RetryingEmbedder;
 }
 
 public final class dev/kmemo/ScoredEntry {
@@ -151,8 +263,8 @@ public final class dev/kmemo/SemanticCache {
 	public static final field DEFAULT_CANDIDATES I
 	public static final field DEFAULT_SCOPE Ljava/lang/String;
 	public static final field DEFAULT_THRESHOLD D
-	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLjava/time/Clock;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLjava/time/Clock;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLdev/kmemo/EmbedFailurePolicy;ILkotlin/time/Duration;Ljava/util/List;Ljava/time/Clock;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLdev/kmemo/EmbedFailurePolicy;ILkotlin/time/Duration;Ljava/util/List;Ljava/time/Clock;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun clear$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun explain (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -169,6 +281,7 @@ public final class dev/kmemo/SemanticCache {
 	public final fun size (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun size$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun stats ()Ldev/kmemo/CacheStats;
+	public final fun warm (Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class dev/kmemo/SemanticCache$Companion {
@@ -186,6 +299,16 @@ public final class dev/kmemo/Vectors {
 
 public abstract interface class dev/kmemo/Verifier {
 	public abstract fun verify (Ljava/lang/String;Ljava/lang/String;DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/kmemo/WarmEntry {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getMetadata ()Ljava/util/Map;
+	public final fun getPrompt ()Ljava/lang/String;
+	public final fun getResponse ()Ljava/lang/String;
+	public final fun getScope ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/kmemo/calibration/CalibrationReport {
@@ -429,8 +552,8 @@ public final class dev/kmemo/guard/Vocabulary {
 public final class dev/kmemo/store/InMemoryStore : dev/kmemo/CacheStore {
 	public static final field Companion Ldev/kmemo/store/InMemoryStore$Companion;
 	public static final field DEFAULT_MAX_ENTRIES I
-	public synthetic fun <init> (ILkotlin/time/Duration;Ljava/time/Clock;Ljava/lang/Long;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (ILkotlin/time/Duration;Ljava/time/Clock;Ljava/lang/Long;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (ILkotlin/time/Duration;Ljava/time/Clock;Ljava/lang/Long;Ldev/kmemo/CacheListener;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (ILkotlin/time/Duration;Ljava/time/Clock;Ljava/lang/Long;Ldev/kmemo/CacheListener;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun purgeExpired (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun put (Ldev/kmemo/CacheEntry;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

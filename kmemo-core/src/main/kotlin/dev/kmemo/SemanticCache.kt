@@ -4,6 +4,7 @@ import dev.kmemo.guard.GuardVerdict
 import dev.kmemo.guard.MatchGuard
 import dev.kmemo.guard.MatchGuards
 import dev.kmemo.internal.KeyedMutex
+import dev.kmemo.internal.NegativeCache
 import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Clock
@@ -76,6 +77,22 @@ import java.time.Duration as JavaDuration
  * @param coalesceConcurrentMisses whether concurrent [getOrPut] calls for the same prompt in the
  *   same scope wait for the first one instead of each calling the model. On by default: a cold
  *   cache under load is the case where duplicate calls are most expensive and most likely.
+ * @param embedFailurePolicy what [getOrPut] does when the [Embedder] throws — propagate (the default)
+ *   or fall back to [compute] so a lookup is never *worse* than no cache. See [EmbedFailurePolicy].
+ *   [lookup], [get] and [put] have no fallback and always propagate. [CancellationException] always
+ *   propagates.
+ * @param negativeCacheSize when positive, turns on a bounded negative cache: the embedding of a prompt
+ *   that just missed is remembered, so an immediate repeat of the *same brand-new prompt* is embedded
+ *   once rather than once per caller. Extends the concurrent-miss coalescing to the near-in-time
+ *   sequential case. It only ever reuses an embedding — it never suppresses the store search — so it
+ *   cannot cause a false hit. `0` (the default) keeps it off.
+ * @param negativeCacheTtl how long a remembered miss stays usable when [negativeCacheSize] is positive,
+ *   or `null` to keep it until evicted. A short TTL is the point: it should cover a burst, not pin a
+ *   stale embedding for a prompt that has since been answered elsewhere.
+ * @param listeners observers notified of every hit, miss and write as it happens (see [CacheEvent]).
+ *   Empty by default, and an empty list is free: with no listeners the cache builds no events and
+ *   measures no latencies, so the hot path is exactly as it was. Each listener runs inline and must be
+ *   fast and non-throwing — see [CacheListener].
  * @param clock time source for entry timestamps.
  */
 public class SemanticCache(
@@ -87,6 +104,10 @@ public class SemanticCache(
     private val verifierTimeout: Duration? = null,
     private val candidates: Int = DEFAULT_CANDIDATES,
     private val coalesceConcurrentMisses: Boolean = true,
+    private val embedFailurePolicy: EmbedFailurePolicy = EmbedFailurePolicy.PROPAGATE,
+    private val negativeCacheSize: Int = 0,
+    private val negativeCacheTtl: Duration? = null,
+    private val listeners: List<CacheListener> = emptyList(),
     private val clock: Clock = Clock.systemUTC(),
 ) {
 
@@ -96,9 +117,21 @@ public class SemanticCache(
         require(verifierTimeout == null || verifierTimeout.isPositive()) {
             "verifierTimeout must be positive, was $verifierTimeout"
         }
+        require(negativeCacheSize >= 0) { "negativeCacheSize must be non-negative, was $negativeCacheSize" }
+        require(negativeCacheTtl == null || negativeCacheTtl.isPositive()) {
+            "negativeCacheTtl must be positive, was $negativeCacheTtl"
+        }
     }
 
     private val inFlight = KeyedMutex()
+
+    // Null unless negative caching is turned on; the hot path checks it with a single null test.
+    private val negativeCache: NegativeCache? =
+        if (negativeCacheSize > 0) NegativeCache(negativeCacheSize, negativeCacheTtl, clock) else null
+
+    // Gates every piece of event machinery — timing measurement and event construction alike — so a
+    // cache with no listeners pays nothing for observability. Snapshotted once: listeners is fixed.
+    private val observed: Boolean = listeners.isNotEmpty()
 
     private val lookupCount = AtomicLong()
     private val hitCount = AtomicLong()
@@ -120,8 +153,12 @@ public class SemanticCache(
      * reason — a cache whose hit rate is 4% is untunable unless you know whether prompts are
      * landing below the threshold or being vetoed by a guard.
      */
-    public suspend fun lookup(prompt: String, scope: String = DEFAULT_SCOPE): CacheLookup =
-        lookup(prompt, scope, embed(prompt))
+    public suspend fun lookup(prompt: String, scope: String = DEFAULT_SCOPE): CacheLookup {
+        val embedStart = if (observed) System.nanoTime() else 0L
+        val embedding = embed(prompt, scope)
+        val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
+        return lookup(prompt, scope, embedding, embedNanos = embedNanos)
+    }
 
     /** Returns the cached response for [prompt], or `null`. The short form of [lookup]. */
     public suspend fun get(prompt: String, scope: String = DEFAULT_SCOPE): String? =
@@ -142,7 +179,7 @@ public class SemanticCache(
      * and why — across every candidate, so a usable second-nearest entry is visible too.
      */
     public suspend fun explain(prompt: String, scope: String = DEFAULT_SCOPE): CacheExplanation {
-        val embedding = embed(prompt)
+        val embedding = embed(prompt, scope)
         val traces = store.search(scope, embedding, candidates).map { scored ->
             val verdicts = LinkedHashMap<String, GuardVerdict>(guards.size)
             for (guard in guards) verdicts[guard.name] = guard.evaluate(prompt, scored.entry.prompt)
@@ -167,7 +204,7 @@ public class SemanticCache(
         response: String,
         scope: String = DEFAULT_SCOPE,
         metadata: Map<String, String> = emptyMap(),
-    ): String = put(prompt, response, scope, metadata, embed(prompt))
+    ): String = put(prompt, response, scope, metadata, embed(prompt, scope))
 
     /**
      * Returns the cached answer to [prompt], or calls [compute] and caches what it returns.
@@ -192,8 +229,21 @@ public class SemanticCache(
         metadata: Map<String, String> = emptyMap(),
         compute: suspend (String) -> String,
     ): String {
-        val embedding = embed(prompt)
-        val result = lookup(prompt, scope, embedding)
+        val embedStart = if (observed) System.nanoTime() else 0L
+        val embedding = try {
+            embed(prompt, scope)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // The one call the cache makes on every lookup just failed. PROPAGATE surfaces it;
+            // FALL_BACK_TO_COMPUTE degrades to an uncached model call so the caller is never worse off
+            // than with no cache. The answer cannot be written back — there is no embedding to key it —
+            // so nothing is cached until the embedder recovers.
+            if (embedFailurePolicy == EmbedFailurePolicy.FALL_BACK_TO_COMPUTE) return compute(prompt)
+            throw e
+        }
+        val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
+        val result = lookup(prompt, scope, embedding, embedNanos = embedNanos)
         if (result is CacheLookup.Hit) return result.response
         if (!coalesceConcurrentMisses) return computeAndPut(prompt, scope, metadata, embedding, compute)
 
@@ -256,22 +306,40 @@ public class SemanticCache(
         )
     }
 
-    private suspend fun embed(prompt: String): FloatArray = Vectors.normalize(embedder.embed(prompt))
+    /**
+     * Embeds [prompt], reusing a recently-missed embedding for the same ([scope], [prompt]) when the
+     * negative cache is on. The negative cache only ever supplies a precomputed vector, so this is a
+     * transparent embed-call saver — the result is identical to a fresh [Embedder.embed].
+     */
+    private suspend fun embed(prompt: String, scope: String): FloatArray {
+        negativeCache?.get(scope, prompt)?.let { return it }
+        return Vectors.normalize(embedder.embed(prompt))
+    }
 
     private suspend fun lookup(
         prompt: String,
         scope: String,
         embedding: FloatArray,
         counted: Boolean = true,
+        embedNanos: Long = 0,
     ): CacheLookup {
         // `counted = false` is the coalescing re-check: the same caller's single lookup, resumed
         // after waiting. Counting it a second time reported more misses than there were calls and
         // halved the hit rate of the very workload coalescing exists to improve.
         if (counted) lookupCount.incrementAndGet()
 
+        // Timings are only ever measured on the observed, counted path; nanoTime is cheap but not free,
+        // and the coalescing re-check must not double-count a stage it did not run.
+        val measure = observed && counted
+        val searchStart = if (measure) System.nanoTime() else 0L
         val found = store.search(scope, embedding, candidates)
+        val searchNanos = if (measure) System.nanoTime() - searchStart else 0L
+        var verifierNanos = 0L
+
         if (found.isEmpty()) {
+            rememberMiss(scope, prompt, embedding, counted)
             return CacheLookup.Miss(MissReason.EMPTY_SCOPE, null, null, null)
+                .also { emitMiss(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted) }
         }
 
         // Whichever candidate was refused first — candidates arrive best-first, so this is the
@@ -298,7 +366,12 @@ public class SemanticCache(
                 continue
             }
 
+            // Only time the verifier when there is one — otherwise verifierRejects returns instantly
+            // and we would report a few nanoseconds of "verifier latency" for a check that never ran.
+            val timeVerifier = measure && verifier != null
+            val verifierStart = if (timeVerifier) System.nanoTime() else 0L
             val verifierDetail = verifierRejects(prompt, scored.entry.prompt, scored.similarity)
+            if (timeVerifier) verifierNanos += System.nanoTime() - verifierStart
             if (verifierDetail != null) {
                 if (refusal == null) {
                     refusal = Refusal(MissReason.REJECTED_BY_VERIFIER, scored, verifierDetail, guardName = null)
@@ -307,12 +380,15 @@ public class SemanticCache(
             }
 
             return hit(scored, counted)
+                .also { emitHit(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted) }
         }
 
         if (refusal == null) {
             val best = found.first()
             if (counted) belowThresholdCount.incrementAndGet()
+            rememberMiss(scope, prompt, embedding, counted)
             return miss(MissReason.BELOW_THRESHOLD, best, "best similarity ${best.similarity} < $threshold")
+                .also { emitMiss(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted) }
         }
 
         if (counted) {
@@ -324,7 +400,74 @@ public class SemanticCache(
                 else -> verifierRejectionCount.incrementAndGet()
             }
         }
+        // Captured before the .also lambda: refusal is a var, so its smart-cast to non-null does not
+        // survive into a closure.
+        val guardName = refusal.guardName
+        rememberMiss(scope, prompt, embedding, counted)
         return miss(refusal.reason, refusal.candidate, refusal.detail)
+            .also { emitMiss(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted, guardName) }
+    }
+
+    private fun emitHit(
+        scope: String,
+        prompt: String,
+        hit: CacheLookup.Hit,
+        embedNanos: Long,
+        searchNanos: Long,
+        verifierNanos: Long,
+        counted: Boolean,
+    ) {
+        if (!observed || !counted) return
+        emit(
+            CacheEvent.Hit(
+                scope, prompt, hit.matchedPrompt, hit.similarity, hit.entryId,
+                EventTimings(embedNanos, searchNanos, verifierNanos),
+            ),
+        )
+    }
+
+    private fun emitMiss(
+        scope: String,
+        prompt: String,
+        miss: CacheLookup.Miss,
+        embedNanos: Long,
+        searchNanos: Long,
+        verifierNanos: Long,
+        counted: Boolean,
+        guardName: String? = null,
+    ) {
+        if (!observed || !counted) return
+        emit(
+            CacheEvent.Miss(
+                scope, prompt, miss.reason, miss.bestSimilarity, miss.detail, guardName,
+                EventTimings(embedNanos, searchNanos, verifierNanos),
+            ),
+        )
+    }
+
+    /**
+     * Delivers [event] to every listener, in order. A listener that throws is swallowed here — the
+     * one place it can be — because a broken telemetry sink must never turn a good lookup into a
+     * failed one. Callers gate on [observed] before building the event, so this is never reached with
+     * an empty listener list.
+     */
+    private fun emit(event: CacheEvent) {
+        for (listener in listeners) {
+            try {
+                listener.onEvent(event)
+            } catch (_: Exception) {
+                // A listener's failure is its own; see CacheListener's contract.
+            }
+        }
+    }
+
+    /**
+     * Remembers a counted miss's embedding in the negative cache, when it is enabled. Only the counted
+     * lookup remembers: the coalescing re-check is the same caller's lookup resumed, and re-storing on
+     * it would only refresh the timestamp. A no-op — not even a suspension point cost — when off.
+     */
+    private suspend fun rememberMiss(scope: String, prompt: String, embedding: FloatArray, counted: Boolean) {
+        if (counted) negativeCache?.put(scope, prompt, embedding)
     }
 
     private class Refusal(
@@ -406,7 +549,57 @@ public class SemanticCache(
             ),
         )
         writeCount.incrementAndGet()
+        // The prompt is now answerable from the store, so its "recently missed" note is stale — drop it
+        // so a later lookup embeds fresh rather than reusing a vector for a miss that no longer holds.
+        negativeCache?.remove(scope, prompt)
+        if (observed) emit(CacheEvent.Write(scope, prompt, id))
         return id
+    }
+
+    /**
+     * Seeds the cache with known prompt/response pairs, embedding them in **one batch call** where the
+     * [Embedder] supports it (see [Embedder.embedAll]).
+     *
+     * The intended use is startup warming from a fixed set — an FAQ, a golden set of canned answers —
+     * so the first real user of each prompt gets a hit instead of paying to populate the cache. It is
+     * far cheaper than [put]ting them one by one: a provider that prices and rate-limits per request
+     * embeds the whole batch for the cost of a single round trip.
+     *
+     * Entries are written in the given order and each gets a fresh id, exactly as [put] would; the
+     * returned ids line up with [entries]. Warming does not consult or move any counter — it is a
+     * write path, not a lookup — and it bypasses the negative cache. An empty [entries] is a no-op.
+     *
+     * @return the id assigned to each written entry, in the order of [entries].
+     */
+    public suspend fun warm(entries: List<WarmEntry>): List<String> {
+        if (entries.isEmpty()) return emptyList()
+        val embeddings = embedder.embedAll(entries.map { it.prompt })
+        require(embeddings.size == entries.size) {
+            "embedAll returned ${embeddings.size} vectors for ${entries.size} prompts; an Embedder " +
+                "must return one vector per input, in order"
+        }
+        val now = clock.instant()
+        val ids = ArrayList<String>(entries.size)
+        for (i in entries.indices) {
+            val entry = entries[i]
+            val id = UUID.randomUUID().toString()
+            store.put(
+                CacheEntry(
+                    id = id,
+                    scope = entry.scope,
+                    prompt = entry.prompt,
+                    response = entry.response,
+                    embedding = embeddings[i],
+                    createdAt = now,
+                    metadata = entry.metadata,
+                ),
+            )
+            writeCount.incrementAndGet()
+            negativeCache?.remove(entry.scope, entry.prompt)
+            if (observed) emit(CacheEvent.Write(entry.scope, entry.prompt, id))
+            ids += id
+        }
+        return ids
     }
 
     public companion object {

@@ -8,6 +8,9 @@ lettuce = "6.5.1.RELEASE"
 postgresql = "42.7.4"
 hikari = "6.2.1"
 testcontainers = "1.20.4"
+micrometer = "1.14.2"
+slf4j = "2.0.16"
+logback = "1.5.12"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -29,6 +32,12 @@ hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
 testcontainers = { module = "org.testcontainers:testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql" }
+
+# Observability adapters (opt-in modules; never on the kmemo-core classpath).
+micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+# Test-only: a real SLF4J backend the logging adapter's tests attach a ListAppender to and assert on.
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
