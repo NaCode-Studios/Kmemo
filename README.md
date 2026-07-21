@@ -68,7 +68,7 @@ Requires **JDK 17+**. Artifacts are published to Maven Central under `io.github.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:0.5.0")
+    implementation("io.github.nacode-studios:kmemo-core:0.6.0")
 }
 ```
 
@@ -245,9 +245,14 @@ cache.warm(faqPairs.map { WarmEntry(it.question, it.answer) }) // batch-embedded
 | `kmemo-micrometer` | A Micrometer `MeterBinder` — hit rate, per-reason and per-guard counters, embed/search/verify timers. |
 | `kmemo-slf4j` | An SLF4J `CacheListener` — a structured log line per event, prompt redaction on by default. |
 | `kmemo-bom` | A `java-platform` BOM — pin one version and depend on every kmemo module without repeating it. |
+| `kmemo-spring-boot-starter` | Spring Boot auto-config — a `SemanticCache` bean from your `Embedder`, under `kmemo.*`. |
+| `kmemo-spring-ai` | A caching `Advisor` for Spring AI's `ChatClient`. |
+| `kmemo-langchain4j` | A `CachingChatModel` that wraps any LangChain4j `ChatModel`. |
+| `kmemo-ktor` | A Ktor server plugin exposing the cache to route handlers. |
 
 Every module past `kmemo-core` is opt-in and never lands on the core classpath; the core still depends
-only on `kotlinx-coroutines-core`.
+only on `kotlinx-coroutines-core`. There's a runnable [`examples/`](examples) demo, and framework users
+get a one-liner — a Spring AI advisor, a LangChain4j wrapper, a Ktor plugin, or the Spring Boot starter.
 
 A lookup is decided in four stages, each cheaper than the one it protects:
 
@@ -344,6 +349,11 @@ Run it yourself:
 
 ## Roadmap
 
+**Shipped (`0.6.0`)** — **ecosystem & adoption**: a Spring Boot starter (`kmemo-spring-boot-starter`), a
+Spring AI caching advisor (`kmemo-spring-ai`), a LangChain4j wrapper (`kmemo-langchain4j`), a Ktor plugin
+(`kmemo-ktor`), and a runnable [`examples/`](examples) demo — none of these frameworks ships a semantic
+cache of its own.
+
 **Shipped (`0.5.0`)** — **DX & reach**: ergonomics (`catching { }`, a typed `getOrPut<T>` over a
 `ResponseCodec`, streaming `getOrPutStreaming` → `Flow<String>`, a `semanticCache { }` DSL, and a
 `kmemo-bom`) and multilingual guard packs — `MatchGuards.standard(locale)` with curated `Vocabularies`
@@ -361,10 +371,8 @@ behind the same `CacheStore` seam, an opt-in in-process HNSW index (`kmemo-store
 bound on `InMemoryStore` — on top of `0.2.0`'s per-guard measurement (`guardRejectionsByGuard`,
 `explain(...)`) and completed `Verifier` path, and the `0.1.0` core. All on Maven Central and GitHub Packages.
 
-**Next** — Tier 4: framework integrations — a Spring Boot starter and Spring AI `Advisor`, and a
-LangChain4j wrapper (neither framework ships a semantic cache) — with a runnable demo.
-
-**Later** — quality & supply-chain hardening, then the road to `1.0`, with Kotlin Multiplatform after that.
+**Next** — Tier 5: quality & supply-chain hardening (coverage, CVE scanning, a JDK matrix, the corpus as
+a CI gate), then the road to `1.0`, with Kotlin Multiplatform after that.
 
 See **[ROADMAP.md](ROADMAP.md)** for the full milestone plan (`M1`–`M18`), and the shared
 **[roadmap conventions](ROADMAP-CONVENTIONS.md)**.

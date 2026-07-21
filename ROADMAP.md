@@ -28,7 +28,27 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   new guard or matcher earns its place against that corpus before it ships. Positioning competes on
   false-hit protection, diagnosability, DX and footprint — not on being the fastest ANN index.
 
-## Status — `0.5.0` (current)
+## Status — `0.6.0` (current)
+
+`0.6.0` is the **Tier 4 "ecosystem & adoption"** release: meet JVM developers inside the frameworks they
+already use — where no semantic cache ships today — and give them something runnable.
+
+- **Spring (M13):** `kmemo-spring-boot-starter` auto-configures a `SemanticCache` bean from your
+  `Embedder`, under `kmemo.*`; a user `CacheStore` / `Verifier` / `CacheListener` bean is picked up, and
+  a metrics auto-config (gated on `kmemo-micrometer`) registers a `KmemoMetrics` bean that Actuator binds.
+  `kmemo-spring-ai` adds `KmemoAdvisor`, a caching `Advisor` for Spring AI's `ChatClient` — verified
+  against the real 1.0.0 advisor API.
+- **LangChain4j & Ktor (M14):** `kmemo-langchain4j`'s `CachingChatModel` drops a cache in front of any
+  `ChatModel`, keyed on the whole conversation so context is never ignored; `kmemo-ktor`'s `Kmemo` plugin
+  exposes the cache to route handlers with a one-line `call.getOrPut`.
+- **Runnable demo & write-up (M14):** `examples/` runs with no API key (`./gradlew :examples:run`) and
+  shows a guard catching a live near-miss, with a `docker-compose.yml` for the Redis store; plus a
+  write-up built around the honest measured numbers.
+
+Targeting Maven Central and GitHub Packages as `0.6.0`. The next release opens **Tier 5** (quality &
+supply chain, and the road to `1.0`).
+
+## Status — `0.5.0`
 
 `0.5.0` is the **Tier 3 "DX & reach"** release: lower the friction from "interesting" to "in my service
 by lunch," and make the guards usable outside English.
@@ -153,8 +173,8 @@ Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07
 | **M10** · Performance: batching, write-behind, benchmarks | ✅ Shipped in `0.4.0`. |
 | **M11** · Ergonomics: BOM, config DSL, typed & streaming responses | ✅ Shipped in `0.5.0`. |
 | **M12** · Multilingual vocabularies & guard packs | ✅ Shipped in `0.5.0`. |
-| **M13** · Spring Boot starter + Spring AI advisor | Planned. |
-| **M14** · LangChain4j, Ktor plugin & a runnable demo | Planned. |
+| **M13** · Spring Boot starter + Spring AI advisor | ✅ Shipped in `0.6.0`. |
+| **M14** · LangChain4j, Ktor plugin & a runnable demo | ✅ Shipped in `0.6.0`. |
 | **M15** · Quality, supply chain & test depth (CI) | Planned. |
 | **M16** · The road to `1.0` | Planned. |
 | **M17** · Kotlin Multiplatform core | Post-`1.0`. |
@@ -436,6 +456,12 @@ use — where, notably, **no semantic cache ships today** — and give them some
 
 ### M13 · Spring Boot starter + Spring AI advisor — `L`
 
+**Status: ✅ Shipped in `0.6.0`.** Delivered: `kmemo-spring-boot-starter`
+(a `SemanticCache` bean from an `Embedder` bean, `kmemo.*` properties, store/verifier/listener beans
+picked up, a `KmemoMetrics` bean auto-configured for Actuator when `kmemo-micrometer` is present) and
+`kmemo-spring-ai` (`KmemoAdvisor`, a caching `Advisor` for `ChatClient`, verified against the real Spring
+AI 1.0.0 advisor API).
+
 - `kmemo-spring-boot-starter`: `@ConfigurationProperties("kmemo")` + auto-config exposing a
   `SemanticCache` bean (`@ConditionalOnMissingBean`, store auto-selected from what is on the classpath).
 - `kmemo-spring-ai`: a caching `Advisor` for Spring AI's `ChatClient` — Spring AI has the advisor seam
@@ -444,6 +470,13 @@ use — where, notably, **no semantic cache ships today** — and give them some
 - Actuator wiring for the M9 metrics.
 
 ### M14 · LangChain4j, Ktor plugin & a runnable demo — `L`
+
+**Status: ✅ Shipped in `0.6.0`.** Delivered: `kmemo-langchain4j`
+(`CachingChatModel` wrapping any `ChatModel`, keyed on the whole conversation, verified against the real
+LangChain4j 1.0.1 API), `kmemo-ktor` (a `Kmemo` server plugin with a `call.getOrPut` convenience,
+driven through a real route under `testApplication`), a runnable `examples/` demo (no API key; a
+`docker-compose.yml` for the Redis store), and an honest-measurement write-up. The coordinated
+announcement is left for when `1.0` lands.
 
 - `kmemo-langchain4j`: a wrapper on LangChain4j's model interfaces so a cache drops in front of an
   existing `ChatLanguageModel`.
