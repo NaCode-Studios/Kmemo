@@ -1,0 +1,14 @@
+public final class dev/kmemo/ktor/KmemoConfig {
+	public fun <init> ()V
+	public final fun getCache ()Ldev/kmemo/SemanticCache;
+	public final fun setCache (Ldev/kmemo/SemanticCache;)V
+}
+
+public final class dev/kmemo/ktor/KmemoPluginKt {
+	public static final fun getKmemo ()Lio/ktor/server/application/ApplicationPlugin;
+	public static final fun getKmemoCache (Lio/ktor/server/application/Application;)Ldev/kmemo/SemanticCache;
+	public static final fun getKmemoCache (Lio/ktor/server/application/ApplicationCall;)Ldev/kmemo/SemanticCache;
+	public static final fun getOrPut (Lio/ktor/server/application/ApplicationCall;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun getOrPut$default (Lio/ktor/server/application/ApplicationCall;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+

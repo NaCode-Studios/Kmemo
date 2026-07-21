@@ -1,0 +1,7 @@
+public final class dev/kmemo/langchain4j/CachingChatModel : dev/langchain4j/model/chat/ChatModel {
+	public fun <init> (Ldev/langchain4j/model/chat/ChatModel;Ldev/kmemo/SemanticCache;)V
+	public fun <init> (Ldev/langchain4j/model/chat/ChatModel;Ldev/kmemo/SemanticCache;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Ldev/langchain4j/model/chat/ChatModel;Ldev/kmemo/SemanticCache;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun chat (Ldev/langchain4j/model/chat/request/ChatRequest;)Ldev/langchain4j/model/chat/response/ChatResponse;
+}
+

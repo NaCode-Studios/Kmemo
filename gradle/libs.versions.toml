@@ -54,6 +54,8 @@ spring-boot-test = { module = "org.springframework.boot:spring-boot-test", versi
 spring-ai-client-chat = { module = "org.springframework.ai:spring-ai-client-chat", version.ref = "springAi" }
 langchain4j-core = { module = "dev.langchain4j:langchain4j-core", version.ref = "langchain4j" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+# Test-only: Ktor's in-memory test host for driving the plugin through a real route.
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
