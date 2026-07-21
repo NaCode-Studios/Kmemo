@@ -28,11 +28,22 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   new guard or matcher earns its place against that corpus before it ships. Positioning competes on
   false-hit protection, diagnosability, DX and footprint — not on being the fastest ANN index.
 
-## Status — `0.6.0` (current)
+## Status — `0.5.0` (current)
 
-`0.6.0` is the **Tier 4 "ecosystem & adoption"** release: meet JVM developers inside the frameworks they
-already use — where no semantic cache ships today — and give them something runnable.
+`0.5.0` ships **Tier 3 "DX & reach"** and **Tier 4 "ecosystem & adoption"** together: lower the friction
+from "interesting" to "in my service by lunch," make the guards usable outside English, and meet JVM
+developers inside the frameworks they already use — where no semantic cache ships today.
 
+- **Ergonomics (M11):** `catching { }`, a coroutine-safe `Result` wrapper that re-throws
+  `CancellationException`; a `ResponseCodec<T>` seam and a typed `getOrPut<T>` that caches structured
+  outputs, not just text; `getOrPutStreaming` that replays a streamed answer as a `Flow<String>` on a
+  hit and caches only a stream that completes cleanly; a `semanticCache { }` config DSL over the growing
+  constructor; and a `kmemo-bom` (`java-platform`) so multi-module users pin one version.
+- **Multilingual (M12):** a `GuardVocabulary` bundle and `MatchGuards.standard(vocabulary)` /
+  `standard(locale)`, with curated, conservative packs for **Italian, Spanish, German and French** in
+  `Vocabularies`. `EntityGuard` is fully parameterized (sentence openers, non-entity capitals), so every
+  guard is language-swappable. Each pack is *measured* — a localized near-miss corpus proves the guards
+  catch the near-misses and keep the paraphrases in all four languages.
 - **Spring (M13):** `kmemo-spring-boot-starter` auto-configures a `SemanticCache` bean from your
   `Embedder`, under `kmemo.*`; a user `CacheStore` / `Verifier` / `CacheListener` bean is picked up, and
   a metrics auto-config (gated on `kmemo-micrometer`) registers a `KmemoMetrics` bean that Actuator binds.
@@ -45,28 +56,8 @@ already use — where no semantic cache ships today — and give them something 
   shows a guard catching a live near-miss, with a `docker-compose.yml` for the Redis store; plus a
   write-up built around the honest measured numbers.
 
-Targeting Maven Central and GitHub Packages as `0.6.0`. The next release opens **Tier 5** (quality &
+Targeting Maven Central and GitHub Packages as `0.5.0`. The next release opens **Tier 5** (quality &
 supply chain, and the road to `1.0`).
-
-## Status — `0.5.0`
-
-`0.5.0` is the **Tier 3 "DX & reach"** release: lower the friction from "interesting" to "in my service
-by lunch," and make the guards usable outside English.
-
-- **Ergonomics (M11):** `catching { }`, a coroutine-safe `Result` wrapper that re-throws
-  `CancellationException`; a `ResponseCodec<T>` seam and a typed `getOrPut<T>` that caches structured
-  outputs, not just text; `getOrPutStreaming` that replays a streamed answer as a `Flow<String>` on a
-  hit and caches only a stream that completes cleanly; a `semanticCache { }` config DSL over the growing
-  constructor; and a `kmemo-bom` (`java-platform`) so multi-module users pin one version.
-- **Multilingual (M12):** a `GuardVocabulary` bundle and `MatchGuards.standard(vocabulary)` /
-  `standard(locale)`, with curated, conservative packs for **Italian, Spanish, German and French** in
-  `Vocabularies`. `EntityGuard` is fully parameterized (sentence openers, non-entity capitals), so every
-  guard is language-swappable. Each pack is *measured* — a localized near-miss corpus proves the guards
-  catch the near-misses and keep the paraphrases in all four languages.
-
-Targeting Maven Central and GitHub Packages as `0.5.0`. The next release opens **Tier 4** (ecosystem &
-adoption, M13–M14): a Spring Boot starter and Spring AI advisor, a LangChain4j wrapper, and a runnable
-demo.
 
 ## Status — `0.4.0`
 
@@ -173,8 +164,8 @@ Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07
 | **M10** · Performance: batching, write-behind, benchmarks | ✅ Shipped in `0.4.0`. |
 | **M11** · Ergonomics: BOM, config DSL, typed & streaming responses | ✅ Shipped in `0.5.0`. |
 | **M12** · Multilingual vocabularies & guard packs | ✅ Shipped in `0.5.0`. |
-| **M13** · Spring Boot starter + Spring AI advisor | ✅ Shipped in `0.6.0`. |
-| **M14** · LangChain4j, Ktor plugin & a runnable demo | ✅ Shipped in `0.6.0`. |
+| **M13** · Spring Boot starter + Spring AI advisor | ✅ Shipped in `0.5.0`. |
+| **M14** · LangChain4j, Ktor plugin & a runnable demo | ✅ Shipped in `0.5.0`. |
 | **M15** · Quality, supply chain & test depth (CI) | Planned. |
 | **M16** · The road to `1.0` | Planned. |
 | **M17** · Kotlin Multiplatform core | Post-`1.0`. |
@@ -456,7 +447,7 @@ use — where, notably, **no semantic cache ships today** — and give them some
 
 ### M13 · Spring Boot starter + Spring AI advisor — `L`
 
-**Status: ✅ Shipped in `0.6.0`.** Delivered: `kmemo-spring-boot-starter`
+**Status: ✅ Shipped in `0.5.0`.** Delivered: `kmemo-spring-boot-starter`
 (a `SemanticCache` bean from an `Embedder` bean, `kmemo.*` properties, store/verifier/listener beans
 picked up, a `KmemoMetrics` bean auto-configured for Actuator when `kmemo-micrometer` is present) and
 `kmemo-spring-ai` (`KmemoAdvisor`, a caching `Advisor` for `ChatClient`, verified against the real Spring
@@ -471,7 +462,7 @@ AI 1.0.0 advisor API).
 
 ### M14 · LangChain4j, Ktor plugin & a runnable demo — `L`
 
-**Status: ✅ Shipped in `0.6.0`.** Delivered: `kmemo-langchain4j`
+**Status: ✅ Shipped in `0.5.0`.** Delivered: `kmemo-langchain4j`
 (`CachingChatModel` wrapping any `ChatModel`, keyed on the whole conversation, verified against the real
 LangChain4j 1.0.1 API), `kmemo-ktor` (a `Kmemo` server plugin with a `call.getOrPut` convenience,
 driven through a real route under `testApplication`), a runnable `examples/` demo (no API key; a

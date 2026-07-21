@@ -8,7 +8,7 @@ plugins {
 
 subprojects {
     group = "io.github.nacode-studios"
-    version = "0.6.0"
+    version = "0.5.0"
 }
 
 apiValidation {

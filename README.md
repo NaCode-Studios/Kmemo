@@ -68,7 +68,7 @@ Requires **JDK 17+**. Artifacts are published to Maven Central under `io.github.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:0.6.0")
+    implementation("io.github.nacode-studios:kmemo-core:0.5.0")
 }
 ```
 
@@ -349,15 +349,13 @@ Run it yourself:
 
 ## Roadmap
 
-**Shipped (`0.6.0`)** — **ecosystem & adoption**: a Spring Boot starter (`kmemo-spring-boot-starter`), a
-Spring AI caching advisor (`kmemo-spring-ai`), a LangChain4j wrapper (`kmemo-langchain4j`), a Ktor plugin
-(`kmemo-ktor`), and a runnable [`examples/`](examples) demo — none of these frameworks ships a semantic
-cache of its own.
-
-**Shipped (`0.5.0`)** — **DX & reach**: ergonomics (`catching { }`, a typed `getOrPut<T>` over a
-`ResponseCodec`, streaming `getOrPutStreaming` → `Flow<String>`, a `semanticCache { }` DSL, and a
-`kmemo-bom`) and multilingual guard packs — `MatchGuards.standard(locale)` with curated `Vocabularies`
-for Italian, Spanish, German and French, each measured against a localized near-miss corpus.
+**Shipped (`0.5.0`)** — **DX & reach + ecosystem & adoption**: ergonomics (`catching { }`, a typed
+`getOrPut<T>` over a `ResponseCodec`, streaming `getOrPutStreaming` → `Flow<String>`, a `semanticCache { }`
+DSL, and a `kmemo-bom`); multilingual guard packs — `MatchGuards.standard(locale)` with curated
+`Vocabularies` for Italian, Spanish, German and French, each measured against a localized near-miss
+corpus; and framework integrations — a Spring Boot starter (`kmemo-spring-boot-starter`), a Spring AI
+advisor (`kmemo-spring-ai`), a LangChain4j wrapper (`kmemo-langchain4j`), a Ktor plugin (`kmemo-ktor`),
+and a runnable [`examples/`](examples) demo, none of which those frameworks ship of their own.
 
 **Shipped (`0.4.0`)** — **production reliability & observability**: resilience (an `EmbedFailurePolicy`
 fall-back, `Embedder.retrying(…)`, opt-in negative caching, `warm(...)` preload), observability (a

@@ -6,13 +6,34 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.6.0] - 2026-07-22
+## [0.5.0] - 2026-07-22
 
-`0.6.0` is the **Tier 4 "ecosystem & adoption"** release: meet JVM developers inside the frameworks they
-already use — where no semantic cache ships today — and give them something runnable.
+`0.5.0` covers **Tier 3 "DX & reach"** and **Tier 4 "ecosystem & adoption"** together: lower the friction
+from "interesting" to "in my service by lunch," make the guards usable outside English, and meet JVM
+developers inside the frameworks they already use — where no semantic cache ships today.
 
 ### Added
 
+- `catching { }` (M11): a coroutine-safe `Result` wrapper — like `runCatching`, but it re-throws
+  `CancellationException` (and `Error`s) instead of capturing them, so structured concurrency still
+  works. The exception / `null` style stays primary across kmemo.
+- Typed responses (M11): a `ResponseCodec<T>` seam and a `getOrPut(prompt, codec) { … }` overload that
+  caches a **structured** value — a parsed object, a tool-call — as the text the store keeps, decoding
+  it on a hit. No serialization library lands on the core classpath; you bring the codec.
+- Streaming responses (M11): `getOrPutStreaming(prompt) { … }` returns a `Flow<String>`. On a hit it
+  replays the assembled answer; on a miss it passes the upstream chunks through while accumulating them,
+  and caches the text **only if the stream completes normally** — a partial or failed stream caches
+  nothing.
+- Config DSL (M11): `semanticCache(embedder) { … }` over a `SemanticCacheBuilder`, so a cache that sets
+  a few of the constructor's options reads by name instead of threading past the rest.
+- BOM (M11): a new `kmemo-bom` (`java-platform`) module — import it once and depend on any kmemo
+  artifact without repeating the version.
+- Multilingual guard packs (M12): a `GuardVocabulary` bundle and `MatchGuards.standard(vocabulary)` /
+  `standard(locale)`, plus curated, conservative packs for **Italian, Spanish, German and French** in
+  `Vocabularies` (negation, antonyms, temporal / scope / directional markers, and local unit spellings
+  aliased to the vetted canonicals). `forLocale(Locale)` resolves by language code and fails loudly for
+  an unsupported one. Each pack is measured against a localized near-miss corpus — near-misses caught,
+  paraphrases kept — not asserted.
 - Spring Boot starter (M13): a new `kmemo-spring-boot-starter` module. Auto-configures a `SemanticCache`
   bean the moment an `Embedder` bean is present, bound from `kmemo.*` properties; the store defaults to
   `InMemoryStore` but a user `CacheStore` bean wins, and `Verifier` / `CacheListener` beans are attached.
@@ -38,42 +59,11 @@ already use — where no semantic cache ships today — and give them something 
 
 ### Changed
 
-- `kmemo-bom` now also constrains the four ecosystem modules (`kmemo-spring-boot-starter`,
-  `kmemo-spring-ai`, `kmemo-langchain4j`, `kmemo-ktor`).
-
-## [0.5.0] - 2026-07-21
-
-`0.5.0` is the **Tier 3 "DX & reach"** release: lower the friction from "interesting" to "in my service
-by lunch," and make the guards usable outside English.
-
-### Added
-
-- `catching { }` (M11): a coroutine-safe `Result` wrapper — like `runCatching`, but it re-throws
-  `CancellationException` (and `Error`s) instead of capturing them, so structured concurrency still
-  works. The exception / `null` style stays primary across kmemo.
-- Typed responses (M11): a `ResponseCodec<T>` seam and a `getOrPut(prompt, codec) { … }` overload that
-  caches a **structured** value — a parsed object, a tool-call — as the text the store keeps, decoding
-  it on a hit. No serialization library lands on the core classpath; you bring the codec.
-- Streaming responses (M11): `getOrPutStreaming(prompt) { … }` returns a `Flow<String>`. On a hit it
-  replays the assembled answer; on a miss it passes the upstream chunks through while accumulating them,
-  and caches the text **only if the stream completes normally** — a partial or failed stream caches
-  nothing.
-- Config DSL (M11): `semanticCache(embedder) { … }` over a `SemanticCacheBuilder`, so a cache that sets
-  a few of the constructor's options reads by name instead of threading past the rest.
-- BOM (M11): a new `kmemo-bom` (`java-platform`) module — import it once and depend on any kmemo
-  artifact without repeating the version.
-- Multilingual guard packs (M12): a `GuardVocabulary` bundle and `MatchGuards.standard(vocabulary)` /
-  `standard(locale)`, plus curated, conservative packs for **Italian, Spanish, German and French** in
-  `Vocabularies` (negation, antonyms, temporal / scope / directional markers, and local unit spellings
-  aliased to the vetted canonicals). `forLocale(Locale)` resolves by language code and fails loudly for
-  an unsupported one. Each pack is measured against a localized near-miss corpus — near-misses caught,
-  paraphrases kept — not asserted.
-
-### Changed
-
 - `EntityGuard` and `Text.entityTokens` now take the sentence-opener and non-entity-capital sets as
   parameters (defaulting to the English `Vocabulary`), so the entity guard is language-swappable like
   the rest. `Vocabulary.NON_ENTITY_CAPITALS` is now public. Existing English callers are unaffected.
+- `kmemo-bom` constrains every published module, including the four ecosystem modules
+  (`kmemo-spring-boot-starter`, `kmemo-spring-ai`, `kmemo-langchain4j`, `kmemo-ktor`).
 
 ## [0.4.0] - 2026-07-21
 
