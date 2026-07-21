@@ -28,7 +28,27 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   new guard or matcher earns its place against that corpus before it ships. Positioning competes on
   false-hit protection, diagnosability, DX and footprint — not on being the fastest ANN index.
 
-## Status — `0.4.0` (current)
+## Status — `0.5.0` (current)
+
+`0.5.0` is the **Tier 3 "DX & reach"** release: lower the friction from "interesting" to "in my service
+by lunch," and make the guards usable outside English.
+
+- **Ergonomics (M11):** `catching { }`, a coroutine-safe `Result` wrapper that re-throws
+  `CancellationException`; a `ResponseCodec<T>` seam and a typed `getOrPut<T>` that caches structured
+  outputs, not just text; `getOrPutStreaming` that replays a streamed answer as a `Flow<String>` on a
+  hit and caches only a stream that completes cleanly; a `semanticCache { }` config DSL over the growing
+  constructor; and a `kmemo-bom` (`java-platform`) so multi-module users pin one version.
+- **Multilingual (M12):** a `GuardVocabulary` bundle and `MatchGuards.standard(vocabulary)` /
+  `standard(locale)`, with curated, conservative packs for **Italian, Spanish, German and French** in
+  `Vocabularies`. `EntityGuard` is fully parameterized (sentence openers, non-entity capitals), so every
+  guard is language-swappable. Each pack is *measured* — a localized near-miss corpus proves the guards
+  catch the near-misses and keep the paraphrases in all four languages.
+
+Targeting Maven Central and GitHub Packages as `0.5.0`. The next release opens **Tier 4** (ecosystem &
+adoption, M13–M14): a Spring Boot starter and Spring AI advisor, a LangChain4j wrapper, and a runnable
+demo.
+
+## Status — `0.4.0`
 
 `0.4.0` is the **Tier 2 "production reliability & observability"** release: the failure behaviour,
 telemetry and hot-path performance a team needs before putting Kmemo on a request path.
@@ -131,8 +151,8 @@ Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07
 | **M8** · Resilience: embedder failures & negative results | ✅ Shipped in `0.4.0`. |
 | **M9** · Observability: metrics, tracing, logging | ✅ Shipped in `0.4.0`. |
 | **M10** · Performance: batching, write-behind, benchmarks | ✅ Shipped in `0.4.0`. |
-| **M11** · Ergonomics: BOM, config DSL, typed & streaming responses | Planned. |
-| **M12** · Multilingual vocabularies & guard packs | Planned. |
+| **M11** · Ergonomics: BOM, config DSL, typed & streaming responses | ✅ Shipped in `0.5.0`. |
+| **M12** · Multilingual vocabularies & guard packs | ✅ Shipped in `0.5.0`. |
 | **M13** · Spring Boot starter + Spring AI advisor | Planned. |
 | **M14** · LangChain4j, Ktor plugin & a runnable demo | Planned. |
 | **M15** · Quality, supply chain & test depth (CI) | Planned. |
@@ -373,6 +393,11 @@ English.
 
 ### M11 · Ergonomics: BOM, config DSL, typed & streaming responses — `M`
 
+**Status: ✅ Shipped in `0.5.0`.** Delivered: `kmemo-bom`
+(`java-platform`); a `catching { }` `Result` helper that re-throws `CancellationException`; a typed
+`getOrPut<T>` over a `ResponseCodec<T>` seam; `getOrPutStreaming` returning a `Flow<String>` (caching
+only a cleanly-completed stream); and a `semanticCache { }` builder DSL.
+
 - A `kmemo-bom` (`java-platform`) so multi-module users pin one version.
 - A `catching { }` helper returning `Result<T>` (re-throwing `CancellationException`); the
   exception/`null` style stays primary.
@@ -385,6 +410,12 @@ English.
   scope-isolated style.
 
 ### M12 · Multilingual vocabularies & guard packs — `M`
+
+**Status: ✅ Shipped in `0.5.0`.** Delivered: a `GuardVocabulary`
+bundle and `MatchGuards.standard(vocabulary)` / `standard(locale)`; conservative packs for Italian,
+Spanish, German and French in `Vocabularies`; `EntityGuard` parameterized (sentence openers, non-entity
+capitals) so every guard is language-swappable; and a localized near-miss corpus that measures each pack
+(near-misses caught, paraphrases kept) rather than asserting it.
 
 Every guard already takes its markers as a constructor parameter, so adapting to a language is
 configuration, not a fork. Ship that configuration.

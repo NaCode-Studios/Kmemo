@@ -68,7 +68,7 @@ Requires **JDK 17+**. Artifacts are published to Maven Central under `io.github.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:0.4.0")
+    implementation("io.github.nacode-studios:kmemo-core:0.5.0")
 }
 ```
 
@@ -122,11 +122,37 @@ SemanticCache(embedder, guards = MatchGuards.none())               // the naive 
 SemanticCache(embedder, guards = MatchGuards.standard() + MyGuard())
 ```
 
-Every guard takes its word lists as a constructor parameter, so adapting to another language is
-configuration rather than a fork:
+The guards work outside English too. Curated packs ship for Italian, Spanish, German and French — each
+measured against a localized near-miss corpus — and any guard's word lists are still a constructor
+parameter, so your own language or vocabulary is configuration, not a fork:
 
 ```kotlin
-NegationGuard(markers = setOf("non", "senza", "mai"))
+SemanticCache(embedder, guards = MatchGuards.standard(Locale.ITALIAN))       // a shipped pack
+SemanticCache(embedder, guards = MatchGuards.standard(Vocabularies.GERMAN))  // the same, by vocabulary
+SemanticCache(embedder, guards = MatchGuards.standard(myVocabulary))         // your own pack
+```
+
+### Typed and streaming responses
+
+Cache more than a `String` — a structured object via a `ResponseCodec`, or a streamed answer replayed
+as a `Flow` on a hit:
+
+```kotlin
+// Structured: the cache stores text, the codec turns your object into it and back.
+val weather: Weather = cache.getOrPut(prompt, weatherCodec) { llm.extractWeather(it) }
+
+// Streaming: chunks pass through on a miss and are cached once the stream completes; replayed on a hit.
+cache.getOrPutStreaming(prompt) { llm.completeStreaming(it) }.collect { print(it) }
+```
+
+### Configuring with the DSL
+
+```kotlin
+val cache = semanticCache(embedder) {
+    threshold = 0.9
+    negativeCacheSize = 10_000
+    listeners = listOf(metrics)
+}
 ```
 
 ### Verifying what lexical guards cannot see
@@ -218,6 +244,7 @@ cache.warm(faqPairs.map { WarmEntry(it.question, it.answer) }) // batch-embedded
 | `kmemo-store-hnsw` | An opt-in in-process approximate (HNSW) `CacheStore` that scales past the exact scan. |
 | `kmemo-micrometer` | A Micrometer `MeterBinder` — hit rate, per-reason and per-guard counters, embed/search/verify timers. |
 | `kmemo-slf4j` | An SLF4J `CacheListener` — a structured log line per event, prompt redaction on by default. |
+| `kmemo-bom` | A `java-platform` BOM — pin one version and depend on every kmemo module without repeating it. |
 
 Every module past `kmemo-core` is opt-in and never lands on the core classpath; the core still depends
 only on `kotlinx-coroutines-core`.
@@ -317,6 +344,11 @@ Run it yourself:
 
 ## Roadmap
 
+**Shipped (`0.5.0`)** — **DX & reach**: ergonomics (`catching { }`, a typed `getOrPut<T>` over a
+`ResponseCodec`, streaming `getOrPutStreaming` → `Flow<String>`, a `semanticCache { }` DSL, and a
+`kmemo-bom`) and multilingual guard packs — `MatchGuards.standard(locale)` with curated `Vocabularies`
+for Italian, Spanish, German and French, each measured against a localized near-miss corpus.
+
 **Shipped (`0.4.0`)** — **production reliability & observability**: resilience (an `EmbedFailurePolicy`
 fall-back, `Embedder.retrying(…)`, opt-in negative caching, `warm(...)` preload), observability (a
 zero-dependency `CacheEvent` stream, plus `kmemo-micrometer` metrics and `kmemo-slf4j` structured
@@ -329,11 +361,10 @@ behind the same `CacheStore` seam, an opt-in in-process HNSW index (`kmemo-store
 bound on `InMemoryStore` — on top of `0.2.0`'s per-guard measurement (`guardRejectionsByGuard`,
 `explain(...)`) and completed `Verifier` path, and the `0.1.0` core. All on Maven Central and GitHub Packages.
 
-**Next (`0.5.0`)** — Tier 3: ergonomics (a BOM, a config DSL, typed & streaming responses) and
-multilingual vocabularies & guard packs.
+**Next** — Tier 4: framework integrations — a Spring Boot starter and Spring AI `Advisor`, and a
+LangChain4j wrapper (neither framework ships a semantic cache) — with a runnable demo.
 
-**Later** — framework integrations — a Spring AI `Advisor` and a LangChain4j wrapper (neither framework
-ships a semantic cache) — with a runnable demo; and the road to `1.0`, with Kotlin Multiplatform after that.
+**Later** — quality & supply-chain hardening, then the road to `1.0`, with Kotlin Multiplatform after that.
 
 See **[ROADMAP.md](ROADMAP.md)** for the full milestone plan (`M1`–`M18`), and the shared
 **[roadmap conventions](ROADMAP-CONVENTIONS.md)**.
