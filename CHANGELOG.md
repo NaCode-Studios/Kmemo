@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-21
+
+`0.3.0` is the **Tier 1 "stores beyond memory"** release: the `CacheStore` seam proven with real backends
+and a shared conformance suite, plus a path for the default store to scale.
+
 ### Added
 
 - Store conformance suite (M4): a new `kmemo-store-tck` module exposing `CacheStoreContract` — the
@@ -92,6 +97,7 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
 - Published to Maven Central and GitHub Packages under `io.github.nacode-studios` (package
   `dev.kmemo`), with the public API tracked by binary-compatibility-validator (`./gradlew apiCheck`).
 
-[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/NaCode-Studios/Kmemo/releases/tag/v0.1.0

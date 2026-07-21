@@ -28,7 +28,27 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   new guard or matcher earns its place against that corpus before it ships. Positioning competes on
   false-hit protection, diagnosability, DX and footprint — not on being the fastest ANN index.
 
-## Status — `0.2.0` (current)
+## Status — `0.3.0` (current)
+
+`0.3.0` is the **Tier 1 "stores beyond memory"** release: the `CacheStore` seam — match logic in the
+cache, a backend only stores vectors and returns the nearest `k` in a scope — proven with real adapters
+and a shared conformance suite, and the default store given a path to scale.
+
+- **Store conformance suite (M4):** a reusable `CacheStoreContract` (`kmemo-store-tck`) with a `FakeClock`,
+  so `InMemoryStore` and every adapter are held to the same seam rules.
+- **Redis store (M5):** `kmemo-store-redis` — RediSearch `FT.SEARCH` KNN on a Lettuce coroutine client,
+  scope a `TAG`, TTL a clock-driven `expires_at` filter plus a real key TTL for reclamation.
+- **Postgres / pgvector store (M6):** `kmemo-store-postgres` — durable, over JDBC on pgvector (`<=>`),
+  scope an indexed column, table auto-created (or from the shipped `schema.sql`); the JDBC driver is the
+  caller's only added dependency.
+- **HNSW store & byte-aware bounds (M7):** `kmemo-store-hnsw` — an opt-in pure-Kotlin approximate index
+  whose candidates are rescored exactly (recall ≥ 0.9 vs exact), plus an optional `maxBytes` memory bound
+  on `InMemoryStore`. The exact scan stays the default and the correctness reference.
+
+Published to Maven Central and GitHub Packages as `0.3.0` (tag `v0.3.0`, 2026-07-21). The next release —
+`0.4.0` — opens **Tier 2** (production reliability & observability, M8–M10).
+
+## Status — `0.2.0`
 
 `0.2.0` sharpens the two things Kmemo competes on — knowing *why* a lookup was decided the way it was,
 and covering the near misses lexical rules cannot — completing **Tier 0** on top of the `0.1.0` core:
@@ -45,8 +65,7 @@ and covering the near misses lexical rules cannot — completing **Tier 0** on t
 - **Docs & canonical home:** the API reference is published to GitHub Pages via Dokka and linked from the
   README; the repository is now `NaCode-Studios/Kmemo`, with POM/SCM metadata and CI badges to match.
 
-Published to Maven Central and GitHub Packages as `0.2.0` (tag `v0.2.0`, 2026-07-20). The next release —
-`0.3.0` — is the **Tier 1** store work (M4–M7) below.
+Published to Maven Central and GitHub Packages as `0.2.0` (tag `v0.2.0`, 2026-07-20).
 
 ## Status — `0.1.0`
 
@@ -78,10 +97,10 @@ Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07
 | **M1** · Ship `0.1.0` to Maven Central | ✅ Shipped in `0.1.0`. |
 | **M2** · Per-guard measurement & observability | ✅ Shipped in `0.2.0`. |
 | **M3** · The Verifier, completed | ✅ Shipped in `0.2.0`. |
-| **M4** · Store conformance suite (TCK) | 🚧 In progress (targeting `0.3.0`). |
-| **M5** · Redis store | 🚧 In progress (targeting `0.3.0`). |
-| **M6** · Postgres / pgvector store | 🚧 In progress (targeting `0.3.0`). |
-| **M7** · Scaling the in-memory store (ANN) | 🚧 In progress (targeting `0.3.0`). |
+| **M4** · Store conformance suite (TCK) | ✅ Shipped in `0.3.0`. |
+| **M5** · Redis store | ✅ Shipped in `0.3.0`. |
+| **M6** · Postgres / pgvector store | ✅ Shipped in `0.3.0`. |
+| **M7** · Scaling the in-memory store (ANN) | ✅ Shipped in `0.3.0`. |
 | **M8** · Resilience: embedder failures & negative results | Planned. |
 | **M9** · Observability: metrics, tracing, logging | Planned. |
 | **M10** · Performance: batching, write-behind, benchmarks | Planned. |
@@ -179,7 +198,7 @@ this milestone makes it a first-class, safe, affordable path.
 
 ---
 
-## Tier 1 — Stores beyond memory
+## Tier 1 — Stores beyond memory — ✅ Shipped in `0.3.0`
 
 The `CacheStore` seam is the Kdrant-transport analogue: match logic lives in `SemanticCache`, and a
 backend only has to store vectors and return the nearest `k` in a scope. This tier proves that seam
@@ -187,9 +206,9 @@ with real adapters and a shared conformance suite, and makes the default store s
 
 ### M4 · Store conformance suite (TCK) — `S`
 
-**Status: 🚧 In progress (targeting `0.3.0`).** Delivered on the `tier-1-stores` branch: a dedicated
+**Status: ✅ Shipped in `0.3.0`.** Delivered: a dedicated
 `kmemo-store-tck` module with `CacheStoreContract` (20 cases over the seam) and a reusable `FakeClock`;
-`InMemoryStore` passes it. Redis (M5) and Postgres (M6) subclass the same contract.
+`InMemoryStore` passes it, and the Redis, Postgres and HNSW stores subclass the same contract.
 
 Write the contract tests once, before the adapters, so every store is held to the same three rules the
 `CacheStore` KDoc already states (never return an expired or out-of-scope entry; at most `limit`
@@ -204,7 +223,7 @@ results, best-first; concurrency-safe).
 
 ### M5 · Redis store — `M`
 
-**Status: 🚧 In progress (targeting `0.3.0`).** Delivered on the `tier-1-stores` branch: `kmemo-store-redis`
+**Status: ✅ Shipped in `0.3.0`.** Delivered: `kmemo-store-redis`
 using RediSearch `FT.SEARCH` KNN on a Lettuce coroutine client — scope as a `TAG`, a clock-driven
 `expires_at` filter plus a real Redis key TTL, and the RediSearch-absent case failing fast. Green against
 the M4 conformance suite via Testcontainers.
@@ -220,7 +239,7 @@ LangChain4j ships a semantic cache — see M13/M14).
 
 ### M6 · Postgres / pgvector store — `L`
 
-**Status: 🚧 In progress (targeting `0.3.0`).** Delivered on the `tier-1-stores` branch: `kmemo-store-postgres`
+**Status: ✅ Shipped in `0.3.0`.** Delivered: `kmemo-store-postgres`
 on pgvector (`<=>`), scope an indexed column, an `expires_at` predicate driven by the injected clock, the
 table auto-created (or provisioned from the shipped `schema.sql`), and the JDBC driver left as the caller's
 only added dependency. Green against the M4 conformance suite via Testcontainers.
@@ -236,7 +255,7 @@ choice.
 
 ### M7 · Scaling the in-memory store (ANN) — `L`
 
-**Status: 🚧 In progress (targeting `0.3.0`).** Delivered on the `tier-1-stores` branch: an opt-in
+**Status: ✅ Shipped in `0.3.0`.** Delivered: an opt-in
 pure-Kotlin HNSW store (`kmemo-store-hnsw`) whose candidates are rescored exactly (recall measured ≥ 0.9
 vs an exact ranking), and an optional `maxBytes` memory bound on `InMemoryStore` (LRU-evicted alongside
 `maxEntries`, with a `bytes` figure in its stats). The exact scan stays the default and the correctness
