@@ -1,0 +1,43 @@
+name: Snapshot
+
+# Publishes the in-development `-SNAPSHOT` on every push to main, so integrators can track unreleased
+# fixes between tagged releases. Targets the Maven Central *snapshots* repository (which the vanniktech
+# plugin routes any `-SNAPSHOT` version to), because snapshots are mutable there — unlike GitHub
+# Packages, which rejects re-publishing a version. Requires snapshots enabled on the Central Portal
+# account; if they are not, disable this workflow or enable them.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: snapshot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish-snapshot:
+    runs-on: ubuntu-latest
+    # Pinned to node24 action majors — see the note in ci.yml.
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # No -PkmemoVersion override: the build falls back to its in-development SNAPSHOT version.
+      - name: Publish snapshot to Maven Central
+        run: ./gradlew publishToMavenCentral --no-daemon --no-configuration-cache
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
