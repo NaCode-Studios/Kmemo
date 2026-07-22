@@ -15,7 +15,7 @@ jmh = "0.7.2"
 springBoot = "3.4.1"
 springAi = "1.0.0"
 langchain4j = "1.0.1"
-ktor = "3.0.3"
+ktor = "3.5.1"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
