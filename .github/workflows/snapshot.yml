@@ -3,8 +3,12 @@ name: Snapshot
 # Publishes the in-development `-SNAPSHOT` on every push to main, so integrators can track unreleased
 # fixes between tagged releases. Targets the Maven Central *snapshots* repository (which the vanniktech
 # plugin routes any `-SNAPSHOT` version to), because snapshots are mutable there — unlike GitHub
-# Packages, which rejects re-publishing a version. Requires snapshots enabled on the Central Portal
-# account; if they are not, disable this workflow or enable them.
+# Packages, which rejects re-publishing a version.
+#
+# The publish is **best-effort** (continue-on-error): the namespace must have snapshots enabled on the
+# Central Portal for the upload to succeed, and until it is the endpoint returns 403. Marking it
+# non-fatal keeps `main` green while the versioning discipline (main carries `-SNAPSHOT`) is in place;
+# once snapshots are enabled for the namespace the upload starts succeeding with no further change.
 on:
   push:
     branches: [main]
@@ -34,7 +38,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       # No -PkmemoVersion override: the build falls back to its in-development SNAPSHOT version.
+      # Best-effort — a 403 (snapshots not yet enabled for the namespace) must not turn main red.
       - name: Publish snapshot to Maven Central
+        continue-on-error: true
         run: ./gradlew publishToMavenCentral --no-daemon --no-configuration-cache
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
