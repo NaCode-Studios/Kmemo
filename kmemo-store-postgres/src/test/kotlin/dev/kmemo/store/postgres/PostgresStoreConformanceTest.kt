@@ -8,7 +8,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
 import org.testcontainers.DockerClientFactory
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration
@@ -28,8 +28,10 @@ class PostgresStoreConformanceTest : CacheStoreContract() {
     companion object {
         // Overridable so CI can pin / matrix the image.
         private val image = System.getenv("POSTGRES_IMAGE") ?: "pgvector/pgvector:pg16"
+        // testcontainers 2.0's PostgreSQLContainer is no longer generic, so the pgvector image is passed
+        // straight to it — the old self-typed PgVectorContainer subclass added nothing and is gone.
         private val container =
-            PgVectorContainer(DockerImageName.parse(image).asCompatibleSubstituteFor("postgres"))
+            PostgreSQLContainer(DockerImageName.parse(image).asCompatibleSubstituteFor("postgres"))
         private val counter = AtomicInteger(0)
         private lateinit var dataSource: HikariDataSource
 
@@ -58,6 +60,4 @@ class PostgresStoreConformanceTest : CacheStoreContract() {
             if (container.isRunning) container.stop()
         }
     }
-
-    private class PgVectorContainer(image: DockerImageName) : PostgreSQLContainer<PgVectorContainer>(image)
 }

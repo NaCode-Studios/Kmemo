@@ -80,6 +80,11 @@ public class KmemoAdvisor @JvmOverloads constructor(
 
     private fun cachedResponse(text: String, request: ChatClientRequest): ChatClientResponse {
         val chatResponse = ChatResponse(listOf(Generation(AssistantMessage(text))))
-        return ChatClientResponse(chatResponse, request.context())
+        // Spring AI 2.0 marks the response context non-null-valued, while request.context() is nullable-
+        // valued; the builder's context(Map<String, ? extends Object>) accepts it without an unchecked cast.
+        return ChatClientResponse.builder()
+            .chatResponse(chatResponse)
+            .context(request.context())
+            .build()
     }
 }

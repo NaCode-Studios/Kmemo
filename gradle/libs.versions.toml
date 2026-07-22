@@ -5,17 +5,17 @@ mavenPublish = "0.35.0"
 coroutines = "1.11.0"
 serialization = "1.11.0"
 lettuce = "6.5.1.RELEASE"
-postgresql = "42.7.4"
-hikari = "6.2.1"
-testcontainers = "1.20.4"
-micrometer = "1.14.2"
-slf4j = "2.0.16"
-logback = "1.5.12"
+postgresql = "42.7.13"
+hikari = "7.1.0"
+testcontainers = "2.0.5"
+micrometer = "1.17.0"
+slf4j = "2.0.18"
+logback = "1.5.38"
 jmh = "0.7.2"
-springBoot = "3.4.1"
-springAi = "1.0.0"
-langchain4j = "1.0.1"
-ktor = "3.0.3"
+springBoot = "4.1.0"
+springAi = "2.0.0"
+langchain4j = "1.18.0"
+ktor = "3.5.1"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -36,7 +36,9 @@ hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 # Integration testing: a real backend in Docker (skipped when Docker is absent).
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
 testcontainers = { module = "org.testcontainers:testcontainers" }
-testcontainers-postgresql = { module = "org.testcontainers:postgresql" }
+# testcontainers 2.0 renamed the module artifacts to a `testcontainers-` prefix (the old
+# `org.testcontainers:postgresql` coordinate stops at the 1.x line); the version comes from the BOM.
+testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 
 # Observability adapters (opt-in modules; never on the kmemo-core classpath).
 micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
@@ -45,9 +47,9 @@ slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 # Test-only: AssertableApplicationContext (Spring Boot's test runner) implements an AssertJ type, which
 # must be on the compile classpath even when the tests assert with kotlin.test instead.
-assertj-core = { module = "org.assertj:assertj-core", version = "3.26.3" }
+assertj-core = { module = "org.assertj:assertj-core", version = "3.27.7" }
 # Test-only: property-based testing for the Vectors maths and the text tokenizer invariants.
-kotest-property = { module = "io.kotest:kotest-property", version = "5.9.1" }
+kotest-property = { module = "io.kotest:kotest-property", version = "6.2.3" }
 
 # Ecosystem integrations (opt-in modules; never on the kmemo-core classpath).
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure", version.ref = "springBoot" }
@@ -62,8 +64,8 @@ ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 binary-compatibility-validator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version = "0.18.1" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "12.1.2" }
-detekt = { id = "io.gitlab.arturbosch.detekt", version = "1.23.7" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "14.2.0" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version = "1.23.8" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 dokka-javadoc = { id = "org.jetbrains.dokka-javadoc", version.ref = "dokka" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }

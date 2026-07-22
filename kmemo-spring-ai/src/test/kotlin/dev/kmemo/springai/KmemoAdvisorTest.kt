@@ -64,5 +64,8 @@ class KmemoAdvisorTest {
         }
 
         override fun getCallAdvisors(): List<CallAdvisor> = emptyList()
+
+        // Spring AI 2.0 added copy() to the chain SPI; this test double never forks, so it returns itself.
+        override fun copy(advisor: CallAdvisor): CallAdvisorChain = this
     }
 }

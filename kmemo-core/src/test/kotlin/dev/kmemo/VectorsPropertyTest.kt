@@ -24,6 +24,10 @@ class VectorsPropertyTest {
 
     private val finiteFloats = Arb.float(-1_000f, 1_000f).filterNot { it.isNaN() || it.isInfinite() }
 
+    // Arb.float(from, to) still emits NaN and the infinities as edge cases, so a "positive scaling" arb
+    // has to strip them — a NaN factor is not a positive scaling and would poison the whole vector.
+    private val positiveScale = Arb.float(0.01f, 1_000f).filterNot { it.isNaN() || it.isInfinite() }
+
     /** Non-zero, finite vectors of a given dimension — the only ones [Vectors.normalize] accepts. */
     private fun vector(dim: Int): Arb<FloatArray> =
         Arb.floatArray(Arb.int(dim..dim), finiteFloats).filter { Vectors.magnitude(it) > 1e-2 }
@@ -63,7 +67,7 @@ class VectorsPropertyTest {
 
     @Test
     fun `cosine similarity ignores positive scaling`() = runTest {
-        checkAll(Arb.int(1..48).flatMap { vector(it) }, Arb.float(0.01f, 1_000f)) { v, scale ->
+        checkAll(Arb.int(1..48).flatMap { vector(it) }, positiveScale) { v, scale ->
             val scaled = FloatArray(v.size) { v[it] * scale }
             assertTrue(abs(Vectors.cosineSimilarity(v, scaled) - 1.0) < 1e-3)
         }
