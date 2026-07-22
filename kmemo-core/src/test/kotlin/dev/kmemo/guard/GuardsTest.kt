@@ -96,7 +96,11 @@ class GuardsTest {
 
     @Test
     fun `entity guard does not treat the pronoun I as an entity`() {
-        assertAccepts(EntityGuard(), "How do I renew my US passport?", "What is the process for renewing a US passport?")
+        assertAccepts(
+            EntityGuard(),
+            "How do I renew my US passport?",
+            "What is the process for renewing a US passport?",
+        )
     }
 
     @Test

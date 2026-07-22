@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.dokka)
     alias(libs.plugins.dokka.javadoc)
     alias(libs.plugins.maven.publish)
+    jacoco
 }
 
 kotlin {
@@ -23,6 +24,8 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kotlinx.serialization.json)
+    // Property-based tests for the Vectors maths and the text tokenizer invariants.
+    testImplementation(libs.kotest.property)
     // The shared store conformance suite; InMemoryStore is held to the same contract as every adapter.
     testImplementation(project(":kmemo-store-tck"))
 }
@@ -34,6 +37,44 @@ tasks.test {
         exceptionFormat = TestExceptionFormat.FULL
         showStandardStreams = true
     }
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+// Coverage on kmemo-core — the library's heart, where every guard, the match logic and the vector
+// maths live. (Kover is the natural choice here, but its 0.9.x line does not yet support the
+// Kotlin 2.4 `KotlinWithJavaCompilation` model; JaCoCo works on bytecode and is unaffected.)
+val minLineCoverage = "0.90"
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.test)
+    violationRules {
+        // A floor, not an aspiration: set just under the current line coverage so the number cannot
+        // silently slide down. Raise it deliberately, never lower it to make CI pass.
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = minLineCoverage.toBigDecimal()
+            }
+        }
+    }
+}
+
+// Make `check` (and therefore `build`, and CI) enforce the coverage floor.
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }
 
 mavenPublishing {

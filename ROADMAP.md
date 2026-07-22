@@ -28,7 +28,26 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   new guard or matcher earns its place against that corpus before it ships. Positioning competes on
   false-hit protection, diagnosability, DX and footprint — not on being the fastest ANN index.
 
-## Status — `0.5.0` (current)
+## Status — `0.6.0` (current)
+
+`0.6.0` is the **Tier 5 "quality & the road to `1.0`"** release: bring CI, supply chain and test depth
+up to a mature OSS standard, and lay the written groundwork for `1.0`.
+
+- **Test depth (M15):** property-based tests (kotest-property) for the `Vectors` maths and the `Text`
+  tokenizer; the near-miss corpus is a CI regression gate (floors on all three splits) with a documented
+  process for growing the blind splits without contaminating them ([docs/CORPUS.md](docs/CORPUS.md)).
+- **Quality & supply chain (M15):** a JaCoCo coverage floor on `kmemo-core` (Kover is blocked by a
+  Kotlin 2.4 incompatibility); ktlint and detekt as CI gates, configured to the project's deliberate
+  house style rather than against it; a JDK `17 / 21 / 23` matrix; Dependabot and a dependency-review
+  CVE gate; SLSA build-provenance attestation on release; and `-SNAPSHOT` publishing from `main`.
+- **The road to `1.0` (M16):** a written semver / stability policy, the `1.0` scope *gates* (a stability
+  bar, not a date), the Java-interop position, and the rationale behind every default —
+  [docs/STABILITY.md](docs/STABILITY.md). `1.0` is not cut here; this is the groundwork for it.
+
+Targeting Maven Central and GitHub Packages as `0.6.0`. What remains before `1.0` is proving a
+persistent store in production and finalizing the defaults against real traffic (see STABILITY.md).
+
+## Status — `0.5.0`
 
 `0.5.0` ships **Tier 3 "DX & reach"** and **Tier 4 "ecosystem & adoption"** together: lower the friction
 from "interesting" to "in my service by lunch," make the guards usable outside English, and meet JVM
@@ -166,8 +185,8 @@ Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07
 | **M12** · Multilingual vocabularies & guard packs | ✅ Shipped in `0.5.0`. |
 | **M13** · Spring Boot starter + Spring AI advisor | ✅ Shipped in `0.5.0`. |
 | **M14** · LangChain4j, Ktor plugin & a runnable demo | ✅ Shipped in `0.5.0`. |
-| **M15** · Quality, supply chain & test depth (CI) | Planned. |
-| **M16** · The road to `1.0` | Planned. |
+| **M15** · Quality, supply chain & test depth (CI) | ✅ Shipped in `0.6.0`. |
+| **M16** · The road to `1.0` | ✅ Shipped in `0.6.0` (groundwork; `1.0` not yet cut). |
 | **M17** · Kotlin Multiplatform core | Post-`1.0`. |
 | **M18** · Advanced matching & adaptive caching | Post-`1.0`. |
 
@@ -484,6 +503,14 @@ announcement is left for when `1.0` lands.
 
 ### M15 · Quality, supply chain & test depth (CI) — `M`
 
+**Status: ✅ Shipped in `0.6.0`.** Delivered: a JaCoCo coverage
+floor on `kmemo-core` (Kover deferred — its 0.9.x line does not support Kotlin 2.4's
+`KotlinWithJavaCompilation`); ktlint and detekt as CI gates tuned to the house style; a JDK 17/21/23
+matrix; Dependabot + a dependency-review CVE gate; SLSA build-provenance on release; `-SNAPSHOT`
+publishing from `main`; property-based tests on `Vectors` and `Text`; and the corpus documented as a
+defended, CI-gated asset ([docs/CORPUS.md](docs/CORPUS.md)). The `guard-report.json` artifact is the
+reproducible false-hit benchmark; a separately-hosted public version is left for after `1.0`.
+
 Bring CI and tests up to a mature OSS standard, and make the corpus a first-class, defended asset.
 
 - Kover (coverage report + minimum threshold + badge), detekt and ktlint as Gradle tasks and CI gates
@@ -499,6 +526,13 @@ Bring CI and tests up to a mature OSS standard, and make the corpus a first-clas
 - A public, versioned false-hit benchmark others can reproduce and cite.
 
 ### M16 · The road to `1.0` — `M`
+
+**Status: ✅ Groundwork shipped in `0.6.0`; `1.0` not yet cut.**
+Delivered: a written semver / stability policy, the `1.0` scope *gates* (a stability bar, not a fixed
+date), the Java-interop position (coroutine-first; `CompletableFuture` bridges now, a `kmemo-jdk` facade
+deferred to demand), and the documented rationale behind every default — all in
+[docs/STABILITY.md](docs/STABILITY.md). What remains before `1.0` is a persistent store proven in
+production and the defaults finalized against real traffic.
 
 Cut `1.0` with written guarantees and reproducible numbers behind every claim.
 

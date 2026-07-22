@@ -1,0 +1,37 @@
+# detekt configuration for kmemo. buildUponDefaultConfig = true, so this only overrides the rules that
+# clash with the library's nature; everything else stays at detekt's defaults. Formatting is ktlint's
+# job (the detekt-formatting ruleset is deliberately not on the classpath). A per-module
+# detekt-baseline.xml accepts the current code so detekt gates *new* smells, not existing ones.
+
+build:
+  maxIssues: 0
+
+complexity:
+  LongParameterList:
+    # SemanticCache's constructor is deliberately parameter-rich — one per capability, all defaulted.
+    active: false
+  TooManyFunctions:
+    active: false
+
+style:
+  MagicNumber:
+    # A vector-maths and threshold library is full of meaningful numeric literals; flagging them is noise.
+    active: false
+  ReturnCount:
+    # The guards and the lookup short-circuit with multiple returns by design.
+    active: false
+  MaxLineLength:
+    # ktlint owns line length (120), configured in .editorconfig.
+    active: false
+  LoopWithTooManyJumpStatements:
+    active: false
+
+exceptions:
+  TooGenericExceptionCaught:
+    # The cache catches Exception deliberately in its fail-safe paths (verifier, listeners, write-behind),
+    # each with a comment explaining why a broken collaborator must not take a lookup down.
+    active: false
+  SwallowedException:
+    active: false
+  ThrowingExceptionsWithoutMessageOrCause:
+    active: false

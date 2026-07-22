@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>NestedBlockDepth:HnswIndex.kt$HnswIndex$private fun searchLayer(query: FloatArray, entryPoints: List&lt;Int>, ef: Int, layer: Int): List&lt;Int></ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
   packages: write
+  # Build-provenance attestation (SLSA): a signed, verifiable record of what built these artifacts.
+  id-token: write
+  attestations: write
 
 jobs:
   publish:
@@ -25,19 +28,43 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      # The release version is the tag without its leading `v` (v0.6.0 → 0.6.0). Read via an env var,
+      # never interpolated into a shell command, so a tag name cannot inject.
+      - name: Resolve release version
+        id: version
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = "push" ]; then
+            echo "value=${REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=0.6.0-SNAPSHOT" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish to Maven Central
         if: github.event_name == 'push'
-        run: ./gradlew publishToMavenCentral --no-daemon --no-configuration-cache
+        run: ./gradlew publishToMavenCentral -PkmemoVersion="$KMEMO_VERSION" --no-daemon --no-configuration-cache
         env:
+          KMEMO_VERSION: ${{ steps.version.outputs.value }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
 
       - name: Publish to GitHub Packages
-        run: ./gradlew publishAllPublicationsToGitHubPackagesRepository --no-daemon --no-configuration-cache
+        run: ./gradlew publishAllPublicationsToGitHubPackagesRepository -PkmemoVersion="$KMEMO_VERSION" --no-daemon --no-configuration-cache
         env:
+          KMEMO_VERSION: ${{ steps.version.outputs.value }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+
+      # A signed SLSA build-provenance attestation for the published jars, verifiable with
+      # `gh attestation verify <jar> --repo NaCode-Studios/Kmemo`.
+      - name: Attest build provenance
+        if: github.event_name == 'push'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "**/build/libs/*.jar"

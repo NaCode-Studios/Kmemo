@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # Gradle dependencies (the version catalog and build scripts).
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      # One PR for the routine test/tooling bumps, individual PRs for the rest.
+      test-and-tooling:
+        patterns:
+          - "org.jetbrains.kotlinx:kotlinx-coroutines-test"
+          - "io.kotest:*"
+          - "org.assertj:*"
+          - "ch.qos.logback:*"
+          - "org.testcontainers:*"
+
+  # GitHub Actions used by the workflows.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

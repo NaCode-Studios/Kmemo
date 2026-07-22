@@ -10,7 +10,13 @@ indent_size = 4
 
 [*.{kt,kts}]
 max_line_length = 120
+# The codebase has a deliberate, consistent house style (blank line opening a class body, inline
+# single-expression bodies, its own wrapping) that diverges from ktlint's opinionated `standard`
+# ruleset. So the standard set is off and only the two rules the project actually wants are on:
+# no wildcard imports, and the 120-column limit. detekt covers code smells; formatting stays ours.
+ktlint_standard = disabled
 ktlint_standard_no-wildcard-imports = enabled
+ktlint_standard_max-line-length = enabled
 
 [*.{yml,yaml,json,toml}]
 indent_size = 2

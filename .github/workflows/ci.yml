@@ -16,6 +16,12 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # kmemo compiles to JVM 17 bytecode (a fixed toolchain), so 17 is the compile/test JDK; 21 and
+        # 23 additionally run Gradle and the build to catch a plugin or JDK regression on newer runtimes.
+        java: ["17", "21", "23"]
     # Every action below is pinned to a major that declares `using: node24`. Node 20 is deprecated
     # on GitHub-hosted runners, and the previous majors (checkout@v4/v5, setup-java@v4,
     # setup-gradle@v4/v5, upload-artifact@v4) still target it — they only run because the runner
@@ -23,16 +29,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 17
+      # Install both JDK 17 (for the jvmToolchain(17) the build pins) and the matrix JDK, which becomes
+      # JAVA_HOME and so runs Gradle itself.
+      - name: Set up JDKs
         uses: actions/setup-java@v5
         with:
-          java-version: "17"
           distribution: temurin
+          java-version: |
+            17
+            ${{ matrix.java }}
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Build, test and verify public API
+      # `build` runs the tests, the public-API check, ktlint, detekt and the JaCoCo coverage floor.
+      - name: Build, test, lint, coverage and verify public API
         run: ./gradlew build --no-daemon --stacktrace
 
       # The corpus report is this project's headline claim. Keeping it in the build log means the
@@ -44,8 +55,21 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: test-reports
+          name: test-reports-jdk${{ matrix.java }}
           path: |
             **/build/reports/tests/
             **/build/test-results/
+            **/build/reports/ktlint/
+            **/build/reports/detekt/
           retention-days: 7
+
+  # Fail a PR that introduces a dependency with a known vulnerability or a disallowed license.
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high

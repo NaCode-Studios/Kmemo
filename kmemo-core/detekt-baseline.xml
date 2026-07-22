@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:Text.kt$Text$sameLength &amp;&amp; i + 1 &lt; shorter.length &amp;&amp; shorter[i] == longer[i + 1] &amp;&amp; shorter[i + 1] == longer[i]</ID>
+    <ID>CyclomaticComplexMethod:SemanticCache.kt$SemanticCache$private suspend fun lookup( prompt: String, scope: String, embedding: FloatArray, counted: Boolean = true, embedNanos: Long = 0, ): CacheLookup</ID>
+    <ID>LongMethod:SemanticCache.kt$SemanticCache$private suspend fun lookup( prompt: String, scope: String, embedding: FloatArray, counted: Boolean = true, embedNanos: Long = 0, ): CacheLookup</ID>
+    <ID>UseCheckOrError:CachingVerifierTest.kt$CachingVerifierTest$throw IllegalStateException("down")</ID>
+  </CurrentIssues>
+</SmellBaseline>

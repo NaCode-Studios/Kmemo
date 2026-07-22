@@ -22,7 +22,10 @@ import kotlin.math.abs
 internal val faq: List<WarmEntry> = listOf(
     WarmEntry("How do I reverse a list in Python?", "Use reversed() or list.reverse()."),
     WarmEntry("Convert 100 USD to EUR", "100 USD is about 92 EUR."),
-    WarmEntry("How do I enable two-factor authentication on GitHub?", "Settings → Password and authentication → Enable 2FA."),
+    WarmEntry(
+        "How do I enable two-factor authentication on GitHub?",
+        "Settings → Password and authentication → Enable 2FA.",
+    ),
 )
 
 /**

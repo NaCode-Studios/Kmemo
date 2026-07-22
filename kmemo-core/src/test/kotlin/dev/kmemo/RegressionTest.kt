@@ -249,7 +249,9 @@ class RegressionTest {
     fun `a decimal comma survives as one number, so swapped operands stay visible`() {
         // Splitting "3,5" into [3, 5] made it indistinguishable from "5,3" under multiset compare.
         assertTrue(rejects(NumericGuard(), "how much is 3,5 kg in pounds", "how much is 5,3 kg in pounds"))
-        assertTrue(rejects(NumericGuard(), "the recipe needs 1,5 liters of milk", "the recipe needs 5,1 liters of milk"))
+        assertTrue(
+            rejects(NumericGuard(), "the recipe needs 1,5 liters of milk", "the recipe needs 5,1 liters of milk"),
+        )
         assertTrue(rejects(NumericGuard(), "Convert 3,5 km to miles", "Convert 35 km to miles"))
     }
 
@@ -362,9 +364,19 @@ class RegressionTest {
     fun `a short acronym does not disable the entity guard`() {
         // Matching on initials alone, "us" is "spelled out by" *use software* — which silently
         // turned off the guard for US/UK, OS/DB, IT/HR: most acronym traffic a cache ever sees.
-        assertTrue(chainRejects("Do I owe tax in the US if I use software abroad?", "Do I owe tax in the UK if I use software abroad?"))
+        assertTrue(
+            chainRejects(
+                "Do I owe tax in the US if I use software abroad?",
+                "Do I owe tax in the UK if I use software abroad?",
+            ),
+        )
         assertTrue(chainRejects("Which OS should I run on servers?", "Which DB should I run on servers?"))
-        assertTrue(chainRejects("How do I hide PI in a python interpreter dump?", "How do I hide ID in a python interpreter dump?"))
+        assertTrue(
+            chainRejects(
+                "How do I hide PI in a python interpreter dump?",
+                "How do I hide ID in a python interpreter dump?",
+            ),
+        )
     }
 
     @Test
@@ -372,7 +384,8 @@ class RegressionTest {
         assertTrue(
             !chainRejects(
                 "What does GDPR require when a user asks for their data to be erased?",
-                "What does the General Data Protection Regulation require when a user asks for their data to be erased?",
+                "What does the General Data Protection Regulation require " +
+                    "when a user asks for their data to be erased?",
             ),
         )
     }
@@ -457,7 +470,12 @@ class RegressionTest {
 
     @Test
     fun `listing two alternatives with a cue is still symmetric`() {
-        assertTrue(!chainRejects("which is better redis or memcached for caching", "which is better memcached or redis for caching"))
+        assertTrue(
+            !chainRejects(
+                "which is better redis or memcached for caching",
+                "which is better memcached or redis for caching",
+            ),
+        )
         assertTrue(!chainRejects("python vs ruby for scripting", "ruby vs python for scripting"))
     }
 

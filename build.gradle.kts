@@ -4,11 +4,45 @@ plugins {
     alias(libs.plugins.dokka.javadoc) apply false
     alias(libs.plugins.maven.publish) apply false
     alias(libs.plugins.binary.compatibility.validator)
+    alias(libs.plugins.ktlint) apply false
+    alias(libs.plugins.detekt) apply false
 }
+
+// The version is a property so `main` can carry a `-SNAPSHOT` between releases while a tagged release
+// overrides it with the exact version: the release workflow passes `-PkmemoVersion=<tag without v>`,
+// and the snapshot workflow (and every local build) falls back to the in-development SNAPSHOT below.
+val kmemoVersion: String = providers.gradleProperty("kmemoVersion").getOrElse("0.6.0-SNAPSHOT")
 
 subprojects {
     group = "io.github.nacode-studios"
-    version = "0.5.0"
+    version = kmemoVersion
+
+    // Lint every Kotlin module — this skips the java-platform BOM, which has no sources. ktlint and
+    // detekt each wire their check task into `check`, so `./gradlew build` (and CI) gates on both.
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        apply(plugin = "org.jlleitschuh.gradle.ktlint")
+        apply(plugin = "io.gitlab.arturbosch.detekt")
+
+        extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
+            buildUponDefaultConfig = true
+            config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+            // A baseline captures the existing codebase's deliberate style (long, thorough methods;
+            // its own naming) so detekt gates *new* smells without a mass rewrite. Per module.
+            baseline = file("detekt-baseline.xml")
+        }
+        tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+            jvmTarget = "17"
+            reports {
+                xml.required.set(false)
+                html.required.set(true)
+                txt.required.set(false)
+                sarif.required.set(false)
+                md.required.set(false)
+            }
+        }
+        // detekt's own check task is not wired into `check` by default; wire the main-source analysis in.
+        tasks.named("check") { dependsOn(tasks.named("detekt")) }
+    }
 }
 
 apiValidation {
