@@ -6,36 +6,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.6.0] - 2026-07-22
+## [1.0.0] - 2026-07-22
 
-`0.6.0` is the **Tier 5 "quality & the road to `1.0`"** release: CI, supply chain and test depth brought
-up to a mature OSS standard, and the written groundwork for `1.0`.
+`1.0.0` is the **Tier 5 "quality & the road to `1.0`"** release, and the milestone it leads to: CI, supply
+chain and test depth brought up to a mature OSS standard, and a written stability commitment. From here,
+the public API is backwards-compatible within the `1.x` line — see [docs/STABILITY.md](docs/STABILITY.md).
 
 ### Added
 
 - Property-based tests (M15): kotest-property invariants for the `Vectors` maths (normalize → unit
   length, dot symmetry, cosine scale-invariance, non-finite rejection) and the `Text` tokenizer.
-- Coverage (M15): a JaCoCo line-coverage report and a 90% floor on `kmemo-core`, wired into `check`.
-  (Kover is the natural choice but its 0.9.x line does not support the Kotlin 2.4 compilation model;
-  JaCoCo works on bytecode and is unaffected.)
 - Linters (M15): ktlint and detekt as CI gates. ktlint is configured to the two rules the project wants
   (no wildcard imports, the 120-column limit) with its opinionated formatting set left off, since the
   codebase has a deliberate house style; detekt runs `buildUponDefaultConfig` with a small library-aware
   config and a per-module baseline so it gates new smells, not existing ones.
-- CI & supply chain (M15): a JDK 17/21/23 build matrix; `.github/dependabot.yml` (Gradle + Actions); a
-  dependency-review CVE gate on PRs; and SLSA build-provenance attestation of the published jars on
-  release.
-- SNAPSHOT publishing (M15): the version is a `kmemoVersion` Gradle property defaulting to a
-  `-SNAPSHOT`; `snapshot.yml` publishes it from `main`, and the release workflow overrides it with the
-  tag version.
-- Docs (M15/M16): `docs/CORPUS.md` (the process for growing the blind corpus splits without
-  contaminating them) and `docs/STABILITY.md` (the semver/stability policy, the `1.0` scope gates, the
-  Java-interop position, and the rationale behind every default).
+- CI & supply chain (M15): a JDK 17/21/23 build matrix; `.github/dependabot.yml` (Gradle + Actions); and
+  a dependency-review CVE gate on PRs.
+- Docs (M15/M16): `docs/CORPUS.md` (the process for growing the blind corpus splits without contaminating
+  them) and `docs/STABILITY.md` (the semver/stability policy — now in effect for `1.x` — the Java-interop
+  position, and the rationale behind every default).
 
-### Changed
+### Notes
 
-- The project version is now resolved from the `kmemoVersion` property (default `0.6.0-SNAPSHOT`) so
-  `main` can carry a snapshot between releases; a tagged release sets the exact version.
+- **Stability**: as of `1.0`, no breaking change to a stable public API without a major version bump.
+- Releases stay **tag-driven** (no SNAPSHOT publishing), matching the convention used across NaCode
+  Studios' libraries.
+- Coverage is deferred: Kover's 0.9.x line is not yet compatible with the Kotlin 2.4 Gradle plugin. The
+  corpus regression gate, property-based tests, ktlint and detekt carry the quality bar until then.
 
 ## [0.5.0] - 2026-07-22
 

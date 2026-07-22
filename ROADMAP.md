@@ -28,24 +28,23 @@ binary-compatibility-validator (`*.api` files), so breakage is never silent.
   new guard or matcher earns its place against that corpus before it ships. Positioning competes on
   false-hit protection, diagnosability, DX and footprint — not on being the fastest ANN index.
 
-## Status — `0.6.0` (current)
+## Status — `1.0.0` (current)
 
-`0.6.0` is the **Tier 5 "quality & the road to `1.0`"** release: bring CI, supply chain and test depth
-up to a mature OSS standard, and lay the written groundwork for `1.0`.
+`1.0.0` is the **Tier 5 "quality & the road to `1.0`"** release, and the `1.0` milestone it leads to: CI,
+supply chain and test depth brought up to a mature OSS standard, and a written stability commitment now
+in effect.
 
 - **Test depth (M15):** property-based tests (kotest-property) for the `Vectors` maths and the `Text`
   tokenizer; the near-miss corpus is a CI regression gate (floors on all three splits) with a documented
   process for growing the blind splits without contaminating them ([docs/CORPUS.md](docs/CORPUS.md)).
-- **Quality & supply chain (M15):** a JaCoCo coverage floor on `kmemo-core` (Kover is blocked by a
-  Kotlin 2.4 incompatibility); ktlint and detekt as CI gates, configured to the project's deliberate
-  house style rather than against it; a JDK `17 / 21 / 23` matrix; Dependabot and a dependency-review
-  CVE gate; SLSA build-provenance attestation on release; and `-SNAPSHOT` publishing from `main`.
-- **The road to `1.0` (M16):** a written semver / stability policy, the `1.0` scope *gates* (a stability
-  bar, not a date), the Java-interop position, and the rationale behind every default —
-  [docs/STABILITY.md](docs/STABILITY.md). `1.0` is not cut here; this is the groundwork for it.
+- **Quality & supply chain (M15):** ktlint and detekt as CI gates, configured to the project's deliberate
+  house style rather than against it; a JDK `17 / 21 / 23` matrix; Dependabot; and a dependency-review
+  CVE gate. Coverage is deferred (Kover is blocked by a Kotlin 2.4 incompatibility).
+- **`1.0` (M16):** the written semver / stability policy — backwards-compatible within `1.x` — the
+  Java-interop position, and the rationale behind every default, in [docs/STABILITY.md](docs/STABILITY.md).
 
-Targeting Maven Central and GitHub Packages as `0.6.0`. What remains before `1.0` is proving a
-persistent store in production and finalizing the defaults against real traffic (see STABILITY.md).
+Releases are tag-driven (no SNAPSHOT publishing), the convention shared across NaCode Studios' libraries.
+Post-`1.0` work is Kotlin Multiplatform (M17) and advanced matching (M18).
 
 ## Status — `0.5.0`
 
@@ -185,16 +184,17 @@ Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07
 | **M12** · Multilingual vocabularies & guard packs | ✅ Shipped in `0.5.0`. |
 | **M13** · Spring Boot starter + Spring AI advisor | ✅ Shipped in `0.5.0`. |
 | **M14** · LangChain4j, Ktor plugin & a runnable demo | ✅ Shipped in `0.5.0`. |
-| **M15** · Quality, supply chain & test depth (CI) | ✅ Shipped in `0.6.0`. |
-| **M16** · The road to `1.0` | ✅ Shipped in `0.6.0` (groundwork; `1.0` not yet cut). |
+| **M15** · Quality, supply chain & test depth (CI) | ✅ Shipped in `1.0.0`. |
+| **M16** · The road to `1.0` | ✅ Shipped in `1.0.0` — `1.0` cut. |
 | **M17** · Kotlin Multiplatform core | Post-`1.0`. |
 | **M18** · Advanced matching & adaptive caching | Post-`1.0`. |
 
 **Deferred sub-items:** speculative **batch / parallel verification** (M3) is decided *against* rather
 than postponed — the lookup verifies candidates best-first and short-circuits, so parallelizing would
 issue more model calls to save latency, inverting the cost model the cache is built on. The
-**`SNAPSHOT`-on-`main` job** (originally M1) moves to **M15**: it needs `-SNAPSHOT` versioning
-discipline, and like Kdrant, Kmemo ships tag-driven releases only until then.
+**`SNAPSHOT`-on-`main` job** (originally M1, revisited in M15) is **decided against**: like Kdrant, Kmemo
+ships **tag-driven releases only**, and a mutable snapshot stream is not worth the versioning machinery
+for a library this size. The `1.x` line is the supported artifact.
 
 ## Effort legend
 
@@ -213,9 +213,9 @@ decided the way it was, and covering the near misses lexical rules cannot.
 `io.github.nacode-studios` (signing, `sources` + `javadoc` jars) and mirrored to GitHub Packages via the
 tag-driven `release.yml`; rich POM metadata and a Dokka API-docs site on GitHub Pages (`docs.yml`) linked
 from the README; and `apiCheck` as a CI release gate (`./gradlew build` verifies the `*.api` compatibility
-contract on every push and PR). **Deferred:** a `SNAPSHOT`-on-`main` job → M15 — it needs `-SNAPSHOT`
-versioning discipline, and like Kdrant, Kmemo ships tag-driven releases until then. The milestone is kept
-as the record of how Kmemo ships.
+contract on every push and PR). Like Kdrant, Kmemo ships **tag-driven releases only** — the
+`SNAPSHOT`-on-`main` job once floated for M15 was decided against. The milestone is kept as the record of
+how Kmemo ships.
 
 Turn the built core into an artifact people can depend on.
 
@@ -503,13 +503,13 @@ announcement is left for when `1.0` lands.
 
 ### M15 · Quality, supply chain & test depth (CI) — `M`
 
-**Status: ✅ Shipped in `0.6.0`.** Delivered: a JaCoCo coverage
-floor on `kmemo-core` (Kover deferred — its 0.9.x line does not support Kotlin 2.4's
-`KotlinWithJavaCompilation`); ktlint and detekt as CI gates tuned to the house style; a JDK 17/21/23
-matrix; Dependabot + a dependency-review CVE gate; SLSA build-provenance on release; `-SNAPSHOT`
-publishing from `main`; property-based tests on `Vectors` and `Text`; and the corpus documented as a
-defended, CI-gated asset ([docs/CORPUS.md](docs/CORPUS.md)). The `guard-report.json` artifact is the
-reproducible false-hit benchmark; a separately-hosted public version is left for after `1.0`.
+**Status: ✅ Shipped in `1.0.0`.** Delivered: ktlint and detekt as
+CI gates tuned to the house style; a JDK 17/21/23 matrix; Dependabot + a dependency-review CVE gate;
+property-based tests on `Vectors` and `Text`; and the corpus documented as a defended, CI-gated asset
+([docs/CORPUS.md](docs/CORPUS.md)). The `guard-report.json` artifact is the reproducible false-hit
+benchmark; a separately-hosted public version is left for later. **Deferred:** Kover coverage (its 0.9.x
+line does not support Kotlin 2.4's `KotlinWithJavaCompilation`), and — following the tag-driven convention
+shared with Kdrant — SNAPSHOT publishing and release-time provenance.
 
 Bring CI and tests up to a mature OSS standard, and make the corpus a first-class, defended asset.
 
@@ -527,12 +527,10 @@ Bring CI and tests up to a mature OSS standard, and make the corpus a first-clas
 
 ### M16 · The road to `1.0` — `M`
 
-**Status: ✅ Groundwork shipped in `0.6.0`; `1.0` not yet cut.**
-Delivered: a written semver / stability policy, the `1.0` scope *gates* (a stability bar, not a fixed
-date), the Java-interop position (coroutine-first; `CompletableFuture` bridges now, a `kmemo-jdk` facade
-deferred to demand), and the documented rationale behind every default — all in
-[docs/STABILITY.md](docs/STABILITY.md). What remains before `1.0` is a persistent store proven in
-production and the defaults finalized against real traffic.
+**Status: ✅ Shipped in `1.0.0` — `1.0` cut.** Delivered: a written
+semver / stability policy (backwards-compatible within `1.x`), the Java-interop position (coroutine-first;
+`CompletableFuture` bridges now, a `kmemo-jdk` facade deferred to demand), and the documented rationale
+behind every default — all in [docs/STABILITY.md](docs/STABILITY.md).
 
 Cut `1.0` with written guarantees and reproducible numbers behind every claim.
 

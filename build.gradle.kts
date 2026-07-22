@@ -8,14 +8,9 @@ plugins {
     alias(libs.plugins.detekt) apply false
 }
 
-// The version is a property so `main` can carry a `-SNAPSHOT` between releases while a tagged release
-// overrides it with the exact version: the release workflow passes `-PkmemoVersion=<tag without v>`,
-// and the snapshot workflow (and every local build) falls back to the in-development SNAPSHOT below.
-val kmemoVersion: String = providers.gradleProperty("kmemoVersion").getOrElse("0.6.0-SNAPSHOT")
-
 subprojects {
     group = "io.github.nacode-studios"
-    version = kmemoVersion
+    version = "1.0.0"
 
     // Lint every Kotlin module — this skips the java-platform BOM, which has no sources. ktlint and
     // detekt each wire their check task into `check`, so `./gradlew build` (and CI) gates on both.

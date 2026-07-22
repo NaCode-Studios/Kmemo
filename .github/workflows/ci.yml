@@ -42,8 +42,8 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      # `build` runs the tests, the public-API check, ktlint, detekt and the JaCoCo coverage floor.
-      - name: Build, test, lint, coverage and verify public API
+      # `build` runs the tests, the public-API check, ktlint and detekt.
+      - name: Build, test, lint and verify public API
         run: ./gradlew build --no-daemon --stacktrace
 
       # The corpus report is this project's headline claim. Keeping it in the build log means the

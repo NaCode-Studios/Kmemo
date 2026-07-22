@@ -68,7 +68,7 @@ Requires **JDK 17+**. Artifacts are published to Maven Central under `io.github.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:0.6.0")
+    implementation("io.github.nacode-studios:kmemo-core:1.0.0")
 }
 ```
 
@@ -349,10 +349,10 @@ Run it yourself:
 
 ## Roadmap
 
-**Shipped (`0.6.0`)** — **quality & the road to `1.0`**: property-based tests, a JaCoCo coverage floor,
-ktlint and detekt gates, a JDK 17/21/23 matrix, Dependabot + a dependency-review CVE gate, SLSA
-build-provenance on release, and `-SNAPSHOT` publishing from `main`; plus the written
-[stability policy and `1.0` plan](docs/STABILITY.md) and the [defended corpus process](docs/CORPUS.md).
+**`1.0.0`** — **quality & the `1.0` stability commitment**: property-based tests, ktlint and detekt
+gates, a JDK 17/21/23 matrix, Dependabot + a dependency-review CVE gate, the [defended corpus
+process](docs/CORPUS.md), and the written [stability policy](docs/STABILITY.md) — the public API is now
+backwards-compatible within `1.x`.
 
 **Shipped (`0.5.0`)** — **DX & reach + ecosystem & adoption**: ergonomics (`catching { }`, a typed
 `getOrPut<T>` over a `ResponseCodec`, streaming `getOrPutStreaming` → `Flow<String>`, a `semanticCache { }`
@@ -374,8 +374,8 @@ behind the same `CacheStore` seam, an opt-in in-process HNSW index (`kmemo-store
 bound on `InMemoryStore` — on top of `0.2.0`'s per-guard measurement (`guardRejectionsByGuard`,
 `explain(...)`) and completed `Verifier` path, and the `0.1.0` core. All on Maven Central and GitHub Packages.
 
-**Next** — `1.0`: proving a persistent store in production and finalizing the defaults against real
-traffic (see [STABILITY.md](docs/STABILITY.md)), then Kotlin Multiplatform after that.
+**Next** — post-`1.0`: Kotlin Multiplatform (`M17`) and advanced matching & adaptive caching (`M18`),
+within the `1.x` compatibility guarantee (see [STABILITY.md](docs/STABILITY.md)).
 
 See **[ROADMAP.md](ROADMAP.md)** for the full milestone plan (`M1`–`M18`), and the shared
 **[roadmap conventions](ROADMAP-CONVENTIONS.md)**.
