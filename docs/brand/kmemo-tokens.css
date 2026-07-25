@@ -1,0 +1,72 @@
+:root {
+  /* Ink — dark first */
+  --kmemo-ink-950: #05070E;
+  --kmemo-ink-900: #080C18;
+  --kmemo-ink-850: #0B1020;
+  --kmemo-ink-800: #121A2E;
+  --kmemo-ink-700: #16203A;
+  --kmemo-border-600: #1E2A45;
+  --kmemo-border-500: #22314F;
+
+  /* Text */
+  --kmemo-text: #F2F6FF;
+  --kmemo-text-secondary: #C3CEE2;
+  --kmemo-text-muted: #94A3BE;
+  --kmemo-text-faint: #6B7A96;
+
+  /* Blue — primario */
+  --kmemo-blue-300: #BFD8FF;
+  --kmemo-blue-400: #7FB0FF;
+  --kmemo-blue-500: #5B9CFF;
+  --kmemo-blue-600: #3B82F6;
+  --kmemo-blue-700: #2563EB;
+
+  /* Amber — accento unico */
+  --kmemo-amber-300: #FFD79A;
+  --kmemo-amber-400: #F5B54A;
+  --kmemo-amber-500: #E09A26;
+
+  /* Kotlin purple — solo citazioni di piattaforma */
+  --kmemo-purple-500: #7F52FF;
+
+  /* Semantica cache */
+  --kmemo-hit: #3ED598;
+  --kmemo-below-threshold: #F5B54A;
+  --kmemo-rejected-guard: #FF6B6B;
+  --kmemo-verifier: #A78BFA;
+
+  /* Light mode derivato */
+  --kmemo-light-bg: #F7F9FD;
+  --kmemo-light-surface: #FFFFFF;
+  --kmemo-light-border: #DFE6F2;
+  --kmemo-light-text: #0B1020;
+  --kmemo-light-muted: #55637C;
+
+  /* Tipografia */
+  --kmemo-font-display: "Space Grotesk", system-ui, sans-serif;
+  --kmemo-font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --kmemo-font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --kmemo-tracking-display: -0.032em;
+
+  /* Spazio (base 4) */
+  --kmemo-space-1: 4px;
+  --kmemo-space-2: 8px;
+  --kmemo-space-3: 12px;
+  --kmemo-space-4: 16px;
+  --kmemo-space-6: 24px;
+  --kmemo-space-8: 32px;
+  --kmemo-space-12: 48px;
+  --kmemo-space-16: 64px;
+  --kmemo-space-24: 96px;
+
+  /* Raggi */
+  --kmemo-radius-sm: 6px;
+  --kmemo-radius-md: 10px;
+  --kmemo-radius-lg: 14px;
+  --kmemo-radius-xl: 20px;
+  --kmemo-radius-full: 999px;
+
+  /* Elevazione: nel dark è luce, non ombra */
+  --kmemo-elev-1: 0 0 0 1px var(--kmemo-border-500);
+  --kmemo-elev-2: 0 0 0 1px rgba(91,156,255,.08), 0 18px 40px -18px rgba(91,156,255,.35);
+}

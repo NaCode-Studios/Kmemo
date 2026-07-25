@@ -7,10 +7,10 @@
 **A semantic cache for LLM calls on Kotlin/JVM — that refuses to serve you the wrong answer.**
 
 [![CI](https://github.com/NaCode-Studios/Kmemo/actions/workflows/ci.yml/badge.svg)](https://github.com/NaCode-Studios/Kmemo/actions/workflows/ci.yml)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.nacode-studios/kmemo-core?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.nacode-studios/kmemo-core)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF.svg?logo=kotlin)](https://kotlinlang.org)
-[![API docs](https://img.shields.io/badge/API%20docs-Dokka-blue.svg)](https://nacode-studios.github.io/Kmemo/)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.nacode-studios/kmemo-core?label=Maven%20Central&labelColor=080C18&color=5B9CFF)](https://central.sonatype.com/artifact/io.github.nacode-studios/kmemo-core)
+[![License](https://img.shields.io/badge/license-Apache%202.0-1E2A45?labelColor=080C18)](LICENSE)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF?logo=kotlin&logoColor=white&labelColor=080C18)](https://kotlinlang.org)
+[![API docs](https://img.shields.io/badge/API%20docs-Dokka-1E2A45?labelColor=080C18)](https://nacode-studios.github.io/Kmemo/)
 
 An exact-match cache misses "how do I reverse a list in Python" when it has already answered "python
 list reverse". A semantic cache does not: it embeds the prompt, finds the closest one it has seen, and
@@ -249,7 +249,8 @@ opening a pull request; if you change the public API, run `./gradlew apiDump` an
 
 ## License
 
-Licensed under the [Apache License 2.0](LICENSE).
+Licensed under the [Apache License 2.0](LICENSE). Brand assets — wordmark, symbol, and the colour and
+type tokens — are in [`docs/brand`](docs/brand).
 
 ## Sponsor
 
