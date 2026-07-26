@@ -11,6 +11,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-1E2A45?labelColor=080C18)](LICENSE)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF?logo=kotlin&logoColor=white&labelColor=080C18)](https://kotlinlang.org)
 [![API docs](https://img.shields.io/badge/API%20docs-Dokka-1E2A45?labelColor=080C18)](https://nacode-studios.github.io/Kmemo/)
+[![Website](https://img.shields.io/badge/website-nacodestudios.it-1E2A45?labelColor=080C18)](https://nacodestudios.it/en/project/kmemo)
 
 An exact-match cache misses "how do I reverse a list in Python" when it has already answered "python
 list reverse". A semantic cache does not: it embeds the prompt, finds the closest one it has seen, and
