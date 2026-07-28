@@ -188,6 +188,16 @@ Published to Maven Central and GitHub Packages as `0.1.0` (tag `v0.1.0`, 2026-07
 | **M16** · The road to `1.0` | ✅ Shipped in `1.0.0` — `1.0` cut. |
 | **M17** · Kotlin Multiplatform core | Post-`1.0`. |
 | **M18** · Advanced matching & adaptive caching | Post-`1.0`. |
+| **M19** · Keying: exact-match fast path & conversation-aware keys | Planned. |
+| **M20** · Shadow mode: calibrate on your own traffic | Planned. |
+| **M21** · Invalidation beyond TTL | Planned. |
+| **M22** · Cache policy: what must never be cached | Planned. |
+| **M23** · The comparative benchmark | Planned. |
+
+**Next up.** Tier 7 (M19–M23) is sequenced *before* Tier 6's M17–M18: it answers what teams hit once the
+cache is on a request path, where M17 opens a new market and M18 is research-flavoured. Within it,
+**M19** and **M20** come first — one removes the embedding call from the most common lookup, the other
+removes the reason a team hesitates to serve a cached answer at all — then M22, M21 and M23.
 
 **Deferred sub-items:** speculative **batch / parallel verification** (M3) is decided *against* rather
 than postponed — the lookup verifies candidates best-first and short-circuits, so parallelizing would
@@ -195,6 +205,28 @@ issue more model calls to save latency, inverting the cost model the cache is bu
 **`SNAPSHOT`-on-`main` job** (originally M1, revisited in M15) is **decided against**: like Kdrant, Kmemo
 ships **tag-driven releases only**, and a mutable snapshot stream is not worth the versioning machinery
 for a library this size. The `1.x` line is the supported artifact.
+
+**Considered and declined (Tier 7 review):**
+
+- **Provider prompt caching as a third cache layer.** The KV reuse behind Anthropic's and OpenAI's
+  prompt caching happens inside the provider's API — it is billing and transport behaviour with no seam
+  for Kmemo to own. Presenting it as a Kmemo layer would take credit for a saving the library does not
+  produce. It belongs in the docs as context on how the layers compose, not on the roadmap as work.
+- **Automatic PII redaction with a reversible mapping.** Reversible means the mapping is stored, which
+  relocates the sensitive data rather than removing it — a weaker posture than simply not caching the
+  entry (M22), sold as a stronger one. Detection stays a user-supplied predicate.
+- **Distributed propagation of the negative cache.** The negative cache is deliberately local and only
+  ever reuses a vector; it never suppresses a search, which is exactly why it cannot manufacture a false
+  hit. Making it a coherent distributed structure would add a coherence problem and a network hop to
+  defend that property, in exchange for saving embedding calls.
+- **A shipped event-bus module (Redis Pub/Sub / Kafka).** `CacheListener` already *is* that seam, and
+  bridging it to a broker is a few lines in the application — where the broker dependency and its
+  configuration belong. It ships as a documented recipe, not a module.
+- **Distributed cache-warming locks.** `warm()` racing across instances wastes embedding calls at
+  startup; it does not corrupt anything. Teams running N instances already hold a lock primitive, and a
+  library-owned distributed lock is a large permanent surface for a one-off startup cost.
+- **PCA / dimensionality reduction** of stored embeddings — see M18, where quantization with exact
+  rescoring is accepted and PCA is not.
 
 ## Effort legend
 
@@ -558,16 +590,139 @@ the JVM.
   `java.util.concurrent.atomic` → `kotlinx.atomicfu`.
 - Publish KMP targets of the core and `InMemoryStore`; keep the JVM adapters (Redis, pgvector, Spring)
   JVM-only. Announce on klibs.io / kmp-awesome.
+- **Why it earns the migration:** an on-device cache is a different product from a server-side one. A
+  mobile LLM app pays for every call over a mobile network, a browser or Wasm tool has no server to cache
+  on, and an edge or embedded deployment may have no reliable uplink at all — cases where a local
+  semantic cache is not an optimization but the thing that makes the feature work. The groundwork is
+  favourable: `FloatArray`, the `Embedder` and `CacheStore` seams and the guards are already pure Kotlin,
+  and `InMemoryStore` is portable as written. Redis, Postgres and Spring stay JVM-only by design, not by
+  omission.
+- **Kdrant's M25 is the same migration on the same toolchain** — run them together and pay the learning
+  once.
 
 ### M18 · Advanced matching & adaptive caching — `L`
 
 The research-flavoured work that deepens the moat once the fundamentals are stable.
 
 - **Reranking / MMR** over the candidate set before the guards, so the best-answering entry — not merely
-  the nearest — is the one evaluated first.
+  the nearest — is the one evaluated first. A *cross-encoder* reranker is deliberately **not** the shape:
+  a cross-encoder is a model call, which is precisely what the `Verifier` seam already is, so it would
+  duplicate an existing stage while putting an ML dependency next to a core that has one dependency.
+- **Quantized candidates with exact rescoring:** store `int8` (or binary) embeddings to cut what an entry
+  costs in memory, retrieve candidates on the quantized vectors, then rescore the survivors on exact
+  vectors before the threshold decision. The precision loss then lands only on *which* candidates get
+  considered, never on the accept/reject decision itself — the same rescore-exactly discipline the HNSW
+  store already follows (M7), and the only form of compression compatible with "correctness over hit
+  rate". **PCA / dimensionality reduction is declined:** it needs a projection fitted per embedding
+  model, it degrades similarity in a way rescoring cannot recover, and it puts model-fitting machinery
+  inside a library whose core deliberately has none.
 - **Near-duplicate eviction:** when a new entry is within ε of an existing one in the same scope, merge
   rather than store both, keeping the cache dense and search fast.
 - **Adaptive threshold:** per-scope online calibration that nudges the threshold from observed
-  hit/verifier-rejection rates, on top of the static `ThresholdCalibrator`.
+  hit/verifier-rejection rates, on top of the static `ThresholdCalibrator` and the traffic curve M20's
+  shadow mode produces.
 - A **semantic sub-span guard**: use span embeddings to catch entity/number swaps the lexical guards
   miss without a full model call — bridging the gap between the lexical guards and the Verifier.
+
+---
+
+## Tier 7 — Production depth & proof
+
+What a team runs into *after* the cache is on a request path: the cost of the lookup itself, trusting a
+threshold against their own traffic rather than the project's corpus, invalidating on something other
+than the passage of time, keeping data out of the cache that must never be in it — and, for the project,
+finally measuring the central claim against an alternative instead of only against itself.
+
+### M19 · Keying: an exact-match fast path and conversation-aware keys — `M`
+
+Two questions the API answers implicitly today, and each implicit answer costs a user either money or
+correctness.
+
+- **An exact-match layer (L1) ahead of the embedding call.** Every `getOrPut` currently embeds — a
+  network call — even when the prompt is byte-for-byte one already cached. Retries, replayed agent
+  loops, automated test suites and polling clients hit that path constantly. A hash-keyed exact layer
+  answers them in microseconds, and it **needs no guards at all**: an identical prompt in the same scope
+  is the same question, so the fast path adds no false-hit risk by construction rather than by
+  measurement. It composes with the existing negative cache (which already reuses a just-missed prompt's
+  embedding), and it is the single change that most improves the cost model, because embedding — not
+  search, not the guard chain — dominates what a lookup costs.
+- **Conversation-aware keys, made explicit.** `kmemo-langchain4j` already keys on the whole conversation,
+  but core `getOrPut` has no notion of a turn — so a caller who caches turn five of a dialogue on its
+  text alone will serve a confident wrong answer. That is exactly the failure this library exists to
+  prevent, arrived at through the key rather than through the threshold, where no guard can see it.
+  `scope` is already the primitive that fixes it; what is missing is the documented pattern, a helper
+  for deriving a key from the last *N* turns, and a plain statement that a context-free first turn is
+  the shape semantic caching actually pays off on.
+
+### M20 · Shadow mode: calibrate on your own traffic — `M`
+
+`ThresholdCalibrator` measures the right threshold, but it needs a labelled set — so the honest answer to
+"what threshold should I use?" is currently "measure it, on data you first have to build". That first
+step, not the cache itself, is what stops teams putting a semantic cache in front of production traffic.
+
+- An observe-only mode: run the full lookup — embed, search, guards, threshold — **serve nothing**, and
+  record what *would* have happened, over a configurable window.
+- Record the decision across a *range* of thresholds in a single pass, so the output is the team's own
+  precision/recall curve against their own traffic, not one yes/no at one setting.
+- Report it through the seams that already exist — a `CacheEvent` variant and a `MeterBinder` counter set
+  — so the curve lands in dashboards teams already run, and reuse `explain()`'s per-candidate machinery
+  rather than growing a parallel code path beside it.
+- **Per-scope threshold override**, the small companion: one global threshold is necessarily wrong for a
+  service answering both regulated and casual questions.
+- This is "measured, not asserted" turned around to face the *user's* deployment instead of the
+  project's corpus — the same principle, applied where the adoption decision actually gets made.
+
+### M21 · Invalidation beyond TTL — `L`
+
+When the fact behind a cached answer changes, the only options today are `invalidate` on one exact prompt
+or `clear(scope)` on everything. A TTL is a guess about when knowledge *might* go stale; it is not a way
+to act on knowing that it just did.
+
+- **Document the pattern that already works, first:** version the scope (`pricing-v3.2` →
+  `pricing-v3.3`) and clear the old one. It needs no new API, it cuts over atomically, and for a great
+  many teams it is the entire answer. This ships as documentation before any seam changes.
+- Where that granularity is too coarse, grow the seam: entry tags at `put` time, and an
+  `invalidateByTag` / predicate-based bulk delete on `CacheStore`.
+- **It is a seam change, so it is priced as one:** it touches `CacheStore`, the `kmemo-store-tck`
+  contract and all four store adapters (in-memory, Redis, Postgres, HNSW). The TCK cases get written
+  first, the way M4 established.
+- Distributed coherence largely falls out for free: with the Redis or Postgres store the store *is* the
+  shared state, so an invalidation is already global. Only `InMemoryStore` is per-instance, which is
+  inherent to what it is rather than a gap to close.
+
+### M22 · Cache policy: what must never be cached — `S`
+
+`kmemo-slf4j` redacts prompts in *logs*, but the cache *stores* prompts and responses verbatim. For a
+regulated adopter the first question is not how accurate the guards are, it is whether they can prove a
+given class of data never got persisted — and today answering it means wrapping `getOrPut` yourself.
+
+- A `CachePolicy` seam: one predicate over the prompt and the computed response that can veto the
+  **write** while the call still returns normally. A vetoed write is a policy decision, not a failure, so
+  it surfaces as its own `CacheEvent` and counter rather than being silently indistinguishable from a
+  miss in the stats.
+- Kmemo ships the seam, not a PII detector — the same posture as `Embedder` and `Verifier`, and for the
+  same reason: `kmemo-core` depends on `kotlinx-coroutines-core` and nothing else.
+- Document that **per-tenant isolation is already `scope`**, and that the TCK has enforced scope
+  isolation on every store since M4 — so "can tenant B retrieve tenant A's entry" has a tested answer,
+  not an asserted one.
+
+### M23 · The comparative benchmark — `L`
+
+Kmemo's whole claim is that it rejects near misses other semantic caches serve. That claim has never been
+measured *against* another semantic cache — only against Kmemo's own corpus. This is the one artifact
+that turns the positioning into something a reader can check, and the one most likely to be cited.
+
+- A corpus harness running the same labelled near-miss corpus through **Kmemo**, **a threshold-only
+  baseline** (the naive configuration most teams actually deploy), and **GPTCache**, the Python
+  incumbent.
+- Report **precision, recall, F1 and false-hit rate** — decision quality, on identical inputs, with the
+  same embedding model. Deliberately **do not** report cross-runtime latency or throughput against
+  GPTCache: a JVM-versus-Python wall-clock figure compares runtimes while appearing to compare caches,
+  and publishing it would undercut the honesty the rest of the corpus work is built on. Latency, storage
+  per 1K entries and throughput stay in `kmemo-benchmarks`, measured across Kmemo's own configurations.
+- A **cost model** — at X queries/day and Y% hit rate, the saving against no cache, set against the cost
+  of a false hit at Z% — because whoever has to approve adopting this is already doing that arithmetic,
+  with worse numbers.
+- Publish the figures together with the corpus and the harness, versioned, so the claim is reproducible
+  rather than asserted. This completes M15's "a public, versioned false-hit benchmark others can
+  reproduce and cite".
