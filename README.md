@@ -218,15 +218,23 @@ contaminated is written up in [docs/CORPUS.md](docs/CORPUS.md); reproduce the nu
 
 ## Roadmap
 
-**Shipped in `1.0.0`.** The guarded semantic cache, calibrated thresholds and an optional verifier;
+**Shipped (`1.0.0`).** The guarded semantic cache, calibrated thresholds and an optional verifier;
 Redis, Postgres and HNSW stores behind one `CacheStore` seam; resilience (embed-failure fall-back,
 retries, negative caching, `warm`); observability (a `CacheEvent` stream, Micrometer, SLF4J);
 ergonomics (typed and streaming `getOrPut`, a config DSL, a BOM); multilingual guard packs
 (IT/ES/DE/FR); and Spring Boot, Spring AI, LangChain4j and Ktor integrations with a runnable
 [`examples/`](examples) demo. The public API is stable under SemVer.
 
-**Next, after `1.0`.** Kotlin Multiplatform (`commonMain`), and advanced matching (reranking/MMR,
-near-duplicate eviction, adaptive thresholds).
+**Next.** An exact-match fast path that answers a repeated prompt without embedding it at all; shadow
+mode, which runs the full lookup against your own traffic and reports what *would* have matched at a
+range of thresholds without serving anything, so the threshold is calibrated before a single cached
+answer goes out; invalidation beyond TTL, for when the fact behind an answer changes; a `CachePolicy`
+veto for data that must never be persisted; and a comparative false-hit benchmark against GPTCache and a
+threshold-only baseline.
+
+**Later.** Kotlin Multiplatform (`commonMain`) for on-device, browser and edge caches, and
+advanced matching (reranking/MMR, near-duplicate eviction, quantized candidates with exact rescoring,
+adaptive thresholds).
 
 The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5) — one item per milestone, each with its exit
 criterion — and every tier is a [milestone](https://github.com/NaCode-Studios/Kmemo/milestones) in this repository. See
