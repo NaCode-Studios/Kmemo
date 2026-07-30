@@ -287,13 +287,20 @@ public class RedisStore(
         }
     }
 
-    private enum class Ft : ProtocolKeyword {
-        CREATE,
-        SEARCH,
-        ;
+    /**
+     * A RediSearch command keyword. Deliberately not an enum: Lettuce 7 added `name()` to
+     * [ProtocolKeyword], and a Kotlin enum's implicit `name` property compiles to the same JVM
+     * signature, so the two clash and the class no longer compiles.
+     */
+    private class Ft private constructor(private val keyword: String) : ProtocolKeyword {
+        private val encoded = ("FT.$keyword").toByteArray(US_ASCII)
 
-        private val encoded = ("FT." + name).toByteArray(US_ASCII)
         override fun getBytes(): ByteArray = encoded
+
+        companion object {
+            val CREATE = Ft("CREATE")
+            val SEARCH = Ft("SEARCH")
+        }
     }
 
     private companion object {
