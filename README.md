@@ -236,8 +236,9 @@ threshold-only baseline.
 advanced matching (reranking/MMR, near-duplicate eviction, quantized candidates with exact rescoring,
 adaptive thresholds).
 
-See [ROADMAP.md](ROADMAP.md) for the full milestone plan, [STABILITY.md](docs/STABILITY.md) for the
-versioning and stability policy, and the shared [roadmap conventions](ROADMAP-CONVENTIONS.md).
+The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5) — one item per milestone, each with its exit
+criterion — and every tier is a [milestone](https://github.com/NaCode-Studios/Kmemo/milestones) in this repository. See
+[STABILITY.md](docs/STABILITY.md) for the versioning and stability policy.
 
 ## Building and testing
 
