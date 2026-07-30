@@ -1,4 +1,7 @@
 # Every pull request automatically requests a review from these owners.
 # With branch protection ("Require review from Code Owners") enabled, their
 # approval becomes required before a pull request can be merged.
-* @tonytonycoder11
+#
+# Ownership sits on the team rather than on a single account, so review
+# redistributes on its own as soon as someone else joins the team.
+* @NaCode-Studios/libraries
