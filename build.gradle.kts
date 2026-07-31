@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.dokka)
     alias(libs.plugins.dokka.javadoc) apply false
     alias(libs.plugins.maven.publish) apply false
@@ -14,7 +15,9 @@ subprojects {
 
     // Lint every Kotlin module — this skips the java-platform BOM, which has no sources. ktlint and
     // detekt each wire their check task into `check`, so `./gradlew build` (and CI) gates on both.
-    plugins.withId("org.jetbrains.kotlin.jvm") {
+    // Both Kotlin plugins get the same lint gate: kmemo-core is multiplatform, the rest are JVM.
+    for (kotlinPlugin in listOf("org.jetbrains.kotlin.jvm", "org.jetbrains.kotlin.multiplatform")) {
+    plugins.withId(kotlinPlugin) {
         apply(plugin = "org.jlleitschuh.gradle.ktlint")
         apply(plugin = "io.gitlab.arturbosch.detekt")
 
@@ -38,9 +41,18 @@ subprojects {
         // detekt's own check task is not wired into `check` by default; wire the main-source analysis in.
         tasks.named("check") { dependsOn(tasks.named("detekt")) }
     }
+    }
 }
 
 apiValidation {
+    // The JVM jar is not the only published artifact any more, so the JVM signature dump is not the
+    // whole contract. klib validation guards the ABI of every other target against the same golden
+    // file, which is what stops a change that is invisible on the JVM from breaking an iOS consumer.
+    @OptIn(kotlinx.validation.ExperimentalBCVApi::class)
+    klib {
+        enabled = true
+    }
+
     // kmemo-store-tck ships test-support code (an abstract JUnit test class), not a public runtime
     // API, so it is not part of the binary-compatibility contract.
     ignoredProjects.add("kmemo-store-tck")
