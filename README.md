@@ -185,6 +185,28 @@ Falling back is never silent: every degraded call moves `stats().degradedLookups
 `CacheEvent.Degraded` naming the operation and the cause. A cache that has quietly become a
 pass-through is otherwise the one failure mode with no telemetry pointing at it.
 
+### The repeat that costs nothing
+
+Retries, replayed agent loops, polling clients and test suites send the *same* prompt over and over, and
+each one pays an embedding call. The exact-match layer answers a byte-for-byte repeat in the same scope
+without embedding it or searching for it:
+
+```kotlin
+val cache = semanticCache(embedder) {
+    exactCacheSize = 10_000
+    exactCacheTtl = 5.minutes      // no longer than your store's TTL — see below
+}
+```
+
+An identical prompt in the same scope is the same question, so this path runs no guards and adds no
+false-hit risk by construction rather than by measurement. `stats().exactHits` says how much of your
+traffic it caught; if it stays near zero, set the size back to `0` and reclaim the memory.
+
+The one trade, stated plainly: answering without asking the store means not consulting the thing that
+owns expiry and eviction, so `exactCacheTtl` must not outlast your store's TTL. Past that TTL nothing
+stale is served — the remembered *embedding* is still reused, so the lookup goes through the ordinary
+threshold-guards-verifier path with the network call already paid.
+
 ### What must never be cached
 
 The cache stores prompts and responses verbatim. `CachePolicy` is the seam that vetoes a write for data

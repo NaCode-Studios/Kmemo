@@ -51,6 +51,15 @@ public data class CacheStats(
      * A number that is `0` when you expect it to move usually means the policy is not wired up at all.
      */
     public val writesVetoed: Long = 0,
+    /**
+     * Hits served by the exact-match layer, without embedding the prompt or searching the store.
+     *
+     * A subset of [hits], so `exactHits / hits` is the share of your traffic that was a byte-for-byte
+     * repeat. A number close to zero means the layer is costing memory for nothing and its size can go
+     * back to `0`; a large one is the embedding calls it saved. Stays `0` unless
+     * `exactCacheSize` is positive.
+     */
+    public val exactHits: Long = 0,
 ) {
     /** Fraction of lookups served from cache, in `[0.0, 1.0]`. `0.0` when nothing has been looked up. */
     public val hitRate: Double

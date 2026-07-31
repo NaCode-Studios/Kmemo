@@ -3,6 +3,7 @@ package dev.kmemo
 import dev.kmemo.guard.GuardVerdict
 import dev.kmemo.guard.MatchGuard
 import dev.kmemo.guard.MatchGuards
+import dev.kmemo.internal.ExactCache
 import dev.kmemo.internal.KeyedMutex
 import dev.kmemo.internal.NegativeCache
 import dev.kmemo.store.InMemoryStore
@@ -88,6 +89,17 @@ import java.time.Duration as JavaDuration
  *   [lookup], [get] and [put] have no fallback and always propagate. [CancellationException] always
  *   propagates. Every fall-back is counted in [CacheStats.degradedLookups] and reported as
  *   [CacheEvent.Degraded], so stepping aside is never silent.
+ * @param exactCacheSize when positive, turns on the **exact-match layer**: a bounded map from an exact
+ *   ([scope], prompt) to the entry it resolved to, so a byte-for-byte repeat is answered without an
+ *   [Embedder] call *or* a store search. An identical prompt in the same scope is the same question, so
+ *   the fast path runs no guards and adds no false-hit risk by construction. `0` (the default) keeps it
+ *   off.
+ * @param exactCacheTtl how long a remembered prompt may be **served** from the exact layer. Set it no
+ *   longer than your store's TTL: the layer answers without consulting the store, which is what owns
+ *   expiry and eviction, so a longer window is a window in which it can serve something the store has
+ *   already dropped. Past the TTL nothing stale is served — the remembered *embedding* is still reused,
+ *   so the lookup goes through the ordinary path with the network call already paid. `null` means the
+ *   layer never expires, which is only correct when the store has no TTL either.
  * @param cachePolicy vetoes writes of data that must never be persisted, consulted once per write on
  *   every write path including [warm]. `null` (the default) caches everything the cache decides to
  *   cache. A vetoed write is a policy decision, not a failure: the call still returns its response.
@@ -132,6 +144,8 @@ public class SemanticCache(
     private val writeBehindCapacity: Int = DEFAULT_WRITE_BEHIND_CAPACITY,
     private val clock: Clock = Clock.systemUTC(),
     private val cachePolicy: CachePolicy? = null,
+    private val exactCacheSize: Int = 0,
+    private val exactCacheTtl: Duration? = null,
 ) {
 
     init {
@@ -145,6 +159,10 @@ public class SemanticCache(
             "negativeCacheTtl must be positive, was $negativeCacheTtl"
         }
         require(writeBehindCapacity > 0) { "writeBehindCapacity must be positive, was $writeBehindCapacity" }
+        require(exactCacheSize >= 0) { "exactCacheSize must be non-negative, was $exactCacheSize" }
+        require(exactCacheTtl == null || exactCacheTtl.isPositive()) {
+            "exactCacheTtl must be positive, was $exactCacheTtl"
+        }
     }
 
     private val inFlight = KeyedMutex()
@@ -152,6 +170,10 @@ public class SemanticCache(
     // Null unless negative caching is turned on; the hot path checks it with a single null test.
     private val negativeCache: NegativeCache? =
         if (negativeCacheSize > 0) NegativeCache(negativeCacheSize, negativeCacheTtl, clock) else null
+
+    // Null unless the exact-match layer is turned on; the hot path checks it with a single null test.
+    private val exactCache: ExactCache? =
+        if (exactCacheSize > 0) ExactCache(exactCacheSize, exactCacheTtl, clock) else null
 
     // Gates every piece of event machinery — timing measurement and event construction alike — so a
     // cache with no listeners pays nothing for observability. Snapshotted once: listeners is fixed.
@@ -190,6 +212,7 @@ public class SemanticCache(
     private val writeCount = AtomicLong()
     private val degradedCount = AtomicLong()
     private val writeVetoCount = AtomicLong()
+    private val exactHitCount = AtomicLong()
 
     // One counter per guard, fixed at construction so no entry is ever inserted concurrently — the
     // hot path only ever does an atomic increment on a key that already exists. Guards that share a
@@ -205,10 +228,17 @@ public class SemanticCache(
      * landing below the threshold or being vetoed by a guard.
      */
     public suspend fun lookup(prompt: String, scope: String = DEFAULT_SCOPE): CacheLookup {
+        val recalled = exactHit(prompt, scope, counted = true)
+        if (recalled != null && recalled.fresh) {
+            val entry = recalled.entry
+            val age = JavaDuration.between(entry.createdAt, clock.instant()).toNanos().nanoseconds
+            return CacheLookup.Hit(entry.response, entry.prompt, 1.0, entry.id, age, entry.metadata)
+        }
         val embedStart = if (observed) System.nanoTime() else 0L
-        val embedding = embed(prompt, scope)
+        val embedding = recalled?.embedding ?: embed(prompt, scope)
         val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
-        return lookup(prompt, scope, embedding, embedNanos = embedNanos)
+        // Already counted by the exact layer when it recalled a stale entry, so do not count twice.
+        return lookup(prompt, scope, embedding, counted = recalled == null, embedNanos = embedNanos)
     }
 
     /** Returns the cached response for [prompt], or `null`. The short form of [lookup]. */
@@ -286,9 +316,12 @@ public class SemanticCache(
         metadata: Map<String, String> = emptyMap(),
         compute: suspend (String) -> String,
     ): String {
+        val recalled = exactHit(prompt, scope, counted = true)
+        if (recalled != null && recalled.fresh) return recalled.entry.response
+
         val embedStart = if (observed) System.nanoTime() else 0L
         val embedding = try {
-            embed(prompt, scope)
+            recalled?.embedding ?: embed(prompt, scope)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -464,11 +497,22 @@ public class SemanticCache(
         return response
     }
 
-    /** Removes the entry [id], typically one reported by a [CacheLookup.Hit] that proved wrong. */
-    public suspend fun invalidate(id: String): Boolean = store.remove(id)
+    /**
+     * Removes the entry [id], typically one reported by a [CacheLookup.Hit] that proved wrong.
+     *
+     * Also drops it from the exact-match layer, which would otherwise keep answering with the very
+     * response the caller has just retracted.
+     */
+    public suspend fun invalidate(id: String): Boolean {
+        exactCache?.removeEntry(id)
+        return store.remove(id)
+    }
 
     /** Removes every entry in [scope], or the whole cache when [scope] is `null`. */
-    public suspend fun clear(scope: String? = null): Unit = store.clear(scope)
+    public suspend fun clear(scope: String? = null) {
+        exactCache?.clear(scope)
+        store.clear(scope)
+    }
 
     /** Number of cached entries in [scope], or in the whole cache when [scope] is `null`. */
     public suspend fun size(scope: String? = null): Int = store.size(scope)
@@ -495,6 +539,7 @@ public class SemanticCache(
             guardRejectionsByGuard = guardRejectionCountersByName.mapValues { it.value.get() },
             degradedLookups = degradedCount.get(),
             writesVetoed = writeVetoCount.get(),
+            exactHits = exactHitCount.get(),
         )
     }
 
@@ -506,6 +551,37 @@ public class SemanticCache(
      * and must answer "how often did the cache step aside" on its own. Only the event construction is
      * gated on [observed].
      */
+
+    /**
+     * The exact-match layer's answer for ([scope], [prompt]), or `null` when it has nothing.
+     *
+     * A fresh recall is served as a hit with similarity `1.0` and no timings, which is the honest
+     * report: nothing was embedded and nothing was searched. A stale one is not served, it only hands
+     * its embedding back so the caller can skip the network call and go through the ordinary path.
+     */
+    private suspend fun exactHit(prompt: String, scope: String, counted: Boolean): ExactCache.Recalled? {
+        val recalled = exactCache?.get(scope, prompt) ?: return null
+        if (!recalled.fresh) return recalled
+        if (counted) {
+            lookupCount.incrementAndGet()
+            hitCount.incrementAndGet()
+            exactHitCount.incrementAndGet()
+        }
+        store.touch(recalled.entry.id)
+        if (observed) {
+            emit(
+                CacheEvent.Hit(
+                    scope, prompt, recalled.entry.prompt, 1.0, recalled.entry.id, EventTimings.NONE,
+                ),
+            )
+        }
+        return recalled
+    }
+
+    private suspend fun rememberExact(scope: String, prompt: String, entry: CacheEntry, embedding: FloatArray) {
+        exactCache?.put(scope, prompt, entry, embedding)
+    }
+
     private fun degraded(
         scope: String,
         prompts: List<String>,
@@ -798,6 +874,8 @@ public class SemanticCache(
         }
         store.put(entry)
         writeCount.incrementAndGet()
+        // The prompt now resolves to this entry, so the exact layer can answer a repeat of it.
+        rememberExact(entry.scope, entry.prompt, entry, entry.embedding)
         // The prompt is now answerable from the store, so its "recently missed" note is stale — drop it
         // so a later lookup embeds fresh rather than reusing a vector for a miss that no longer holds.
         negativeCache?.remove(entry.scope, entry.prompt)

@@ -8,6 +8,17 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Exact-match layer (M19, part 1): `SemanticCache(exactCacheSize = …, exactCacheTtl = …)`, off by
+  default. A byte-for-byte repeat of a prompt in the same scope is answered without an `Embedder` call
+  *or* a store search, which is the path retries, replayed agent loops, polling clients and test suites
+  hammer. It runs no guards, because an identical prompt in the same scope is the same question — the
+  fast path adds no false-hit risk by construction rather than by measurement. Counted in
+  `CacheStats.exactHits`, a subset of `hits`.
+  **The trade, stated rather than hidden:** `CacheStore` exposes no read-by-id, so this layer cannot ask
+  whether an entry is still live without the search it exists to avoid. It therefore carries its own
+  TTL, which must not outlast the store's. Past that TTL nothing stale is served: the remembered
+  *embedding* is still reused, so the lookup falls through to the ordinary path with the network call
+  already paid. `invalidate` and `clear` purge it, so a retracted answer cannot survive there.
 - **Build provenance (SLSA)** on every published jar. The release workflow attests, through
   `actions/attest-build-provenance`, that each artifact was built by this workflow from a named commit,
   and the attestation is verifiable with `gh attestation verify <jar> --repo NaCode-Studios/Kmemo`.
