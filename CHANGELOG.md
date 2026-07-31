@@ -8,6 +8,23 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Comparative benchmark (M23, second part): GPTCache, measured. `tools/gptcache-comparison` scores the
+  same blind corpora with GPTCache's own `OnnxModelEvaluation` under its own default threshold, and
+  `ComparativeBenchmarkTest` renders it as a fourth row. **The result is a trade, not a win, and the
+  table says so.** Its cross-encoder serves *fewer* near misses than `standard()` — false-hit rate 0.221
+  held-out and 0.108 validation against 0.291 and 0.333 — and buys that by refusing more than half the
+  genuine paraphrases it is shown, where `standard()` keeps 88%. Kmemo is ahead on F1 on both splits
+  with close to double the hit rate; GPTCache is ahead on false hits. The README carries both numbers
+  and the arithmetic that turns them into money.
+  **The evaluator is proved to work before a single score is believed.** `OnnxModelEvaluation.evaluation`
+  wraps its whole body in `except Exception: return 0`, so every internal failure is reported as a
+  similarity of zero — a harness that trusted the documented entry point would have recorded a false-hit
+  rate of 0.000, concluded GPTCache refuses everything, and been wrong in Kmemo's favour. The harness
+  gates on a mechanical sanity check and re-scores every zero through the raw inference path.
+  It runs out of band, because GPTCache is a Python package that downloads a model and CI is a JVM
+  build. What CI enforces instead is the link: each recorded row carries the SHA-256 of the corpus file
+  it was measured against, so a corpus that grows without the harness being re-run fails the build
+  rather than leaving a stale comparison above fresh data.
 - Comparative benchmark (M23, first part): `ComparativeBenchmarkTest` runs the blind corpora through a
   threshold-only baseline, `standard()` and `strict()`, and reports precision, recall, F1 and false-hit
   rate on identical inputs, plus a machine-readable `comparative-report.json` for CI to diff. The
