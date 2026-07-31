@@ -1,7 +1,7 @@
 # The corpus: kmemo's defended asset
 
-kmemo's central claim — that its guards reject near-misses a similarity threshold cannot, without
-rejecting genuine paraphrases — is only as trustworthy as the data behind it. That data is three
+kmemo's central claim is that its guards reject near-misses a similarity threshold cannot, without
+rejecting genuine paraphrases. That claim is only as trustworthy as the data behind it. That data is three
 labelled corpora of prompt pairs, and this document is the process that keeps them honest.
 
 ## The three splits
@@ -12,9 +12,9 @@ different answers) or a **paraphrase** (they need the same answer). The pairs li
 
 | Split | Role | May the guards be tuned against it? |
 | --- | --- | --- |
-| **tuned** | In-sample. The guards were written and tuned with these pairs in view. | Yes — by definition. |
+| **tuned** | In-sample. The guards were written and tuned with these pairs in view. | Yes, by definition. |
 | **held-out** | Out-of-sample. Written after the guards, never tuned against. | **No.** |
-| **validation** | Blind. Written last, in one sitting, and never looked at while changing a guard. | **No — never.** |
+| **validation** | Blind. Written last, in one sitting, and never looked at while changing a guard. | **Never.** |
 
 The whole value of the held-out and validation splits is that no guard was fitted to them. A single
 prompt pair moved from validation into a guard's design destroys that pair's evidentiary value forever.
@@ -22,13 +22,13 @@ So the rule is simple and absolute: **you do not read the validation failures wh
 
 ## What CI enforces
 
-`CorpusTest` runs on every build (and every PR — see `ci.yml`) and **fails on regression**:
+`CorpusTest` runs on every build, and on every PR (see `ci.yml`), and **fails on regression**:
 
 - The tuned split must keep **every** paraphrase and catch at least a floor of near-misses.
 - The held-out and validation splits must not drop below their recorded near-miss and paraphrase
   floors (`*_FLOOR` constants in `CorpusTest`).
 
-The floors sit just under the current measurement — their job is to fail when a number moves **down**,
+The floors sit just under the current measurement. Their job is to fail when a number moves **down**,
 not to assert the number is good. A change that only helps the tuned set cannot pass unnoticed. The
 machine-readable numbers are written to `build/reports/guards/guard-report.json` for diffing across
 commits.
@@ -51,7 +51,7 @@ This is the delicate one. To add pairs **without** contaminating the split:
    miss (that is tuning in disguise).
 2. **Commit the pairs and the measurement in the same change.** Run the corpus test once, record the new
    floor, and commit both. The pairs and the number they produce arrive together.
-3. **Do not edit a guard in the same change.** If the new pairs reveal a weakness, note it — but fixing
+3. **Do not edit a guard in the same change.** If the new pairs reveal a weakness, note it, but fixing
    it belongs in a *separate* change against the **tuned** split, so the out-of-sample number that
    exposed the weakness stays untainted.
 4. **Never lower a floor to make CI pass.** A floor only ever moves up, and only because the measurement
@@ -79,7 +79,7 @@ to it:
 1. **Answers are written before the guard is designed.** Every answer in the file predates
    `AnswerAnchorGuard`, so the guard could not be reverse-engineered from them. Nothing was rephrased
    afterwards to make a rejection land.
-2. **Answers are realistic, not catchable.** What an assistant would actually reply — including the many
+2. **Answers are realistic, not catchable.** What an assistant would actually reply, including the many
    answers that never name the term separating the two questions. `what is the boiling point of ethanol`
    is answered with `78.4 degrees Celsius at one atmosphere`, which no response-aware guard can use.
    Those are misses, and they stay in the denominator.
@@ -89,11 +89,11 @@ still serve, it is also the population a `Verifier` claims, so `tools/verifier-c
 one of them with a named reference verifier and `VerifierCatchRateTest` reports the catch rate. That
 file records a **verdict per lookup rather than a rate**: the residual moves when a guard improves, and
 a recorded percentage would go on describing the set it was taken from. The rate is computed against the
-residual as it stands on the day the build runs, and it is never a floor — a build that spends a model
+residual as it stands on the day the build runs, and it is never a floor: a build that spends a model
 call per run is a build nobody keeps.
 
 **The prompts are borrowed, never owned.** `ResponseGuardTest` asserts that every pair is still present,
-verbatim and with the same label, in the split it names — so the two files cannot drift apart — and that
+verbatim and with the same label, in the split it names, so the two files cannot drift apart, and that
 the response corpus covers every near miss the standard chain still serves. Add pairs to a blind split
 and that second assertion fails, which is the signal to author their answers or to stop quoting the
 coverage. Neither assertion touches the blind splits' own numbers: those are still measured on prompts
