@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # required to create the GitHub Release
   packages: write
 
 jobs:
@@ -41,3 +41,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+
+      # The body is extracted from CHANGELOG.md, never written by hand: a release note composed
+      # separately is a second copy of what the changelog owns, and the two eventually disagree.
+      - name: Create the GitHub Release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v head="## [$VERSION]" '
+            index($0, head) == 1 { found = 1; next }
+            found && /^## \[/     { exit }
+            found                 { print }
+          ' CHANGELOG.md > notes.md
+          # An empty body means the tag and the changelog disagree. Fail rather than publish a blank one.
+          [ -s notes.md ] || { echo "::error::no CHANGELOG.md section for $VERSION"; exit 1; }
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
