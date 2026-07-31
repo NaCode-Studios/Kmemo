@@ -45,7 +45,7 @@ source; Kmemo ships none and depends on no provider SDK.
 > **See it end to end.** [`examples/`](examples) is a runnable demo (no API key needed) that shows a
 > guard catching a live near miss, with a `docker-compose` for the Redis store.
 
-> **Status — `1.1`, stable.** The cache, the ten guards, the in-memory / Redis / Postgres / HNSW stores,
+> **Status — `1.1`, stable.** The cache, the eleven guards, the in-memory / Redis / Postgres / HNSW stores,
 > the threshold calibrator, an optional verifier, observability (events, Micrometer, SLF4J), a
 > `CachePolicy` veto for data that must never be persisted, and Spring Boot / Spring AI / LangChain4j /
 > Ktor integrations are implemented and measured against a labelled corpus. The public API is stable
@@ -53,8 +53,9 @@ source; Kmemo ships none and depends on no provider SDK.
 
 ## Why Kmemo
 
-- Ten lexical checks catch near misses a threshold cannot: swapped numbers, units, entities, time
-  references, negation, flipped antonyms, reversed comparisons, a different answer being asked for.
+- Eleven lexical checks catch near misses a threshold cannot: swapped numbers, units, entities, time
+  references, negation, flipped antonyms, reversed comparisons, a different answer being asked for, and a
+  clause one prompt adds that narrows the question.
   They run against a labelled corpus on every build, and the numbers are reported honestly. See
   [Correctness, measured](#correctness-measured).
 - The costs are asymmetric. A wrong rejection costs one API call; a wrong acceptance costs a wrong
@@ -145,9 +146,9 @@ capital gains tax rate when I sell a second home" against "…a primary residenc
 chain, and the cached answer opens "Gain on a second home is taxable in full". `responseAware()` adds
 the one guard that reads that answer and refuses it when it names the word the query replaced.
 
-It is opt-in because of how it is measured rather than how it performs. It refuses 14 of the 118
+It is opt-in because of how it is measured rather than how it performs. It refuses 14 of the 116
 near-miss lookups `standard()` still serves on the blind corpora and **none** of the 164 paraphrase
-lookups, moving the false-hit rate from 0.291 to 0.238 held-out and 0.333 to 0.309 on validation. But
+lookups, moving the false-hit rate from 0.291 to 0.238 held-out and 0.324 to 0.299 on validation. But
 those answers were written for the measurement — no corpus of real paired answers exists to harvest —
 so the number is a regression check rather than the blind measurement every other guard is held to, and
 mixing the two under one default would quietly downgrade the evidence behind all of them.
@@ -292,6 +293,49 @@ owns expiry and eviction, so `exactCacheTtl` must not outlast your store's TTL. 
 stale is served — the remembered *embedding* is still reused, so the lookup goes through the ordinary
 threshold-guards-verifier path with the network call already paid.
 
+### Working the candidate set harder
+
+Four opt-in pieces sit around the match path. Each is off by default, because each trades something,
+and the trade is the thing worth reading.
+
+```kotlin
+val adaptive = AdaptiveThresholds(floor = 0.88, ceiling = 0.97)
+
+val cache = semanticCache(embedder) {
+    store = InMemoryStore(quantization = Quantization.INT8)  // cheaper scan, exact decisions
+    reranker = MmrReranker()                                 // try a different candidate, not the same one twice
+    deduplicateWrites = 0.98                                 // one answer, not six phrasings of it
+    verifier = myVerifier
+    adaptiveThresholds = adaptive                            // requires the verifier above
+    listeners = listOf(adaptive)
+}
+```
+
+**`MmrReranker`** reorders the candidates that cleared the threshold so each one the cache tries adds
+something the last did not. On a cache that has been running a while the nearest entries are often
+rephrasings of each other, and a `Verifier` costs a model call per candidate — five paid calls that all
+inspect what is effectively one entry is four wasted. It reorders and never rescores, and it runs
+*after* the threshold filter, so it cannot make anything servable that the threshold refused.
+
+**`Quantization`** compresses vectors for the scan only. Survivors are rescored against the
+full-precision vectors, so every similarity that reaches a threshold, a guard or a verifier is exact,
+and the worst a bad approximation can do is fail to surface a candidate — a miss, costing one API call.
+`INT8` recovers everything an exact scan finds at four times oversampling; `BINARY` is a thirty-second
+of the memory traffic and needs six times that shortlist to reach 99%. Measured at 64 and 1,536
+dimensions in `M18MatchingTest`.
+
+**`deduplicateWrites`** replaces an existing entry when a new one says the same thing, instead of
+storing both. Only an entry that clears the similarity *and* passes every guard in both directions is
+replaced — the write path can produce a false hit exactly as the read path can, and the same guards
+stop it. Reported as an eviction with cause `NEAR_DUPLICATE`.
+
+**`AdaptiveThresholds`** lets each scope's threshold follow its own traffic, and **throws at
+construction without a verifier**. It moves the threshold down as well as up, and the only thing that
+makes lowering safe is something above the threshold that can tell a right answer from a wrong one.
+With a verifier in the loop the threshold stops being a correctness knob and becomes a cost knob — it
+decides how many candidates reach the verifier, and that is a quantity the cache can honestly observe
+about itself. Pass it as a listener too, or only as a listener, to watch what it *would* do first.
+
 ### What must never be cached
 
 The cache stores prompts and responses verbatim. `CachePolicy` is the seam that vetoes a write for data
@@ -313,7 +357,7 @@ the store TCK has enforced on every store since M4.
 
 ### Verifying what lexical guards cannot see
 
-About a third of near misses get past the guards on the blind splits: 25 of 86 on held-out, 34 of 102 on
+About a third of near misses get past the guards on the blind splits: 25 of 86 on held-out, 33 of 102 on
 validation. That residual is what an optional `Verifier` exists for — typically a cheap model call, it
 runs only on candidates that already cleared the threshold and every guard, and it fails closed: a
 timeout or an error rejects rather than serving something unconfirmed. Cases like `deworm a puppy` vs
@@ -326,7 +370,7 @@ serving at a duplicate probability of 0.5:
 | Corpus | Residual the guards serve | The verifier stops | False-hit rate | Paraphrases kept |
 | --- | --- | --- | --- | --- |
 | held-out | 50 lookups | 40 (80%) | 0.291 → **0.058** | 0.881 → **0.452** |
-| validation | 68 lookups | 53 (78%) | 0.333 → **0.074** | 0.882 → **0.686** |
+| validation | 66 lookups | 51 (77%) | 0.324 → **0.074** | 0.882 → **0.686** |
 
 It stops about four fifths of what the guards miss, and that is the answer to the question. It is also
 expensive in the other direction, and this reference model is expensive unevenly: it keeps 69% of
@@ -375,8 +419,8 @@ corpora, with the same inputs and no verifier in the loop:
 | held-out | `strict()` | 0.589 | 0.786 | 0.673 | **0.267** |
 | held-out | GPTCache `OnnxModelEvaluation` | 0.513 | 0.476 | 0.494 | **0.221** |
 | validation | threshold-only | 0.333 | 1.000 | 0.500 | **1.000** |
-| validation | `standard()` | 0.570 | 0.882 | 0.692 | **0.333** |
-| validation | `strict()` | 0.536 | 0.725 | 0.617 | **0.314** |
+| validation | `standard()` | 0.577 | 0.882 | 0.698 | **0.324** |
+| validation | `strict()` | 0.544 | 0.725 | 0.622 | **0.304** |
 | validation | GPTCache `OnnxModelEvaluation` | 0.676 | 0.451 | 0.541 | **0.108** |
 
 The false-hit rate is the share of near misses that were **served**, and it is the number the project
@@ -427,8 +471,8 @@ false hits per day = Q × H × (near-miss share of your traffic) × false-hit ra
 
 At 100,000 queries a day, a 40% hit rate and $0.002 a call, the cache saves **$80 a day**. If 5% of
 those hits are near misses rather than paraphrases, a threshold-only cache serves **2,000 wrong answers
-a day** at a false-hit rate of 1.0; `standard()` serves about **660**, and `responseAware()` about
-**620**.
+a day** at a false-hit rate of 1.0; `standard()` serves about **650**, and `responseAware()` about
+**600**.
 
 The GPTCache row cannot be read off the false-hit rate alone, which is exactly why the saving sits in
 the formula next to it. Facing the same 2,000 near-miss lookups, its evaluator serves about **220** of
@@ -448,7 +492,7 @@ axis before you serve a single cached answer.
 The guards are judged against three labelled corpora with blind splits that no guard was tuned against,
 run as a CI regression gate on every build. **These figures are guard-only**: `CorpusTest` runs
 `MatchGuards.standard()` with no `Verifier` in the loop, so they describe the free lexical layer rather
-than the cache as a whole. On the validation split, near misses are rejected 67% of the time and
+than the cache as a whole. On the validation split, near misses are rejected 68% of the time and
 paraphrases are kept 88%; on the held-out split, 71% and 88%. Neither is 100%. The near misses that get
 through are what the optional `Verifier` is for; its catch rate on them is measured
 [above](#verifying-what-lexical-guards-cannot-see) against a named reference model, and is deliberately

@@ -86,6 +86,15 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
     /** @see SemanticCache */
     public var shadowThresholds: List<Double> = emptyList()
 
+    /** @see SemanticCache */
+    public var reranker: CandidateReranker? = null
+
+    /** @see SemanticCache */
+    public var deduplicateWrites: Double? = null
+
+    /** @see SemanticCache */
+    public var adaptiveThresholds: AdaptiveThresholds? = null
+
     /** Constructs the [SemanticCache] from the current settings. */
     public fun build(): SemanticCache = SemanticCache(
         embedder = embedder,
@@ -108,6 +117,9 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
         exactCacheTtl = exactCacheTtl,
         thresholds = thresholds,
         shadowThresholds = shadowThresholds,
+        reranker = reranker,
+        deduplicateWrites = deduplicateWrites,
+        adaptiveThresholds = adaptiveThresholds,
     )
 }
 
