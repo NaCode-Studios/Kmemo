@@ -12,7 +12,7 @@ import dev.kmemo.guard.NumericGuard
 import dev.kmemo.guard.UnitGuard
 import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.test.runTest
-import java.time.Instant
+import kotlin.time.Instant
 import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -200,11 +200,11 @@ class RegressionTest {
         // eviction — both counters wrong for the same operation.
         val clock = MutableClock()
         val store = InMemoryStore(maxEntries = 2, ttl = 1.hours, clock = clock)
-        store.put(entry("a", createdAt = clock.instant()))
-        store.put(entry("b", createdAt = clock.instant()))
+        store.put(entry("a", createdAt = clock.now()))
+        store.put(entry("b", createdAt = clock.now()))
 
         clock.advance(2.hours)
-        store.put(entry("c", createdAt = clock.instant()))
+        store.put(entry("c", createdAt = clock.now()))
 
         val stats = store.stats()
         assertEquals(1, stats.size)
@@ -292,12 +292,12 @@ class RegressionTest {
         // latched dimension — exactly the defect the previous round claimed to have fixed.
         val clock = MutableClock()
         val store = InMemoryStore(maxEntries = 1, ttl = 1.hours, clock = clock)
-        val stale = clock.instant().minusSeconds(4 * 60 * 60)
+        val stale = clock.now() - 4.hours
         store.put(entry("a", vector = floatArrayOf(1.0f, 0.0f), createdAt = stale))
         store.put(entry("b", vector = floatArrayOf(1.0f, 0.0f), createdAt = stale))
         assertEquals(0, store.size())
 
-        store.put(entry("c", vector = floatArrayOf(1.0f, 0.0f, 0.0f), createdAt = clock.instant()))
+        store.put(entry("c", vector = floatArrayOf(1.0f, 0.0f, 0.0f), createdAt = clock.now()))
         assertEquals(1, store.size())
     }
 
@@ -348,12 +348,12 @@ class RegressionTest {
         // The common path: no overflow, so evictOverflow returned before releasing the dimension.
         val clock = MutableClock()
         val store = InMemoryStore(maxEntries = 10, ttl = 1.hours, clock = clock)
-        val stale = clock.instant().minusSeconds(4 * 60 * 60)
+        val stale = clock.now() - 4.hours
         store.put(entry("a", vector = floatArrayOf(1.0f, 0.0f), createdAt = stale))
         store.put(entry("b", vector = floatArrayOf(1.0f, 0.0f), createdAt = stale))
         assertEquals(0, store.size())
 
-        store.put(entry("c", vector = floatArrayOf(1.0f, 0.0f, 0.0f), createdAt = clock.instant()))
+        store.put(entry("c", vector = floatArrayOf(1.0f, 0.0f, 0.0f), createdAt = clock.now()))
         assertEquals(1, store.size())
         assertEquals(1, store.search("default", floatArrayOf(1.0f, 0.0f, 0.0f), limit = 5).size)
     }

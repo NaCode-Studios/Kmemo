@@ -1,6 +1,6 @@
 package dev.kmemo.guard
 
-import java.util.Locale
+import dev.kmemo.internal.Format
 
 /**
  * Rejects matches where one prompt is far longer than the other.
@@ -33,8 +33,8 @@ public class LengthRatioGuard(
         if (ratio <= maxRatio) return GuardVerdict.Accept
 
         return GuardVerdict.Reject(
-            "length ratio ${"%.1f".format(Locale.ROOT, ratio)} exceeds " +
-                "${"%.1f".format(Locale.ROOT, maxRatio)} ($queryLength vs $candidateLength tokens)",
+            "length ratio ${Format.fixed(ratio, 1)} exceeds " +
+                "${Format.fixed(maxRatio, 1)} ($queryLength vs $candidateLength tokens)",
         )
     }
 

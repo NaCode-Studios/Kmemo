@@ -1,7 +1,10 @@
+@file:OptIn(kotlin.concurrent.atomics.ExperimentalAtomicApi::class)
+
 package dev.kmemo
 
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
+import kotlin.concurrent.Volatile
+import kotlin.concurrent.atomics.AtomicLong
+import kotlin.concurrent.atomics.AtomicReference
 
 /**
  * Moves each scope's similarity threshold towards the value its own traffic justifies.
@@ -82,7 +85,14 @@ public class AdaptiveThresholds(
         require(step > 0.0) { "step must be positive, was $step" }
     }
 
-    private val states = ConcurrentHashMap<String, State>()
+    /**
+     * Scope state, held as one immutable map swapped by compare-and-set.
+     *
+     * A scope is created once and read on every event afterwards, so the contention is all in the
+     * first write and a lock would be paid for on every read to protect it. Losing the race retries;
+     * losing a sample while retrying costs a sample, not correctness.
+     */
+    private val states = AtomicReference<Map<String, State>>(emptyMap())
 
     /**
      * The threshold this scope's traffic justifies, or `null` while it has not seen enough of it.
@@ -90,11 +100,11 @@ public class AdaptiveThresholds(
      * `null` is the honest answer to "what should the threshold be" before there is evidence, and
      * [SemanticCache] reads it as "leave the configured value alone".
      */
-    public fun recommendationFor(scope: String): Double? = states[scope]?.recommended
+    public fun recommendationFor(scope: String): Double? = states.load()[scope]?.recommended
 
     /** Every scope with a recommendation, for a dashboard or a log line. */
     public fun recommendations(): Map<String, Double> =
-        states.mapNotNull { (scope, state) -> state.recommended?.let { scope to it } }.toMap()
+        states.load().mapNotNull { (scope, state) -> state.recommended?.let { scope to it } }.toMap()
 
     override fun onEvent(event: CacheEvent) {
         when (event) {
@@ -107,26 +117,35 @@ public class AdaptiveThresholds(
     }
 
     private fun record(scope: String, refused: Boolean) {
-        val state = states.computeIfAbsent(scope) { State() }
-        if (refused) state.refused.incrementAndGet()
-        val seen = state.seen.incrementAndGet()
+        val state = stateFor(scope)
+        if (refused) state.refused.addAndFetch(1)
+        val seen = state.seen.addAndFetch(1)
         if (seen < minimumSamples) return
 
-        // One mover per window. Losing a race here costs a sample, not correctness, and a lock on the
-        // event path would be worse than the thing it protects.
-        synchronized(state) {
-            if (state.seen.get() < minimumSamples) return
-            val rate = state.refused.get().toDouble() / state.seen.get()
-            val current = state.recommended ?: startingPoint()
-            state.recommended = when {
-                rate > targetRejectionRate -> (current + step).coerceAtMost(ceiling)
-                // Half the target, not the target itself: moving down the moment the rate dips below
-                // its goal would oscillate around it forever.
-                rate < targetRejectionRate / 2 -> (current - step).coerceAtLeast(floor)
-                else -> current
-            }
-            state.seen.set(0)
-            state.refused.set(0)
+        // Exactly one caller closes each window: whoever resets the counter it just filled. Everyone
+        // else sees the reset value and carries on, which costs at most a sample and never a wrong
+        // move, and it keeps a lock off the event path.
+        if (!state.seen.compareAndSet(seen, 0)) return
+        val refusals = state.refused.load()
+        state.refused.store(0)
+
+        val rate = refusals.toDouble() / seen
+        val current = state.recommended ?: startingPoint()
+        state.recommended = when {
+            rate > targetRejectionRate -> (current + step).coerceAtMost(ceiling)
+            // Half the target, not the target itself: moving down the moment the rate dips below its
+            // goal would oscillate around it forever.
+            rate < targetRejectionRate / 2 -> (current - step).coerceAtLeast(floor)
+            else -> current
+        }
+    }
+
+    private fun stateFor(scope: String): State {
+        while (true) {
+            val current = states.load()
+            current[scope]?.let { return it }
+            val fresh = State()
+            if (states.compareAndSet(current, current + (scope to fresh))) return fresh
         }
     }
 
@@ -134,8 +153,8 @@ public class AdaptiveThresholds(
     private fun startingPoint(): Double = (floor + ceiling) / 2
 
     private class State {
-        val seen = AtomicLong()
-        val refused = AtomicLong()
+        val seen = AtomicLong(0)
+        val refused = AtomicLong(0)
 
         @Volatile
         var recommended: Double? = null

@@ -5,7 +5,7 @@ import dev.kmemo.Vectors
 import dev.kmemo.guard.GuardVerdict
 import dev.kmemo.guard.MatchGuard
 import dev.kmemo.guard.MatchGuards
-import java.util.Locale
+import dev.kmemo.internal.Format
 
 /**
  * Two prompts and a verdict on whether one's cached answer may serve the other.
@@ -84,37 +84,25 @@ public data class CalibrationReport(
         appendLine("threshold   hits   false-hits   missed   precision   recall   false-hit-rate")
         for (outcome in outcomes) {
             appendLine(
-                String.format(
-                    Locale.ROOT,
-                    "%9.2f %6d %12d %8d %11.3f %8.3f %16.3f",
-                    outcome.threshold,
-                    outcome.truePositives,
-                    outcome.falsePositives,
-                    outcome.falseNegatives,
-                    outcome.precision,
-                    outcome.recall,
-                    outcome.falseHitRate,
-                ),
+                Format.padStart(Format.fixed(outcome.threshold, 2), 9) +
+                    Format.padStart(outcome.truePositives.toString(), 7) +
+                    Format.padStart(outcome.falsePositives.toString(), 13) +
+                    Format.padStart(outcome.falseNegatives.toString(), 9) +
+                    Format.padStart(Format.fixed(outcome.precision, 3), 12) +
+                    Format.padStart(Format.fixed(outcome.recall, 3), 9) +
+                    Format.padStart(Format.fixed(outcome.falseHitRate, 3), 17),
             )
         }
         appendLine()
         appendLine(
-            String.format(
-                Locale.ROOT,
-                "recommended threshold %.2f — recall %.3f, false-hit rate %.3f",
-                recommended.threshold,
-                recommended.recall,
-                recommended.falseHitRate,
-            ),
+            "recommended threshold ${Format.fixed(recommended.threshold, 2)} — " +
+                "recall ${Format.fixed(recommended.recall, 3)}, " +
+                "false-hit rate ${Format.fixed(recommended.falseHitRate, 3)}",
         )
         if (safest != null) {
             appendLine(
-                String.format(
-                    Locale.ROOT,
-                    "lowest threshold with zero false hits: %.2f (recall %.3f)",
-                    safest.threshold,
-                    safest.recall,
-                ),
+                "lowest threshold with zero false hits: ${Format.fixed(safest.threshold, 2)} " +
+                    "(recall ${Format.fixed(safest.recall, 3)})",
             )
         } else {
             appendLine("no threshold in the swept range eliminated false hits entirely")

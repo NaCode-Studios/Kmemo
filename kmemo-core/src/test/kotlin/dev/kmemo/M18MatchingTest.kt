@@ -3,7 +3,7 @@ package dev.kmemo
 import dev.kmemo.fixtures.ConceptEmbedder
 import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.test.runTest
-import java.time.Instant
+import kotlin.time.Instant
 import kotlin.math.abs
 import kotlin.random.Random
 import kotlin.test.Test

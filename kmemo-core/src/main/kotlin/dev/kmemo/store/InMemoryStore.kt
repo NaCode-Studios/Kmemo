@@ -12,10 +12,9 @@ import dev.kmemo.internal.VectorCode
 import dev.kmemo.internal.VectorCodes
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.time.Clock
-import java.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.time.Duration
-import java.time.Duration as JavaDuration
 
 /** Point-in-time view of an [InMemoryStore]. */
 public data class InMemoryStoreStats(
@@ -64,7 +63,7 @@ public data class InMemoryStoreStats(
 public class InMemoryStore(
     private val maxEntries: Int = DEFAULT_MAX_ENTRIES,
     ttl: Duration? = null,
-    private val clock: Clock = Clock.systemUTC(),
+    private val clock: Clock = Clock.System,
     private val maxBytes: Long? = null,
     private val listener: CacheListener? = null,
     private val quantization: Quantization = Quantization.NONE,
@@ -76,7 +75,7 @@ public class InMemoryStore(
         require(maxBytes == null || maxBytes > 0) { "maxBytes must be positive, was $maxBytes" }
     }
 
-    private val ttlNanos: JavaDuration? = ttl?.let { JavaDuration.ofNanos(it.inWholeNanoseconds) }
+    private val ttlDuration: Duration? = ttl
 
     private val mutex = Mutex()
 
@@ -109,7 +108,7 @@ public class InMemoryStore(
             // physical residency while `size()` counts live entries, and the two disagree exactly
             // when expired entries are still resident — which is when a caller sees "clear it" on a
             // store that already reports itself empty.
-            dropExpired(clock.instant())
+            dropExpired(clock.now())
 
             if (dimensions == -1) {
                 dimensions = entry.dimensions
@@ -131,7 +130,7 @@ public class InMemoryStore(
     override suspend fun search(scope: String, embedding: FloatArray, limit: Int): List<ScoredEntry> {
         require(limit > 0) { "limit must be positive, was $limit" }
         return mutex.withLock {
-            val now = clock.instant()
+            val now = clock.now()
             // Same reason as in put: judge the dimension against what is actually alive, or a store
             // holding nothing but expired entries rejects a query from the model that replaced them.
             dropExpired(now)
@@ -251,7 +250,7 @@ public class InMemoryStore(
     }
 
     override suspend fun size(scope: String?): Int = mutex.withLock {
-        val now = clock.instant()
+        val now = clock.now()
         entries.values.count { !isExpired(it, now) && (scope == null || it.scope == scope) }
     }
 
@@ -262,12 +261,12 @@ public class InMemoryStore(
      * memory in a cache that is written to far more often than it is read.
      */
     public suspend fun purgeExpired(): Int = mutex.withLock {
-        dropExpired(clock.instant())
+        dropExpired(clock.now())
     }
 
     /** Current size and lifetime eviction counters. */
     public suspend fun stats(): InMemoryStoreStats = mutex.withLock {
-        val now = clock.instant()
+        val now = clock.now()
         InMemoryStoreStats(
             size = entries.values.count { !isExpired(it, now) },
             evictions = evictions,
@@ -277,8 +276,8 @@ public class InMemoryStore(
     }
 
     private fun isExpired(entry: CacheEntry, now: Instant): Boolean {
-        val ttl = ttlNanos ?: return false
-        return !entry.createdAt.plus(ttl).isAfter(now)
+        val ttl = ttlDuration ?: return false
+        return (entry.createdAt + ttl) <= now
     }
 
     private fun dropAll(ids: List<String>) {
@@ -299,7 +298,7 @@ public class InMemoryStore(
      * [purgeExpired] and everything internal calls this instead.
      */
     private fun dropExpired(now: Instant): Int {
-        if (ttlNanos == null) return 0
+        if (ttlDuration == null) return 0
         val expired = entries.entries.filter { isExpired(it.value, now) }.map { it.key }
         dropAll(expired)
         return expired.size
@@ -317,7 +316,7 @@ public class InMemoryStore(
         val overBytes = maxBytes != null && currentBytes > maxBytes
         if (!overCount && !overBytes) return
 
-        dropExpired(clock.instant())
+        dropExpired(clock.now())
 
         while (entries.size > maxEntries) {
             evictEldest(EvictionCause.CAPACITY)

@@ -1,7 +1,5 @@
 package dev.kmemo.guard
 
-import java.util.Locale
-
 /**
  * Ready-made guard sets for [dev.kmemo.SemanticCache].
  *
@@ -13,7 +11,7 @@ import java.util.Locale
  * | [strict]    | A wrong answer is expensive. Trades hit rate for margin.                           |
  * | [none]      | Similarity alone. Only with a [dev.kmemo.Verifier], or a private benchmark. |
  *
- * [standard] takes an optional [GuardVocabulary] or [Locale], so the same guards run against another
+ * [standard] takes an optional [GuardVocabulary] or language code, so the same guards run against another
  * language's markers — see [Vocabularies] for the packs that ship.
  */
 public object MatchGuards {
@@ -47,16 +45,18 @@ public object MatchGuards {
     )
 
     /**
-     * [standard] for a [locale]'s language, using the shipped [Vocabularies] pack.
+     * [standard] for an ISO 639 language code, using the shipped [Vocabularies] pack.
      *
      * ```kotlin
-     * val cache = SemanticCache(embedder, guards = MatchGuards.standard(Locale.ITALIAN))
+     * val cache = SemanticCache(embedder, guards = MatchGuards.standard("it"))
      * ```
      *
-     * @throws IllegalArgumentException if no pack ships for the locale's language — see
-     *   [Vocabularies.forLocale] for the supported set. Pass a [GuardVocabulary] directly to use your own.
+     * On the JVM there is an overload taking a `java.util.Locale`.
+     *
+     * @throws IllegalArgumentException if no pack ships for the language — see
+     *   [Vocabularies.forLanguage] for the supported set. Pass a [GuardVocabulary] directly to use your own.
      */
-    public fun standard(locale: Locale): List<MatchGuard> = standard(Vocabularies.forLocale(locale))
+    public fun standard(language: String): List<MatchGuard> = standard(Vocabularies.forLanguage(language))
 
     /**
      * [standard] plus [AnswerAnchorGuard], the one guard that reads the candidate's stored answer.

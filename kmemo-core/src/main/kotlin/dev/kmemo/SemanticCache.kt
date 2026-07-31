@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.concurrent.atomics.ExperimentalAtomicApi::class)
+
 package dev.kmemo
 
 import dev.kmemo.guard.GuardVerdict
@@ -6,6 +8,7 @@ import dev.kmemo.guard.MatchGuards
 import dev.kmemo.internal.CandidateOrder
 import dev.kmemo.internal.ExactCache
 import dev.kmemo.internal.GuardChain
+import dev.kmemo.internal.Ids
 import dev.kmemo.internal.KeyedMutex
 import dev.kmemo.internal.NegativeCache
 import dev.kmemo.internal.ShadowRun
@@ -17,13 +20,12 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import java.time.Clock
-import java.util.UUID
-import java.util.concurrent.atomic.AtomicLong
+import kotlin.concurrent.atomics.AtomicLong
+import kotlin.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
-import java.time.Duration as JavaDuration
+import kotlin.time.TimeSource
 
 /**
  * A cache keyed by what a prompt *means* rather than by its exact bytes.
@@ -170,7 +172,7 @@ public class SemanticCache(
     private val listeners: List<CacheListener> = emptyList(),
     private val writeBehindScope: CoroutineScope? = null,
     private val writeBehindCapacity: Int = DEFAULT_WRITE_BEHIND_CAPACITY,
-    private val clock: Clock = Clock.systemUTC(),
+    private val clock: Clock = Clock.System,
     private val cachePolicy: CachePolicy? = null,
     private val exactCacheSize: Int = 0,
     private val exactCacheTtl: Duration? = null,
@@ -261,21 +263,21 @@ public class SemanticCache(
         }
     }
 
-    private val lookupCount = AtomicLong()
-    private val hitCount = AtomicLong()
-    private val belowThresholdCount = AtomicLong()
-    private val guardRejectionCount = AtomicLong()
-    private val verifierRejectionCount = AtomicLong()
-    private val writeCount = AtomicLong()
-    private val degradedCount = AtomicLong()
-    private val writeVetoCount = AtomicLong()
-    private val exactHitCount = AtomicLong()
+    private val lookupCount = AtomicLong(0)
+    private val hitCount = AtomicLong(0)
+    private val belowThresholdCount = AtomicLong(0)
+    private val guardRejectionCount = AtomicLong(0)
+    private val verifierRejectionCount = AtomicLong(0)
+    private val writeCount = AtomicLong(0)
+    private val degradedCount = AtomicLong(0)
+    private val writeVetoCount = AtomicLong(0)
+    private val exactHitCount = AtomicLong(0)
 
     // One counter per guard, fixed at construction so no entry is ever inserted concurrently — the
     // hot path only ever does an atomic increment on a key that already exists. Guards that share a
     // name (unusual) share a counter, which keeps the per-guard sum equal to [guardRejectionCount].
     private val guardRejectionCountersByName: Map<String, AtomicLong> =
-        guards.associate { it.name to AtomicLong() }
+        guards.associate { it.name to AtomicLong(0) }
 
     /**
      * Looks up [prompt] and reports the full outcome, including why a miss was a miss.
@@ -293,12 +295,12 @@ public class SemanticCache(
         val recalled = exactHit(key, scope, counted = true)
         if (recalled != null && recalled.fresh) {
             val entry = recalled.entry
-            val age = JavaDuration.between(entry.createdAt, clock.instant()).toNanos().nanoseconds
+            val age = (clock.now() - entry.createdAt)
             return CacheLookup.Hit(entry.response, entry.prompt, 1.0, entry.id, age, entry.metadata)
         }
-        val embedStart = if (observed) System.nanoTime() else 0L
+        val embedStart = if (observed) TimeSource.Monotonic.markNow() else null
         val embedding = recalled?.embedding ?: embed(key, scope)
-        val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
+        val embedNanos = embedStart?.elapsedNow()?.inWholeNanoseconds ?: 0L
         // Already counted by the exact layer when it recalled a stale entry, so do not count twice.
         return lookup(key, scope, embedding, counted = recalled == null, embedNanos = embedNanos)
     }
@@ -411,7 +413,7 @@ public class SemanticCache(
         val recalled = exactHit(key, scope, counted = true)
         if (recalled != null && recalled.fresh) return recalled.entry.response
 
-        val embedStart = if (observed) System.nanoTime() else 0L
+        val embedStart = if (observed) TimeSource.Monotonic.markNow() else null
         val embedding = try {
             recalled?.embedding ?: embed(key, scope)
         } catch (e: CancellationException) {
@@ -427,7 +429,7 @@ public class SemanticCache(
             }
             throw e
         }
-        val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
+        val embedNanos = embedStart?.elapsedNow()?.inWholeNanoseconds ?: 0L
         val result = lookup(key, scope, embedding, embedNanos = embedNanos)
         if (result is CacheLookup.Hit) return result.response
         if (!coalesceConcurrentMisses) {
@@ -550,7 +552,7 @@ public class SemanticCache(
         metadata: Map<String, String> = emptyMap(),
         compute: suspend (String) -> Flow<String>,
     ): Flow<String> {
-        val embedStart = if (observed) System.nanoTime() else 0L
+        val embedStart = if (observed) TimeSource.Monotonic.markNow() else null
         val embedding = try {
             embed(prompt, scope)
         } catch (e: CancellationException) {
@@ -562,7 +564,7 @@ public class SemanticCache(
             }
             throw e
         }
-        val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
+        val embedNanos = embedStart?.elapsedNow()?.inWholeNanoseconds ?: 0L
 
         val result = lookup(prompt, scope, embedding, embedNanos = embedNanos)
         if (result is CacheLookup.Hit) return flowOf(result.response)
@@ -663,20 +665,20 @@ public class SemanticCache(
      * hit by one, which no one is tuning against.
      */
     public fun stats(): CacheStats {
-        val hits = hitCount.get()
-        val lookups = maxOf(lookupCount.get(), hits)
+        val hits = hitCount.load()
+        val lookups = maxOf(lookupCount.load(), hits)
         return CacheStats(
             lookups = lookups,
             hits = hits,
             misses = lookups - hits,
-            belowThreshold = belowThresholdCount.get(),
-            guardRejections = guardRejectionCount.get(),
-            verifierRejections = verifierRejectionCount.get(),
-            writes = writeCount.get(),
-            guardRejectionsByGuard = guardRejectionCountersByName.mapValues { it.value.get() },
-            degradedLookups = degradedCount.get(),
-            writesVetoed = writeVetoCount.get(),
-            exactHits = exactHitCount.get(),
+            belowThreshold = belowThresholdCount.load(),
+            guardRejections = guardRejectionCount.load(),
+            verifierRejections = verifierRejectionCount.load(),
+            writes = writeCount.load(),
+            guardRejectionsByGuard = guardRejectionCountersByName.mapValues { it.value.load() },
+            degradedLookups = degradedCount.load(),
+            writesVetoed = writeVetoCount.load(),
+            exactHits = exactHitCount.load(),
         )
     }
 
@@ -700,9 +702,9 @@ public class SemanticCache(
         val recalled = exactCache?.get(scope, prompt) ?: return null
         if (!recalled.fresh) return recalled
         if (counted) {
-            lookupCount.incrementAndGet()
-            hitCount.incrementAndGet()
-            exactHitCount.incrementAndGet()
+            lookupCount.addAndFetch(1)
+            hitCount.addAndFetch(1)
+            exactHitCount.addAndFetch(1)
         }
         store.touch(recalled.entry.id)
         if (observed) {
@@ -759,7 +761,7 @@ public class SemanticCache(
         operation: DegradedOperation,
         cause: Exception,
     ) {
-        degradedCount.incrementAndGet()
+        degradedCount.addAndFetch(1)
         if (observed) emit(CacheEvent.Degraded(scope, prompts, operation, embedFailurePolicy, cause))
     }
 
@@ -797,14 +799,14 @@ public class SemanticCache(
         // `counted = false` is the coalescing re-check: the same caller's single lookup, resumed
         // after waiting. Counting it a second time reported more misses than there were calls and
         // halved the hit rate of the very workload coalescing exists to improve.
-        if (counted) lookupCount.incrementAndGet()
+        if (counted) lookupCount.addAndFetch(1)
 
         // Timings are only ever measured on the observed, counted path; nanoTime is cheap but not free,
         // and the coalescing re-check must not double-count a stage it did not run.
         val measure = observed && counted
-        val searchStart = if (measure) System.nanoTime() else 0L
+        val searchStart = if (measure) TimeSource.Monotonic.markNow() else null
         val found = store.search(scope, embedding, candidates)
-        val searchNanos = if (measure) System.nanoTime() - searchStart else 0L
+        val searchNanos = searchStart?.elapsedNow()?.inWholeNanoseconds ?: 0L
         var verifierNanos = 0L
 
         if (found.isEmpty()) {
@@ -836,9 +838,9 @@ public class SemanticCache(
             // Only time the verifier when there is one — otherwise verifierRejects returns instantly
             // and we would report a few nanoseconds of "verifier latency" for a check that never ran.
             val timeVerifier = measure && verifier != null
-            val verifierStart = if (timeVerifier) System.nanoTime() else 0L
+            val verifierStart = if (timeVerifier) TimeSource.Monotonic.markNow() else null
             val verifierDetail = verifierRejects(prompt, scored.entry.prompt, scored.similarity)
-            if (timeVerifier) verifierNanos += System.nanoTime() - verifierStart
+            verifierStart?.let { verifierNanos += it.elapsedNow().inWholeNanoseconds }
             if (verifierDetail != null) {
                 if (refusal == null) {
                     refusal = Refusal(MissReason.REJECTED_BY_VERIFIER, scored, verifierDetail, guardName = null)
@@ -852,7 +854,7 @@ public class SemanticCache(
 
         if (refusal == null) {
             val best = found.first()
-            if (counted) belowThresholdCount.incrementAndGet()
+            if (counted) belowThresholdCount.addAndFetch(1)
             rememberMiss(scope, prompt, embedding, counted)
             return miss(MissReason.BELOW_THRESHOLD, best, "best similarity ${best.similarity} < $threshold")
                 .also { emitMiss(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted) }
@@ -861,10 +863,10 @@ public class SemanticCache(
         if (counted) {
             when (refusal.reason) {
                 MissReason.REJECTED_BY_GUARD -> {
-                    guardRejectionCount.incrementAndGet()
-                    refusal.guardName?.let { guardRejectionCountersByName[it]?.incrementAndGet() }
+                    guardRejectionCount.addAndFetch(1)
+                    refusal.guardName?.let { guardRejectionCountersByName[it]?.addAndFetch(1) }
                 }
-                else -> verifierRejectionCount.incrementAndGet()
+                else -> verifierRejectionCount.addAndFetch(1)
             }
         }
         // Captured before the .also lambda: refusal is a var, so its smart-cast to non-null does not
@@ -996,8 +998,8 @@ public class SemanticCache(
 
     private suspend fun hit(scored: ScoredEntry, counted: Boolean = true): CacheLookup.Hit {
         store.touch(scored.entry.id)
-        if (counted) hitCount.incrementAndGet()
-        val age = JavaDuration.between(scored.entry.createdAt, clock.instant()).toNanos().nanoseconds
+        if (counted) hitCount.addAndFetch(1)
+        val age = (clock.now() - scored.entry.createdAt)
         return CacheLookup.Hit(
             response = scored.entry.response,
             matchedPrompt = scored.entry.prompt,
@@ -1032,12 +1034,12 @@ public class SemanticCache(
         embedding: FloatArray,
         tags: Set<String> = emptySet(),
     ): CacheEntry = CacheEntry(
-        id = UUID.randomUUID().toString(),
+        id = Ids.next(),
         scope = scope,
         prompt = prompt,
         response = response,
         embedding = embedding,
-        createdAt = clock.instant(),
+        createdAt = clock.now(),
         metadata = metadata,
         tags = tags,
     )
@@ -1053,7 +1055,7 @@ public class SemanticCache(
     private suspend fun putEntry(entry: CacheEntry) {
         val verdict = cachePolicy?.evaluate(entry.prompt, entry.response, entry.scope)
         if (verdict is PolicyVerdict.Veto) {
-            writeVetoCount.incrementAndGet()
+            writeVetoCount.addAndFetch(1)
             if (observed) emit(CacheEvent.WriteVetoed(entry.scope, entry.prompt, verdict.reason))
             return
         }
@@ -1064,7 +1066,7 @@ public class SemanticCache(
         if (replaced != null && store.remove(replaced.id) && observed) {
             emit(CacheEvent.Eviction(replaced.scope, replaced.prompt, replaced.id, EvictionCause.NEAR_DUPLICATE))
         }
-        writeCount.incrementAndGet()
+        writeCount.addAndFetch(1)
         // The prompt now resolves to this entry, so the exact layer can answer a repeat of it.
         rememberExact(entry.scope, entry.prompt, entry, entry.embedding)
         // The prompt is now answerable from the store, so its "recently missed" note is stale — drop it
@@ -1101,12 +1103,12 @@ public class SemanticCache(
     public suspend fun warm(entries: List<WarmEntry>): List<String> {
         if (entries.isEmpty()) return emptyList()
         val embeddings = embedAllNormalized(entries.map { it.prompt })
-        val now = clock.instant()
+        val now = clock.now()
         val ids = ArrayList<String>(entries.size)
         for (i in entries.indices) {
             val warm = entries[i]
             val entry = CacheEntry(
-                id = UUID.randomUUID().toString(),
+                id = Ids.next(),
                 scope = warm.scope,
                 prompt = warm.prompt,
                 response = warm.response,

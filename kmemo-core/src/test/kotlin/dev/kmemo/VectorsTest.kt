@@ -1,6 +1,6 @@
 package dev.kmemo
 
-import java.time.Instant
+import kotlin.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -73,7 +73,7 @@ class VectorsTest {
             prompt = "prompt",
             response = "response",
             embedding = floatArrayOf(30.0f, 40.0f),
-            createdAt = Instant.EPOCH,
+            createdAt = Instant.fromEpochMilliseconds(0),
         )
 
         assertTrue(Vectors.isNormalized(entry.embedding), "entry.embedding must be unit length")
@@ -89,7 +89,7 @@ class VectorsTest {
     @Test
     fun `an entry with an empty embedding is rejected`() {
         assertFailsWith<IllegalArgumentException> {
-            CacheEntry("id", "default", "prompt", "response", floatArrayOf(), Instant.EPOCH)
+            CacheEntry("id", "default", "prompt", "response", floatArrayOf(), Instant.fromEpochMilliseconds(0))
         }
     }
 }

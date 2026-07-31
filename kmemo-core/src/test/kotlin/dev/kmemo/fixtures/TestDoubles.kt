@@ -1,11 +1,9 @@
 package dev.kmemo.fixtures
 
 import dev.kmemo.Embedder
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneId
-import java.time.ZoneOffset
+import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Instant
 
 /**
  * Bag-of-words hashing embedder: cheap, deterministic, and roughly sane about similarity.
@@ -52,14 +50,10 @@ class CountingEmbedder(private val delegate: Embedder) : Embedder {
 }
 
 /** A [Clock] that only moves when a test tells it to, so TTL tests never sleep. */
-class MutableClock(private var current: Instant = Instant.parse("2026-01-01T00:00:00Z")) : Clock() {
-    override fun getZone(): ZoneId = ZoneOffset.UTC
-
-    override fun withZone(zone: ZoneId): Clock = this
-
-    override fun instant(): Instant = current
+class MutableClock(private var current: Instant = Instant.parse("2026-01-01T00:00:00Z")) : Clock {
+    override fun now(): Instant = current
 
     fun advance(duration: Duration) {
-        current = current.plusNanos(duration.inWholeNanoseconds)
+        current += duration
     }
 }

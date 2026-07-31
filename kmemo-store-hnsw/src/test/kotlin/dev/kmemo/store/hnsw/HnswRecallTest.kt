@@ -3,7 +3,7 @@ package dev.kmemo.store.hnsw
 import dev.kmemo.CacheEntry
 import dev.kmemo.Vectors
 import kotlinx.coroutines.test.runTest
-import java.time.Instant
+import kotlin.time.Instant
 import java.util.Random
 import kotlin.test.Test
 import kotlin.test.assertTrue

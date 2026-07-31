@@ -7,10 +7,10 @@ public final class dev/kmemo/AdaptiveThresholds : dev/kmemo/CacheListener {
 }
 
 public final class dev/kmemo/CacheEntry {
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[FLjava/time/Instant;Ljava/util/Map;Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[FLjava/time/Instant;Ljava/util/Map;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[FLkotlin/time/Instant;Ljava/util/Map;Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[FLkotlin/time/Instant;Ljava/util/Map;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getCreatedAt ()Ljava/time/Instant;
+	public final fun getCreatedAt ()Lkotlin/time/Instant;
 	public final fun getDimensions ()I
 	public final fun getEmbedding ()[F
 	public final fun getId ()Ljava/lang/String;
@@ -205,8 +205,8 @@ public final class dev/kmemo/CacheStore$DefaultImpls {
 public final class dev/kmemo/CachingVerifier : dev/kmemo/Verifier {
 	public static final field Companion Ldev/kmemo/CachingVerifier$Companion;
 	public static final field DEFAULT_MAX_ENTRIES I
-	public synthetic fun <init> (Ldev/kmemo/Verifier;ILkotlin/time/Duration;Ljava/time/Clock;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (Ldev/kmemo/Verifier;ILkotlin/time/Duration;Ljava/time/Clock;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/kmemo/Verifier;ILkotlin/time/Duration;Lkotlin/time/Clock;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/kmemo/Verifier;ILkotlin/time/Duration;Lkotlin/time/Clock;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun verify (Ljava/lang/String;Ljava/lang/String;DLkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
@@ -214,8 +214,8 @@ public final class dev/kmemo/CachingVerifier$Companion {
 }
 
 public final class dev/kmemo/CachingVerifierKt {
-	public static final fun caching-5_5nbZA (Ldev/kmemo/Verifier;ILkotlin/time/Duration;Ljava/time/Clock;)Ldev/kmemo/CachingVerifier;
-	public static synthetic fun caching-5_5nbZA$default (Ldev/kmemo/Verifier;ILkotlin/time/Duration;Ljava/time/Clock;ILjava/lang/Object;)Ldev/kmemo/CachingVerifier;
+	public static final fun caching-5_5nbZA (Ldev/kmemo/Verifier;ILkotlin/time/Duration;Lkotlin/time/Clock;)Ldev/kmemo/CachingVerifier;
+	public static synthetic fun caching-5_5nbZA$default (Ldev/kmemo/Verifier;ILkotlin/time/Duration;Lkotlin/time/Clock;ILjava/lang/Object;)Ldev/kmemo/CachingVerifier;
 }
 
 public abstract interface class dev/kmemo/CandidateReranker {
@@ -372,8 +372,8 @@ public final class dev/kmemo/SemanticCache {
 	public static final field DEFAULT_SCOPE Ljava/lang/String;
 	public static final field DEFAULT_THRESHOLD D
 	public static final field DEFAULT_WRITE_BEHIND_CAPACITY I
-	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLdev/kmemo/EmbedFailurePolicy;ILkotlin/time/Duration;Ljava/util/List;Lkotlinx/coroutines/CoroutineScope;ILjava/time/Clock;Ldev/kmemo/CachePolicy;ILkotlin/time/Duration;Ljava/util/Map;Ljava/util/List;Ldev/kmemo/CandidateReranker;Ljava/lang/Double;Ldev/kmemo/AdaptiveThresholds;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLdev/kmemo/EmbedFailurePolicy;ILkotlin/time/Duration;Ljava/util/List;Lkotlinx/coroutines/CoroutineScope;ILjava/time/Clock;Ldev/kmemo/CachePolicy;ILkotlin/time/Duration;Ljava/util/Map;Ljava/util/List;Ldev/kmemo/CandidateReranker;Ljava/lang/Double;Ldev/kmemo/AdaptiveThresholds;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLdev/kmemo/EmbedFailurePolicy;ILkotlin/time/Duration;Ljava/util/List;Lkotlinx/coroutines/CoroutineScope;ILkotlin/time/Clock;Ldev/kmemo/CachePolicy;ILkotlin/time/Duration;Ljava/util/Map;Ljava/util/List;Ldev/kmemo/CandidateReranker;Ljava/lang/Double;Ldev/kmemo/AdaptiveThresholds;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLdev/kmemo/EmbedFailurePolicy;ILkotlin/time/Duration;Ljava/util/List;Lkotlinx/coroutines/CoroutineScope;ILkotlin/time/Clock;Ldev/kmemo/CachePolicy;ILkotlin/time/Duration;Ljava/util/Map;Ljava/util/List;Ldev/kmemo/CandidateReranker;Ljava/lang/Double;Ldev/kmemo/AdaptiveThresholds;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun clear$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun explain (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -412,7 +412,7 @@ public final class dev/kmemo/SemanticCacheBuilder {
 	public final fun getAdaptiveThresholds ()Ldev/kmemo/AdaptiveThresholds;
 	public final fun getCachePolicy ()Ldev/kmemo/CachePolicy;
 	public final fun getCandidates ()I
-	public final fun getClock ()Ljava/time/Clock;
+	public final fun getClock ()Lkotlin/time/Clock;
 	public final fun getCoalesceConcurrentMisses ()Z
 	public final fun getDeduplicateWrites ()Ljava/lang/Double;
 	public final fun getEmbedFailurePolicy ()Ldev/kmemo/EmbedFailurePolicy;
@@ -434,7 +434,7 @@ public final class dev/kmemo/SemanticCacheBuilder {
 	public final fun setAdaptiveThresholds (Ldev/kmemo/AdaptiveThresholds;)V
 	public final fun setCachePolicy (Ldev/kmemo/CachePolicy;)V
 	public final fun setCandidates (I)V
-	public final fun setClock (Ljava/time/Clock;)V
+	public final fun setClock (Lkotlin/time/Clock;)V
 	public final fun setCoalesceConcurrentMisses (Z)V
 	public final fun setDeduplicateWrites (Ljava/lang/Double;)V
 	public final fun setEmbedFailurePolicy (Ldev/kmemo/EmbedFailurePolicy;)V
@@ -697,6 +697,11 @@ public final class dev/kmemo/guard/LexicalDivergenceGuard : dev/kmemo/guard/Matc
 public final class dev/kmemo/guard/LexicalDivergenceGuard$Companion {
 }
 
+public final class dev/kmemo/guard/LocaleGuardsKt {
+	public static final fun forLocale (Ldev/kmemo/guard/Vocabularies;Ljava/util/Locale;)Ldev/kmemo/guard/GuardVocabulary;
+	public static final fun standard (Ldev/kmemo/guard/MatchGuards;Ljava/util/Locale;)Ljava/util/List;
+}
+
 public abstract interface class dev/kmemo/guard/MatchGuard {
 	public abstract fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
 	public abstract fun getName ()Ljava/lang/String;
@@ -709,7 +714,7 @@ public final class dev/kmemo/guard/MatchGuards {
 	public final fun responseAware (Ldev/kmemo/guard/GuardVocabulary;)Ljava/util/List;
 	public final fun standard ()Ljava/util/List;
 	public final fun standard (Ldev/kmemo/guard/GuardVocabulary;)Ljava/util/List;
-	public final fun standard (Ljava/util/Locale;)Ljava/util/List;
+	public final fun standard (Ljava/lang/String;)Ljava/util/List;
 	public final fun strict ()Ljava/util/List;
 }
 
@@ -796,7 +801,7 @@ public final class dev/kmemo/guard/UnitGuard : dev/kmemo/guard/MatchGuard {
 
 public final class dev/kmemo/guard/Vocabularies {
 	public static final field INSTANCE Ldev/kmemo/guard/Vocabularies;
-	public final fun forLocale (Ljava/util/Locale;)Ldev/kmemo/guard/GuardVocabulary;
+	public final fun forLanguage (Ljava/lang/String;)Ldev/kmemo/guard/GuardVocabulary;
 	public final fun getENGLISH ()Ldev/kmemo/guard/GuardVocabulary;
 	public final fun getFRENCH ()Ldev/kmemo/guard/GuardVocabulary;
 	public final fun getGERMAN ()Ldev/kmemo/guard/GuardVocabulary;
@@ -821,8 +826,8 @@ public final class dev/kmemo/guard/Vocabulary {
 public final class dev/kmemo/store/InMemoryStore : dev/kmemo/CacheStore {
 	public static final field Companion Ldev/kmemo/store/InMemoryStore$Companion;
 	public static final field DEFAULT_MAX_ENTRIES I
-	public synthetic fun <init> (ILkotlin/time/Duration;Ljava/time/Clock;Ljava/lang/Long;Ldev/kmemo/CacheListener;Ldev/kmemo/Quantization;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (ILkotlin/time/Duration;Ljava/time/Clock;Ljava/lang/Long;Ldev/kmemo/CacheListener;Ldev/kmemo/Quantization;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (ILkotlin/time/Duration;Lkotlin/time/Clock;Ljava/lang/Long;Ldev/kmemo/CacheListener;Ldev/kmemo/Quantization;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (ILkotlin/time/Duration;Lkotlin/time/Clock;Ljava/lang/Long;Ldev/kmemo/CacheListener;Ldev/kmemo/Quantization;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun invalidateByTag (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun purgeExpired (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

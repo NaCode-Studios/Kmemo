@@ -22,8 +22,8 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets.US_ASCII
 import java.nio.charset.StandardCharsets.UTF_8
-import java.time.Clock
-import java.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.time.Duration
 
 /**
@@ -61,7 +61,7 @@ public class RedisStore(
     private val indexName: String = "kmemo-idx",
     private val keyPrefix: String = "kmemo:",
     private val ttl: Duration? = null,
-    private val clock: Clock = Clock.systemUTC(),
+    private val clock: Clock = Clock.System,
     private val closeConnection: Boolean = false,
 ) : CacheStore, AutoCloseable {
 
@@ -74,7 +74,7 @@ public class RedisStore(
         indexName: String = "kmemo-idx",
         keyPrefix: String = "kmemo:",
         ttl: Duration? = null,
-        clock: Clock = Clock.systemUTC(),
+        clock: Clock = Clock.System,
     ) : this(connectResp2(client), indexName, keyPrefix, ttl, clock, closeConnection = true)
 
     init {
@@ -91,14 +91,14 @@ public class RedisStore(
     override suspend fun put(entry: CacheEntry) {
         ensureIndex(entry.dimensions)
 
-        val nowMillis = clock.millis()
+        val nowMillis = clock.now().toEpochMilliseconds()
         val expiresAtMillis = ttl?.let { nowMillis + it.inWholeMilliseconds } ?: Long.MAX_VALUE
 
         val fields = linkedMapOf(
             field(SCOPE) to entry.scope.toByteArray(UTF_8),
             field(PROMPT) to entry.prompt.toByteArray(UTF_8),
             field(RESPONSE) to entry.response.toByteArray(UTF_8),
-            field(CREATED_AT) to entry.createdAt.toEpochMilli().toString().toByteArray(US_ASCII),
+            field(CREATED_AT) to entry.createdAt.toEpochMilliseconds().toString().toByteArray(US_ASCII),
             field(EXPIRES_AT) to expiresAtMillis.toString().toByteArray(US_ASCII),
             field(METADATA) to encodeMetadata(entry.metadata),
             field(TAGS) to entry.tags.joinToString(",").toByteArray(UTF_8),
@@ -120,7 +120,7 @@ public class RedisStore(
                 "$indexDimensions-dimensional vectors; the embedding model likely changed."
         }
 
-        val query = "(@$SCOPE:{${escapeTag(scope)}} @$EXPIRES_AT:[(${clock.millis()} +inf])" +
+        val query = "(@$SCOPE:{${escapeTag(scope)}} @$EXPIRES_AT:[(${clock.now().toEpochMilliseconds()} +inf])" +
             "=>[KNN $limit @$EMBEDDING \$BLOB AS $SCORE]"
         val args = CommandArgs(CODEC)
             .add(indexName)
@@ -165,9 +165,9 @@ public class RedisStore(
     override suspend fun size(scope: String?): Int {
         if (indexDimensions == -1) return 0
         val filter = if (scope == null) {
-            "@$EXPIRES_AT:[(${clock.millis()} +inf]"
+            "@$EXPIRES_AT:[(${clock.now().toEpochMilliseconds()} +inf]"
         } else {
-            "(@$SCOPE:{${escapeTag(scope)}} @$EXPIRES_AT:[(${clock.millis()} +inf])"
+            "(@$SCOPE:{${escapeTag(scope)}} @$EXPIRES_AT:[(${clock.now().toEpochMilliseconds()} +inf])"
         }
         val args = CommandArgs(CODEC)
             .add(indexName).add(filter)
@@ -271,7 +271,7 @@ public class RedisStore(
                 prompt = fields.string(PROMPT),
                 response = fields.string(RESPONSE),
                 embedding = decodeVector(fields.getValue(EMBEDDING)),
-                createdAt = Instant.ofEpochMilli(fields.string(CREATED_AT).toLong()),
+                createdAt = Instant.fromEpochMilliseconds(fields.string(CREATED_AT).toLong()),
                 metadata = decodeMetadata(fields[METADATA]),
                 tags = fields[TAGS]?.toString(UTF_8)?.split(",")?.filter { it.isNotBlank() }?.toSet()
                     ?: emptySet(),

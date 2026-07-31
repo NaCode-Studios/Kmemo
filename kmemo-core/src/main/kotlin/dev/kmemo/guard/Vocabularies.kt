@@ -1,6 +1,5 @@
 package dev.kmemo.guard
 
-import java.util.Locale
 
 /**
  * Curated [GuardVocabulary] packs for the highest-traffic languages, and a [forLocale] lookup.
@@ -278,21 +277,23 @@ public object Vocabularies {
     )
 
     /**
-     * The pack for [locale]'s language.
+     * The pack for an ISO 639 language code.
      *
-     * Matched on the ISO language code alone (`it`, `es`, `de`, `fr`, `en`), so `Locale("it", "CH")`
-     * and [Locale.ITALIAN] both resolve to [ITALIAN].
+     * Matched on the language alone, lowercased, so `it`, `IT` and the language part of `it-CH` all
+     * resolve to [ITALIAN]. On the JVM there is a `forLocale` taking a `java.util.Locale`.
      *
      * @throws IllegalArgumentException if no pack ships for the language. The message lists the
      *   supported codes; pass a [GuardVocabulary] to [MatchGuards.standard] directly to use your own.
      */
-    public fun forLocale(locale: Locale): GuardVocabulary =
-        byLanguage[locale.language]
+    public fun forLanguage(code: String): GuardVocabulary {
+        val language = code.substringBefore('-').substringBefore('_').lowercase()
+        return byLanguage[language]
             ?: throw IllegalArgumentException(
-                "no guard vocabulary ships for language '${locale.language}'. Supported: " +
+                "no guard vocabulary ships for language '$language'. Supported: " +
                     "${byLanguage.keys.sorted()}. Build a GuardVocabulary and pass it to " +
                     "MatchGuards.standard(vocabulary) to add your own.",
             )
+    }
 
     /**
      * Extends the shared unit base ([Vocabulary.UNITS], which already covers language-independent

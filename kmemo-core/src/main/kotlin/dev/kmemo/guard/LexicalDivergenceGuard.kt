@@ -1,6 +1,6 @@
 package dev.kmemo.guard
 
-import java.util.Locale
+import dev.kmemo.internal.Format
 
 /**
  * Rejects matches whose prompts share too few meaningful words. The backstop under the specialised
@@ -72,7 +72,7 @@ public class LexicalDivergenceGuard(
         return shared
     }
 
-    private fun format(value: Double): String = "%.2f".format(Locale.ROOT, value)
+    private fun format(value: Double): String = Format.fixed(value, 2)
 
     public companion object {
         /** Tuned on the near-miss corpus: the lowest value that rejects no genuine paraphrase. */

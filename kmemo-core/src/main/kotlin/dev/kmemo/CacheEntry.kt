@@ -1,6 +1,6 @@
 package dev.kmemo
 
-import java.time.Instant
+import kotlin.time.Instant
 
 /**
  * One cached prompt/response pair plus the vector used to find it again.

@@ -5,7 +5,7 @@ import dev.kmemo.fixtures.MutableClock
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
-import java.time.Instant
+import kotlin.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -90,7 +90,7 @@ class InMemoryStoreTest {
     fun `an expired entry is never returned`() = runTest {
         val clock = MutableClock()
         val store = InMemoryStore(ttl = 1.hours, clock = clock)
-        store.put(entry("a", createdAt = clock.instant()))
+        store.put(entry("a", createdAt = clock.now()))
 
         clock.advance(59.minutes)
         assertEquals(1, store.search("default", query, limit = 10).size)
@@ -104,8 +104,8 @@ class InMemoryStoreTest {
     fun `purgeExpired reclaims entries nobody looked for`() = runTest {
         val clock = MutableClock()
         val store = InMemoryStore(ttl = 1.hours, clock = clock)
-        store.put(entry("a", createdAt = clock.instant()))
-        store.put(entry("b", createdAt = clock.instant()))
+        store.put(entry("a", createdAt = clock.now()))
+        store.put(entry("b", createdAt = clock.now()))
 
         clock.advance(2.hours)
 
@@ -118,7 +118,7 @@ class InMemoryStoreTest {
     fun `entries with no ttl stay forever`() = runTest {
         val clock = MutableClock()
         val store = InMemoryStore(clock = clock)
-        store.put(entry("a", createdAt = clock.instant()))
+        store.put(entry("a", createdAt = clock.now()))
 
         clock.advance((24 * 365).hours)
 

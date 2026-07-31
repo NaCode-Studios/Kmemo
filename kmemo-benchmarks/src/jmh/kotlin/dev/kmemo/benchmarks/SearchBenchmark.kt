@@ -14,7 +14,7 @@ import org.openjdk.jmh.annotations.Scope
 import org.openjdk.jmh.annotations.Setup
 import org.openjdk.jmh.annotations.State
 import org.openjdk.jmh.infra.Blackhole
-import java.time.Instant
+import kotlin.time.Instant
 import java.util.concurrent.TimeUnit
 
 /**
@@ -55,7 +55,7 @@ open class SearchBenchmark {
                         prompt = "benchmark prompt number $i asking about subject $i in detail",
                         response = "answer $i",
                         embedding = embedding,
-                        createdAt = Instant.EPOCH,
+                        createdAt = Instant.fromEpochMilliseconds(0),
                     ),
                 )
             }

@@ -4,7 +4,7 @@ import dev.kmemo.guard.MatchGuard
 import dev.kmemo.guard.MatchGuards
 import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.CoroutineScope
-import java.time.Clock
+import kotlin.time.Clock
 import kotlin.time.Duration
 
 /**
@@ -69,7 +69,7 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
     public var writeBehindCapacity: Int = SemanticCache.DEFAULT_WRITE_BEHIND_CAPACITY
 
     /** @see SemanticCache */
-    public var clock: Clock = Clock.systemUTC()
+    public var clock: Clock = Clock.System
 
     /** @see SemanticCache */
     public var cachePolicy: CachePolicy? = null
