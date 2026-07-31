@@ -6,8 +6,8 @@ import dev.kmemo.ScoredEntry
 import dev.kmemo.Vectors
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.time.Clock
-import java.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.time.Duration
 
 /**
@@ -36,7 +36,7 @@ public class HnswStore(
     private val efConstruction: Int = 200,
     private val efSearch: Int = 64,
     private val ttl: Duration? = null,
-    private val clock: Clock = Clock.systemUTC(),
+    private val clock: Clock = Clock.System,
 ) : CacheStore {
 
     init {
@@ -65,7 +65,7 @@ public class HnswStore(
                     "'${entry.id}' has ${entry.dimensions}. One embedding model per store."
             }
         }
-        val expiresAt = ttl?.let { clock.instant().plusMillis(it.inWholeMilliseconds) }
+        val expiresAt = ttl?.let { clock.now() + it }
         entries[entry.id] = Held(entry, expiresAt)
         indexes.getOrPut(entry.scope) { newIndex() }.add(entry.id, entry.embedding)
         maybeCompact(entry.scope)
@@ -75,7 +75,7 @@ public class HnswStore(
         require(limit > 0) { "limit must be positive, was $limit" }
         return mutex.withLock {
             val index = indexes[scope] ?: return@withLock emptyList()
-            val now = clock.instant()
+            val now = clock.now()
             val candidateIds = index.search(embedding, maxOf(limit * OVERFETCH, efSearch))
 
             val seen = HashSet<String>(candidateIds.size)
@@ -126,7 +126,7 @@ public class HnswStore(
     }
 
     override suspend fun size(scope: String?): Int = mutex.withLock {
-        val now = clock.instant()
+        val now = clock.now()
         entries.values.count { !isExpired(it, now) && (scope == null || it.entry.scope == scope) }
     }
 
@@ -146,7 +146,7 @@ public class HnswStore(
 
     private fun isExpired(held: Held, now: Instant): Boolean {
         val expiresAt = held.expiresAt ?: return false
-        return !expiresAt.isAfter(now)
+        return expiresAt <= now
     }
 
     private class Held(val entry: CacheEntry, val expiresAt: Instant?)

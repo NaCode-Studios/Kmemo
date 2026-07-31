@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/kmemo-hero.png" alt="Kmemo, a semantic cache for LLM calls on Kotlin/JVM with guards against false cache hits" width="100%">
+  <img src="docs/kmemo-hero.png" alt="Kmemo, a Kotlin Multiplatform semantic cache for LLM calls with guards against false cache hits" width="100%">
 </p>
 
 # Kmemo
 
-**A semantic cache for LLM calls on Kotlin/JVM that refuses to serve you the wrong answer.**
+**A Kotlin Multiplatform semantic cache for LLM calls that refuses to serve you the wrong answer.**
 
 [![CI](https://github.com/NaCode-Studios/Kmemo/actions/workflows/ci.yml/badge.svg)](https://github.com/NaCode-Studios/Kmemo/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.nacode-studios/kmemo-core?label=Maven%20Central&labelColor=080C18&color=5B9CFF)](https://central.sonatype.com/artifact/io.github.nacode-studios/kmemo-core)
@@ -65,11 +65,13 @@ source; Kmemo ships none and depends on no provider SDK.
 - `Embedder` and `CacheStore` are one-method seams. Bring OpenAI, Cohere, Voyage or a local ONNX
   model; start in memory and move to a vector database without touching the match logic.
 - Every operation is a `suspend` function, and `kmemo-core` declares `kotlinx-coroutines-core` as its
-  only dependency.
+  only dependency — on every platform it targets, not just the JVM.
 
 ## Installation
 
-Requires JDK 17+. Artifacts are published to Maven Central under `io.github.nacode-studios`.
+`kmemo-core` is a Kotlin Multiplatform library: JVM (17+), Android via the JVM artifact, iOS, macOS,
+Linux, Windows, JS and WasmJS. The store adapters and framework integrations are JVM-only. Artifacts
+are published to Maven Central under `io.github.nacode-studios`.
 
 ```kotlin
 dependencies {
@@ -385,7 +387,7 @@ build that spends a model call per run is a build nobody keeps.
 
 | Module | Contents |
 | --- | --- |
-| `kmemo-core` | `SemanticCache`, the `Embedder` and `CacheStore` seams, the guard chain, `InMemoryStore`, `ThresholdCalibrator`, resilience, the `CacheEvent` stream, with no provider or database knowledge. |
+| `kmemo-core` | `SemanticCache`, the `Embedder` and `CacheStore` seams, the guard chain, `InMemoryStore`, `ThresholdCalibrator`, resilience, the `CacheEvent` stream, with no provider or database knowledge. **Multiplatform**: JVM, iOS, macOS, Linux, Windows, JS, WasmJS. |
 | `kmemo-store-redis` | A `CacheStore` on Redis (RediSearch KNN), for a cache shared across processes. |
 | `kmemo-store-postgres` | A durable `CacheStore` on Postgres / pgvector. |
 | `kmemo-store-hnsw` | An opt-in in-process approximate (HNSW) `CacheStore` that scales past the exact scan. |

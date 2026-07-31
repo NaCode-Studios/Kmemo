@@ -2,39 +2,73 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.dokka)
     alias(libs.plugins.dokka.javadoc)
     alias(libs.plugins.maven.publish)
 }
 
 kotlin {
-    jvmToolchain(17)
     explicitApi()
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
         allWarningsAsErrors.set(true)
     }
-}
+    applyDefaultHierarchyTemplate()
 
-dependencies {
-    api(libs.kotlinx.coroutines.core)
+    // A cache that only runs on a server is a cache for half the problem. A phone pays for every call
+    // over a mobile network, a browser or Wasm tool has no server to cache on, and an edge deployment
+    // may have no reliable uplink. The JVM adapters — Redis, Postgres, Spring — stay JVM-only by
+    // design and not by omission: they wrap drivers that exist nowhere else.
+    jvm {
+        compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
+        testRuns.named("test") {
+            executionTask.configure {
+                useJUnitPlatform()
+                testLogging {
+                    events("passed", "skipped", "failed")
+                    exceptionFormat = TestExceptionFormat.FULL
+                    showStandardStreams = true
+                }
+            }
+        }
+    }
+    // Node only, no browser environment. A browser test run pulls in the whole webpack and karma
+    // toolchain, which is a few hundred npm packages this project never ships and would have to keep
+    // patched. The published artifacts are identical either way — the environment decides where tests
+    // run, not what is compiled — and the cache has no DOM in it to test against.
+    js(IR) {
+        nodejs()
+    }
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+    wasmJs {
+        nodejs()
+    }
+    iosArm64()
+    iosSimulatorArm64()
+    iosX64()
+    macosArm64()
+    macosX64()
+    linuxX64()
+    mingwX64()
 
-    testImplementation(libs.kotlin.test)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.kotlinx.serialization.json)
-    // Property-based tests for the Vectors maths and the text tokenizer invariants.
-    testImplementation(libs.kotest.property)
-    // The shared store conformance suite; InMemoryStore is held to the same contract as every adapter.
-    testImplementation(project(":kmemo-store-tck"))
-}
+    jvmToolchain(17)
 
-tasks.test {
-    useJUnitPlatform()
-    testLogging {
-        events("passed", "skipped", "failed")
-        exceptionFormat = TestExceptionFormat.FULL
-        showStandardStreams = true
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.kotlinx.coroutines.core)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+        }
+        jvmTest.dependencies {
+            implementation(libs.kotlinx.serialization.json)
+            // Property-based tests for the Vectors maths and the text tokenizer invariants.
+            implementation(libs.kotest.property)
+            // The shared store conformance suite; InMemoryStore is held to the same contract as
+            // every adapter. It is a JUnit fixture, so it is a JVM test dependency by nature.
+            implementation(project(":kmemo-store-tck"))
+        }
     }
 }
 

@@ -7,7 +7,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
-import java.time.Instant
+import kotlin.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -231,7 +231,7 @@ public abstract class CacheStoreContract {
     @Test
     public fun `an entry past its ttl is never returned by search`() = runTest {
         val store = createStore(ttl = 1.hours)
-        store.put(entry("a", createdAt = clock.instant()))
+        store.put(entry("a", createdAt = clock.now()))
 
         clock.advance(59.minutes)
         assertEquals(1, store.search("default", query, limit = 10).size)
@@ -243,7 +243,7 @@ public abstract class CacheStoreContract {
     @Test
     public fun `an entry past its ttl is not counted by size`() = runTest {
         val store = createStore(ttl = 1.hours)
-        store.put(entry("a", createdAt = clock.instant()))
+        store.put(entry("a", createdAt = clock.now()))
 
         clock.advance(2.hours)
 
@@ -253,7 +253,7 @@ public abstract class CacheStoreContract {
     @Test
     public fun `without a ttl an entry never expires`() = runTest {
         val store = createStore(ttl = null)
-        store.put(entry("a", createdAt = clock.instant()))
+        store.put(entry("a", createdAt = clock.now()))
 
         clock.advance((24 * 365).hours)
 
@@ -377,7 +377,7 @@ public abstract class CacheStoreContract {
         scope: String = "default",
         vector: FloatArray = floatArrayOf(1f, 0f),
         response: String = "response for $id",
-        createdAt: Instant = clock.instant(),
+        createdAt: Instant = clock.now(),
         tags: Set<String> = emptySet(),
     ): CacheEntry = CacheEntry(
         id = id,

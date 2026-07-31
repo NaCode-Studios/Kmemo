@@ -8,6 +8,21 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Kotlin Multiplatform core (M17).** `kmemo-core` and `InMemoryStore` build for the JVM, iOS, macOS,
+  Linux, Windows, JS and WasmJS. A phone pays for every call over a mobile network, a browser or Wasm
+  tool has no server to cache on, and an edge deployment may have no reliable uplink — none of which a
+  JVM-only cache reaches. The Redis, Postgres, HNSW and framework adapters stay JVM-only by design: they
+  wrap drivers that exist nowhere else.
+  It costs **no new dependency**. `kotlin.time.Instant` and `kotlin.time.Clock` are stable in Kotlin
+  2.4, so `kmemo-core` still declares `kotlinx-coroutines-core` and nothing more, on every target.
+  What the port actually turned on was the access-ordered `LinkedHashMap`, which does not exist outside
+  the JVM and which the store's eviction, the exact-match layer and the verifier's memo were all built
+  on. The replacement draws a line the JVM version blurs: reading through `get` counts as a use and
+  reading through `peek` does not, which matters because the store scans every entry in a scope on
+  every search — if scanning counted, the eviction order would reset on every lookup.
+  The klib ABI is validated alongside the JVM signature dump, so a change invisible on the JVM cannot
+  break an iOS consumer unnoticed. Releases publish from a macOS runner, because Apple targets cannot
+  be compiled anywhere else and a Linux runner would have shipped a release quietly missing them.
 - **Advanced matching (M18)**, four opt-in pieces around the match path and one new guard. Each trades
   something, and each is off by default because the trade is the caller's to make.
   - `CandidateReranker` and `MmrReranker` reorder the candidates that cleared the threshold, so each one
@@ -161,6 +176,14 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **`CacheEntry.createdAt` is now a `kotlin.time.Instant`**, and every store adapter with it. On the
+  JVM the two types convert with `toKotlinInstant()` and `toJavaInstant()`, which is what the Postgres
+  and Redis adapters do at the edge where they talk to a driver. A custom `CacheStore` needs the same
+  one-line change; `java.time.Clock` becomes `kotlin.time.Clock` in the same way.
+- **`MatchGuards.standard(Locale)` and `Vocabularies.forLocale` move to `jvmMain` as extensions.**
+  `Locale` is the one part of the guard layer that cannot leave the JVM. The call site is unchanged and
+  now needs `import dev.kmemo.guard.standard`; the new `standard(language: String)` takes an ISO 639
+  code and works everywhere.
 - **Binary compatibility is broken, source compatibility is not.** `GuardVocabulary` gains a
   `qualifierOpeners` field, and `SemanticCache` and `InMemoryStore` gain constructor parameters; all of
   them are defaulted, so nothing needs editing, but the constructor and `copy` signatures moved and a

@@ -11,11 +11,13 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.sql.Connection
-import java.time.Clock
+import kotlin.time.Clock
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import javax.sql.DataSource
 import kotlin.time.Duration
+import kotlin.time.toJavaInstant
+import kotlin.time.toKotlinInstant
 
 /**
  * A durable [CacheStore] backed by Postgres with the **pgvector** extension.
@@ -45,7 +47,7 @@ public class PostgresStore(
     private val dataSource: DataSource,
     private val table: String = "kmemo_cache",
     private val ttl: Duration? = null,
-    private val clock: Clock = Clock.systemUTC(),
+    private val clock: Clock = Clock.System,
 ) : CacheStore {
 
     init {
@@ -77,7 +79,7 @@ public class PostgresStore(
             statement.setString(3, entry.prompt)
             statement.setString(4, entry.response)
             statement.setString(5, encodeVector(entry.embedding))
-            statement.setObject(6, entry.createdAt.atOffset(ZoneOffset.UTC))
+            statement.setObject(6, entry.createdAt.toJavaInstant().atOffset(ZoneOffset.UTC))
             statement.setObject(7, expiresAt)
             statement.setString(8, encodeMetadata(entry.metadata))
             statement.setArray(9, connection.createArrayOf("text", entry.tags.toTypedArray()))
@@ -111,7 +113,8 @@ public class PostgresStore(
                                 prompt = rows.getString("prompt"),
                                 response = rows.getString("response"),
                                 embedding = decodeVector(rows.getString("embedding")),
-                                createdAt = rows.getObject("created_at", OffsetDateTime::class.java).toInstant(),
+                                createdAt = rows.getObject("created_at", OffsetDateTime::class.java)
+                                    .toInstant().toKotlinInstant(),
                                 metadata = decodeMetadata(rows.getString("metadata")),
                                 tags = decodeTags(rows.getArray("tags")),
                             )
@@ -234,7 +237,7 @@ public class PostgresStore(
         }
     }
 
-    private fun now(): OffsetDateTime = clock.instant().atOffset(ZoneOffset.UTC)
+    private fun now(): OffsetDateTime = clock.now().toJavaInstant().atOffset(ZoneOffset.UTC)
 
     private fun encodeVector(vector: FloatArray): String =
         vector.joinToString(separator = ",", prefix = "[", postfix = "]")

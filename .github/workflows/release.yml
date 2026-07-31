@@ -13,7 +13,11 @@ permissions:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    # macOS, not Linux, and this is not a preference. kmemo-core publishes iOS and macOS artifacts,
+    # and those targets can only be compiled on an Apple host — a Linux runner would disable those
+    # tasks and publish a release that silently omits them. The macOS runner builds every target this
+    # project has, so one job still publishes the whole set.
+    runs-on: macos-latest
     # Pinned to node24 action majors — see the note in ci.yml.
     steps:
       - uses: actions/checkout@v7
