@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- **Publishing to GitHub Packages.** Maven Central was always the primary registry and is where every
+  released version lives; the GitHub Packages copy resolved only for consumers who configured a GitHub
+  token, since that registry requires authentication even for public packages. A second distribution
+  channel that most people cannot use without extra setup is a channel that goes stale unnoticed, so the
+  `GitHubPackages` repository is gone from all eleven modules and the release workflow publishes to
+  Maven Central alone. Nothing changes for anyone depending on `io.github.nacode-studios` coordinates.
+  Packages already pushed to GitHub Packages for `0.1.0` through `1.1.0` are left in place.
+
+### Added
+
+- Every tag now gets a **GitHub Release**, with its body extracted from this file rather than written
+  separately, so the two cannot disagree. Releases were backfilled for `0.1.0` through `1.1.0`.
+
 ## [1.1.0] - 2026-07-31
 
 `1.1.0` is the first slice of **Tier 6 "production depth & proof"**: the two things the cache was doing
