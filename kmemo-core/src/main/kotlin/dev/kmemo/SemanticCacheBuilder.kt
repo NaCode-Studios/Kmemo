@@ -71,6 +71,9 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
     /** @see SemanticCache */
     public var clock: Clock = Clock.systemUTC()
 
+    /** @see SemanticCache */
+    public var cachePolicy: CachePolicy? = null
+
     /** Constructs the [SemanticCache] from the current settings. */
     public fun build(): SemanticCache = SemanticCache(
         embedder = embedder,
@@ -88,6 +91,7 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
         writeBehindScope = writeBehindScope,
         writeBehindCapacity = writeBehindCapacity,
         clock = clock,
+        cachePolicy = cachePolicy,
     )
 }
 

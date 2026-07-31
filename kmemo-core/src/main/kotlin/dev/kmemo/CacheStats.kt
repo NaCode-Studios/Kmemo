@@ -33,6 +33,24 @@ public data class CacheStats(
      * breakdown tells you which. Empty when the cache runs with [dev.kmemo.guard.MatchGuards.none].
      */
     public val guardRejectionsByGuard: Map<String, Long> = emptyMap(),
+    /**
+     * Calls that ran uncached because the [Embedder] threw and
+     * [EmbedFailurePolicy.FALL_BACK_TO_COMPUTE] stepped aside.
+     *
+     * Counted per call, not per prompt: one degraded [SemanticCache.getOrPutAll] of fifty prompts is
+     * `1`. These are **not** in [lookups] — no lookup happened — so a rising number here alongside a
+     * flat [lookups] is the cache quietly turning into a pass-through, which is otherwise the one
+     * failure mode with no signal attached to it. Stays `0` under
+     * [EmbedFailurePolicy.PROPAGATE], where the caller sees the exception instead.
+     */
+    public val degradedLookups: Long = 0,
+    /**
+     * Writes a [CachePolicy] refused.
+     *
+     * Not a failure and not a miss: the call returned its response, the cache just did not keep it.
+     * A number that is `0` when you expect it to move usually means the policy is not wired up at all.
+     */
+    public val writesVetoed: Long = 0,
 ) {
     /** Fraction of lookups served from cache, in `[0.0, 1.0]`. `0.0` when nothing has been looked up. */
     public val hitRate: Double
