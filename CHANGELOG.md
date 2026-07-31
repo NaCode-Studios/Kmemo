@@ -29,6 +29,20 @@ All notable changes to this project are documented here. The format follows
   the cache.
 - Logging (`kmemo-slf4j`): `degraded` and `write_vetoed` lines. The degraded line carries the throwable.
 
+### Changed
+
+- Docs: the corpus figures are now labelled **guard-only** wherever they appear. `CorpusTest` runs
+  `MatchGuards.standard()` with no `Verifier`, so 67% / 88% describes the free lexical layer, not the
+  cache as a whole. The README previously said the residual was "the world-knowledge cases the
+  `Verifier` covers", asserting a coverage that has never been measured on any corpus.
+- Docs: the README now reports the held-out split (71% near misses rejected, 88% paraphrases kept)
+  alongside the validation split it already quoted, and sizes the residual the verifier is aimed at
+  (25 of 86 held-out, 34 of 102 validation) instead of asserting "a third" without a source.
+- Docs: the multilingual guard packs were described as "measured against a localized near-miss corpus".
+  `LocalizedGuardsTest` asserts hand-written in-sample pairs, so the README now calls them a regression
+  check on the packs rather than a blind measurement.
+- Docs: `docs/STABILITY.md` linked a `ROADMAP.md` that no longer exists; it now links the board.
+
 ### Notes
 
 - **Binary compatibility.** Both additions change the `kmemo-core` `.api` surface in ways that are
