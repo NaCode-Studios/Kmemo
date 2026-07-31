@@ -130,7 +130,8 @@ SemanticCache(embedder, guards = MatchGuards.none())       // the naive similari
 ```
 
 The guards work outside English too. Curated packs ship for Italian, Spanish, German and French, each
-measured against a localized near-miss corpus:
+covered by a localized near-miss test set. Those sets are hand-written and in-sample, so they are a
+regression check on the packs, not a blind measurement like the English corpora further down:
 
 ```kotlin
 SemanticCache(embedder, guards = MatchGuards.standard(Locale.ITALIAN))
@@ -173,10 +174,12 @@ cache.warm(faqPairs.map { WarmEntry(it.question, it.answer) })
 
 ### Verifying what lexical guards cannot see
 
-A third of near misses need world knowledge (`deworm a puppy` vs `an adult dog`, `boiling point of
-ethanol` vs `methanol`). An optional `Verifier`, typically a cheap model call, runs only on candidates
-that already cleared the threshold and every guard, and it fails closed: a timeout or an error rejects
-rather than serving something unconfirmed.
+About a third of near misses get past the guards on the blind splits: 25 of 86 on held-out, 34 of 102 on
+validation. That residual is what an optional `Verifier` exists for — typically a cheap model call, it
+runs only on candidates that already cleared the threshold and every guard, and it fails closed: a
+timeout or an error rejects rather than serving something unconfirmed. Cases like `deworm a puppy` vs
+`an adult dog` or `boiling point of ethanol` vs `methanol` turn on world knowledge no lexical check has.
+How much of the residual a verifier actually catches has not been measured yet.
 
 ## Architecture
 
@@ -206,11 +209,14 @@ prompt ─► embed ─► nearest 5 in scope ─► similarity ≥ threshold?
 
 ### Correctness, measured
 
-The guards are judged against three labelled corpora with a blind validation split that no guard was
-tuned against, run as a CI regression gate on every build. On the blind split, near misses are rejected
-67% of the time and paraphrases are kept 88% of the time. Neither is 100%, and the near misses that get
-through are the world-knowledge cases the `Verifier` covers. How the blind splits grow without getting
-contaminated is written up in [docs/CORPUS.md](docs/CORPUS.md); reproduce the numbers with:
+The guards are judged against three labelled corpora with blind splits that no guard was tuned against,
+run as a CI regression gate on every build. **These figures are guard-only**: `CorpusTest` runs
+`MatchGuards.standard()` with no `Verifier` in the loop, so they describe the free lexical layer rather
+than the cache as a whole. On the validation split, near misses are rejected 67% of the time and
+paraphrases are kept 88%; on the held-out split, 71% and 88%. Neither is 100%. The near misses that get
+through are what the optional `Verifier` is for, but its catch rate on them is not measured here and is
+not folded into these numbers. How the blind splits grow without getting contaminated is written up in
+[docs/CORPUS.md](docs/CORPUS.md); reproduce the numbers with:
 
 ```bash
 ./gradlew :kmemo-core:test --tests '*CorpusTest*'

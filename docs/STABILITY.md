@@ -1,8 +1,8 @@
 # Stability and versioning
 
 This document is kmemo's written promise about what may change and when. It complements the
-[ROADMAP](../ROADMAP.md) (where the project is going) and the [CHANGELOG](../CHANGELOG.md) (what has
-shipped).
+[board](https://github.com/orgs/NaCode-Studios/projects/5) (where the project is going) and the
+[CHANGELOG](../CHANGELOG.md) (what has shipped).
 
 ## Versioning policy
 
@@ -33,8 +33,9 @@ same convention used across NaCode Studios' libraries.
 1. **The core API is settled.** `SemanticCache`, the `Embedder` / `CacheStore` / `Verifier` seams, the
    guard interfaces, and the event/observability types are stable and held to the `*.api` contract.
 2. **The correctness story is measured, not asserted.** Near-miss rejection and paraphrase retention are
-   reported on a *blind* corpus that no guard was tuned against, gated in CI against regression
-   ([CORPUS.md](CORPUS.md)), and honest about the world-knowledge gap the `Verifier` fills.
+   reported on *blind* corpora that no guard was tuned against, gated in CI against regression
+   ([CORPUS.md](CORPUS.md)), and reported as **guard-only**: the `Verifier` is not in the measured loop,
+   and the residual it exists to cover is named rather than claimed as covered.
 3. **The defaults are the considered ones** (below), each justified by the corpus.
 
 Real-world hardening continues within `1.x` — persistent stores are green against the shared conformance
