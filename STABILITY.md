@@ -2,7 +2,7 @@
 
 This document is kmemo's written promise about what may change and when. It complements the
 [board](https://github.com/orgs/NaCode-Studios/projects/5) (where the project is going) and the
-[CHANGELOG](../CHANGELOG.md) (what has shipped).
+[CHANGELOG](CHANGELOG.md) (what has shipped).
 
 ## Versioning policy
 
@@ -16,7 +16,7 @@ is in effect.
   parameter with a default value, or a property to a result type. That changes a constructor, `copy` or
   `componentN` signature, so code compiled against the previous version must be **recompiled** — but no
   source has to change. Patch releases never do this. Wherever it happens it is named under `### Notes`
-  in the [CHANGELOG](../CHANGELOG.md), listing the affected types, so a recompile is never a surprise.
+  in the [CHANGELOG](CHANGELOG.md), listing the affected types, so a recompile is never a surprise.
   Refusing this outright would mean a major bump for every new counter on `CacheStats`, which prices
   ordinary additive work at the cost of an ecosystem migration.
 - **Every public-API change is tracked, never silent.** The binary-compatibility-validator holds each
@@ -41,7 +41,7 @@ same convention used across NaCode Studios' libraries.
    guard interfaces, and the event/observability types are stable and held to the `*.api` contract.
 2. **The correctness story is measured, not asserted.** Near-miss rejection and paraphrase retention are
    reported on *blind* corpora that no guard was tuned against, gated in CI against regression
-   ([CORPUS.md](CORPUS.md)), and reported as **guard-only**: the `Verifier` is not in the measured loop,
+   ([CORPUS.md](docs/CORPUS.md)), and reported as **guard-only**: the `Verifier` is not in the measured loop,
    and the residual it exists to cover is named rather than claimed as covered.
 3. **The defaults are the considered ones** (below), each justified by the corpus.
 

@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-31
+
+`1.1.0` is the first slice of **Tier 6 "production depth & proof"**: the two things the cache was doing
+silently, and the honesty pass on the numbers it publishes. The tier is not closed — keying, shadow
+mode, invalidation beyond TTL and the comparative benchmark are still open.
+
+**Recompile against this version; no source change.** `CacheStats` gains two components, so its
+constructor, `copy` and `componentN` signatures change, and `SemanticCache` gains a trailing
+`cachePolicy` parameter, which changes its synthetic default-argument constructors. No calling code has
+to be edited, and `CacheStats` is only ever constructed by the library. This ships as a minor because
+[STABILITY.md](STABILITY.md) now separates source compatibility, guaranteed across `1.x`, from
+binary compatibility, which is a minor-version boundary.
+
 ### Added
 
 - Cache policy (M22): a `CachePolicy` seam and `SemanticCache(cachePolicy = …)`. One suspending
@@ -41,23 +54,38 @@ All notable changes to this project are documented here. The format follows
 - Docs: the multilingual guard packs were described as "measured against a localized near-miss corpus".
   `LocalizedGuardsTest` asserts hand-written in-sample pairs, so the README now calls them a regression
   check on the packs rather than a blind measurement.
-- Docs: `docs/STABILITY.md` linked a `ROADMAP.md` that no longer exists; it now links the board.
+- Docs: `STABILITY.md` linked a `ROADMAP.md` that no longer exists; it now links the board.
+- `STABILITY.md` now separates **source** compatibility, guaranteed across `1.x`, from **binary**
+  compatibility, which is a minor-version boundary and never a patch one. The previous wording said only
+  "no breaking change without a major version bump" and left the two indistinguishable, which priced a
+  new counter on a result type at the cost of an ecosystem migration.
+- Docs: the README prose, brand assets and the project-page link were refreshed after `1.0.0`.
+- `STABILITY.md` moved from `docs/` to the repository root, where the NaCode Studios library standard
+  puts it. Every link in the README and this file was repointed, including the ones in older entries, so
+  no path in the repository is left resolving to nothing.
 
-### Notes
+### Removed
 
-- **Recompile required, no source change.** `CacheStats` gains two components, so its constructor,
-  `copy` and `componentN` signatures change, and `SemanticCache` gains a trailing `cachePolicy`
-  parameter, which changes its synthetic default-argument constructors. Code compiled against `1.0.0`
-  must be rebuilt against this version; no calling code has to be edited, and `CacheStats` is only ever
-  constructed by the library. This ships as a **minor**, not a major:
-  [STABILITY.md](docs/STABILITY.md) now states the distinction it previously left implicit, between
-  source compatibility (guaranteed across `1.x`) and binary compatibility (a minor-version boundary).
+- `ROADMAP.md` and `ROADMAP-CONVENTIONS.md`. The plan now lives on the
+  [board](https://github.com/orgs/NaCode-Studios/projects/5), with one repository milestone per tier, so
+  it cannot drift from a second copy in the repository.
+
+### Internal
+
+- `io.lettuce:lettuce-core` 6.5.1 → **7.6.0**. Lettuce 7 no longer allows the RediSearch keywords to be
+  an enum, so `RedisStore` builds them as arguments instead. Contained entirely within
+  `kmemo-store-redis`; no public API changed and no `.api` file moved.
+- Gradle wrapper 8.14.5 → **9.6.1**.
+- `com.vanniktech.maven.publish` 0.35.0 → 0.37.0, `me.champeau.jmh` 0.7.2 → 0.7.3, and a
+  `logback-classic` bump in the test-and-tooling group.
+- `CODEOWNERS` now names the `@NaCode-Studios/libraries` team rather than a single account, which was
+  deadlocking every pull request the sole maintainer opened.
 
 ## [1.0.0] - 2026-07-22
 
 `1.0.0` is the **Tier 5 "quality & the road to `1.0`"** release, and the milestone it leads to: CI, supply
 chain and test depth brought up to a mature OSS standard, and a written stability commitment. From here,
-the public API is backwards-compatible within the `1.x` line — see [docs/STABILITY.md](docs/STABILITY.md).
+the public API is backwards-compatible within the `1.x` line — see [STABILITY.md](STABILITY.md).
 
 ### Added
 
@@ -70,10 +98,10 @@ the public API is backwards-compatible within the `1.x` line — see [docs/STABI
 - CI & supply chain (M15): a JDK 17/21/23 build matrix; `.github/dependabot.yml` (Gradle + Actions); and
   a dependency-review CVE gate on PRs.
 - Docs (M15/M16): `docs/CORPUS.md` (the process for growing the blind corpus splits without contaminating
-  them) and `docs/STABILITY.md` (the semver/stability policy — now in effect for `1.x` — the Java-interop
+  them) and `STABILITY.md` (the semver/stability policy — now in effect for `1.x` — the Java-interop
   position, and the rationale behind every default).
 
-### Notes
+### Internal
 
 - **Stability**: as of `1.0`, no breaking change to a stable public API without a major version bump.
 - Releases stay **tag-driven** (no SNAPSHOT publishing), matching the convention used across NaCode
@@ -278,7 +306,11 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
 - Published to Maven Central and GitHub Packages under `io.github.nacode-studios` (package
   `dev.kmemo`), with the public API tracked by binary-compatibility-validator (`./gradlew apiCheck`).
 
-[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/NaCode-Studios/Kmemo/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.5.0...v1.0.0
+[0.5.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/NaCode-Studios/Kmemo/releases/tag/v0.1.0
