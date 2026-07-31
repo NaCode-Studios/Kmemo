@@ -135,9 +135,9 @@ public class PostgresStore(
         // A GIN index on tags makes this a query rather than a scan, which is the whole reason tags are
         // a column and not a key inside the metadata json.
         val sql = if (scope == null) {
-            "DELETE FROM $table WHERE tags @> ARRAY[?]"
+            "DELETE FROM $table WHERE tags @> ARRAY[?]::text[]"
         } else {
-            "DELETE FROM $table WHERE tags @> ARRAY[?] AND scope = ?"
+            "DELETE FROM $table WHERE tags @> ARRAY[?]::text[] AND scope = ?"
         }
         connection.prepareStatement(sql).use { statement ->
             statement.setString(1, tag)

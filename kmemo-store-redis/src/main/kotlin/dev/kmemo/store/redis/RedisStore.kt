@@ -127,8 +127,9 @@ public class RedisStore(
             .add(query)
             .add("PARAMS").add(2L).add("BLOB").add(encodeVector(embedding))
             .add("SORTBY").add(SCORE)
-            .add("RETURN").add(7L)
-            .add(SCOPE).add(PROMPT).add(RESPONSE).add(CREATED_AT).add(EMBEDDING).add(METADATA).add(SCORE)
+            .add("RETURN").add(8L)
+            .add(SCOPE).add(PROMPT).add(RESPONSE).add(CREATED_AT).add(EMBEDDING).add(METADATA)
+            .add(TAGS).add(SCORE)
             .add("LIMIT").add(0L).add(limit.toLong())
             .add("DIALECT").add(2L)
 
