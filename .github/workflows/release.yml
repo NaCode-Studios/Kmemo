@@ -7,6 +7,9 @@ on:
 
 permissions:
   contents: write   # required to create the GitHub Release
+  # Build provenance: id-token signs the attestation, attestations stores it against the repository.
+  id-token: write
+  attestations: write
 
 jobs:
   publish:
@@ -23,6 +26,32 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
+
+      # Assembled before the attestation so the provenance covers the exact files the publish step
+      # uploads: the publish tasks find these up to date and send them rather than rebuilding.
+      - name: Assemble the published artifacts
+        run: ./gradlew assemble --no-daemon --no-configuration-cache
+
+      # Derived from the build, not listed by hand. A module that starts publishing is attested without
+      # anyone remembering to add it here, one that ships no jar (the BOM) is skipped, and a module that
+      # builds a jar but is not published (the TCK, the benchmarks, the example) is never attested.
+      - name: Collect the published artifacts
+        id: artifacts
+        run: |
+          {
+            echo 'paths<<PATHS'
+            for m in $(grep -l 'mavenPublishing' */build.gradle.kts | xargs -n1 dirname); do
+              compgen -G "$m/build/libs/*.jar" >/dev/null && echo "$m/build/libs/*.jar"
+            done
+            echo PATHS
+          } >> "$GITHUB_OUTPUT"
+
+      # Before publishing, so a failed attestation cannot leave released-but-unattested artifacts.
+      - name: Attest build provenance (SLSA)
+        if: github.event_name == 'push'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: ${{ steps.artifacts.outputs.paths }}
 
       - name: Publish to Maven Central
         if: github.event_name == 'push'
