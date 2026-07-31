@@ -1,0 +1,1273 @@
+{
+  "pairs": [
+    {
+      "split": "held-out",
+      "category": "med-dose",
+      "shouldMatch": false,
+      "a": "Is 400 mcg of folic acid enough for a pregnant adult?",
+      "b": "Is 400 mg of folic acid enough for a pregnant adult?",
+      "responseA": "Yes. 400 mcg daily is the standard recommendation from before conception through the first trimester, and most prenatal vitamins contain between 400 and 800 mcg. A previous neural tube defect pregnancy is the usual reason to take considerably more, on medical advice.",
+      "responseB": "No, that is a thousand times the usual dose. The recommendation is 400 micrograms, not milligrams, and 400 mg is far above the 1 mg tolerable upper limit for supplemental folic acid, which can mask a B12 deficiency. Check the label, it almost certainly says mcg."
+    },
+    {
+      "split": "held-out",
+      "category": "legal-tax",
+      "shouldMatch": false,
+      "a": "what is the capital gains tax rate when i sell a second home",
+      "b": "what is the capital gains tax rate when i sell a primary residence",
+      "responseA": "Gain on a second home is taxable in full. The long-term rate is 0%, 15% or 20% depending on your taxable income, plus the 3.8% net investment income tax at higher incomes, and no exclusion is available.",
+      "responseB": "If you owned and lived in it for at least two of the last five years you can exclude up to $250,000 of gain, or $500,000 filing jointly. Only the gain above the exclusion is taxed, at the usual long-term rates."
+    },
+    {
+      "split": "held-out",
+      "category": "version-api",
+      "shouldMatch": false,
+      "a": "in pandas does groupby sort the keys by default",
+      "b": "in pandas does groupby drop na keys by default",
+      "responseA": "Yes. sort=True is the default, so the group keys come back in sorted order. Passing sort=False keeps them in order of first appearance and is usually slightly faster.",
+      "responseB": "Yes. dropna=True is the default, so rows whose group key is NaN are excluded entirely. Pass dropna=False if you want a separate NaN group."
+    },
+    {
+      "split": "held-out",
+      "category": "version-api",
+      "shouldMatch": false,
+      "a": "does a dict preserve insertion order in python",
+      "b": "does a map preserve insertion order in go",
+      "responseA": "Yes. Since 3.7 insertion order is part of the language specification for dict, and it was already true as a CPython implementation detail in 3.6.",
+      "responseB": "No. Map iteration order is deliberately randomised and the specification guarantees nothing. Collect the keys into a slice and sort them if you need a stable order."
+    },
+    {
+      "split": "held-out",
+      "category": "version-api",
+      "shouldMatch": false,
+      "a": "are strings mutable in go",
+      "b": "are strings mutable in ruby",
+      "responseA": "No. A string is a read-only slice of bytes. To change one you convert to []byte or []rune, modify that, and convert back.",
+      "responseB": "Yes by default, so << and gsub! change the object in place. Calling freeze, or the frozen_string_literal magic comment, makes literals immutable."
+    },
+    {
+      "split": "held-out",
+      "category": "sports",
+      "shouldMatch": false,
+      "a": "how many goals did the top scorer net in the premier league last season",
+      "b": "how many goals did the top scorer net in la liga last season",
+      "responseA": "The league's leading scorer finished on 29 goals, enough to take the Golden Boot outright.",
+      "responseB": "The top scorer ended the season on 27 goals, clear of the chasing pack by four."
+    },
+    {
+      "split": "held-out",
+      "category": "sports",
+      "shouldMatch": false,
+      "a": "What is the NBA record for most points in a regular season game?",
+      "b": "What is the NBA record for most points in a playoff game?",
+      "responseA": "Wilt Chamberlain scored 100 points against the New York Knicks in 1962, and nothing since has come close.",
+      "responseB": "Michael Jordan scored 63 against the Celtics in 1986, still the most in a single playoff game."
+    },
+    {
+      "split": "held-out",
+      "category": "file-format",
+      "shouldMatch": false,
+      "a": "how do i escape a comma inside a csv field",
+      "b": "how do i escape a tab inside a tsv field",
+      "responseA": "Wrap the whole field in double quotes: a,\"b,c\",d. If the field also contains a double quote, double it, so she said \"hi\" becomes \"she said \"\"hi\"\"\". Every conforming reader handles this.",
+      "responseB": "You cannot, because the format has no quoting convention. The usual answers are to replace the character with a literal backslash-t, or to strip it. If your data can contain that character, this is the wrong format for it."
+    },
+    {
+      "split": "held-out",
+      "category": "file-format",
+      "shouldMatch": false,
+      "a": "what is the maximum row limit in an xlsx spreadsheet",
+      "b": "what is the maximum row limit in an xls spreadsheet",
+      "responseA": "1,048,576 rows and 16,384 columns per sheet.",
+      "responseB": "65,536 rows and 256 columns per sheet. That limit is the main reason the format was replaced."
+    },
+    {
+      "split": "held-out",
+      "category": "db-isolation",
+      "shouldMatch": false,
+      "a": "what anomalies are still possible under read committed in postgres",
+      "b": "what anomalies are still possible under repeatable read in postgres",
+      "responseA": "It prevents dirty reads only. Non-repeatable reads, phantoms and lost updates are all still possible, so any read-modify-write cycle needs explicit locking.",
+      "responseB": "Postgres implements it as snapshot isolation, so dirty reads, non-repeatable reads and phantoms are all prevented. What remains is write skew, and serialization failures the application has to be ready to retry."
+    },
+    {
+      "split": "held-out",
+      "category": "db-isolation",
+      "shouldMatch": false,
+      "a": "does serializable isolation prevent phantom reads",
+      "b": "does read committed isolation prevent phantom reads",
+      "responseA": "Yes. It is defined to, and Postgres enforces it with predicate locking, aborting one transaction with a serialization failure rather than letting the anomaly happen.",
+      "responseB": "No. A fresh snapshot is taken for each statement, so a row inserted by another transaction can appear between two identical queries in the same transaction. That is exactly the anomaly this level permits."
+    },
+    {
+      "split": "held-out",
+      "category": "http-status",
+      "shouldMatch": false,
+      "a": "what does a bad gateway error mean on my website",
+      "b": "what does a gateway timeout error mean on my website",
+      "responseA": "502 means a proxy got an invalid response from the server behind it. Usually the application crashed, is not listening, or returned something malformed. Check the app process and the upstream address in the proxy config.",
+      "responseB": "504 means the proxy reached the upstream server but gave up waiting for a reply. The application is alive but too slow, so look at long queries, blocked threads and the proxy read timeout."
+    },
+    {
+      "split": "held-out",
+      "category": "http-status",
+      "shouldMatch": false,
+      "a": "why is the api returning a too many requests error",
+      "b": "why is the api returning a service unavailable error",
+      "responseA": "429 is rate limiting: you sent more requests than your quota allows. Back off, honour the Retry-After header, and add jitter to retries.",
+      "responseB": "503 means the service is temporarily unable to handle the request, usually overload, a restart or maintenance. It is a server-side condition rather than anything about your request rate, and it is worth retrying with backoff."
+    },
+    {
+      "split": "held-out",
+      "category": "chemical",
+      "shouldMatch": false,
+      "a": "what is the boiling point of ethanol at sea level",
+      "b": "what is the boiling point of methanol at sea level",
+      "responseA": "78.4 degrees Celsius at one atmosphere.",
+      "responseB": "64.7 degrees Celsius at one atmosphere."
+    },
+    {
+      "split": "held-out",
+      "category": "recipe-sub",
+      "shouldMatch": false,
+      "a": "can i use baking soda instead of baking powder in pancakes",
+      "b": "can i use baking powder instead of baking soda in pancakes",
+      "responseA": "Only if the batter contains an acid for it to react with, such as buttermilk, yogurt or a splash of vinegar. Use about a quarter of the amount. Without an acid the pancakes stay flat and taste soapy.",
+      "responseB": "Yes, but use roughly three times as much, since it is mostly starch and acid with a small amount of the active ingredient. Cut back any acidic liquid slightly or the crumb ends up dense."
+    },
+    {
+      "split": "held-out",
+      "category": "recipe-sub",
+      "shouldMatch": false,
+      "a": "what can i substitute for buttermilk in a cake",
+      "b": "what can i substitute for butter in a cake",
+      "responseA": "Stir a tablespoon of lemon juice or white vinegar into a cup of milk and leave it ten minutes. Plain yogurt or kefir thinned with milk works just as well.",
+      "responseB": "Neutral oil at about three quarters of the weight keeps the crumb moist, though you lose flavour and it will not cream. Unsweetened applesauce or mashed banana also work if you accept something denser and sweeter."
+    },
+    {
+      "split": "held-out",
+      "category": "currency",
+      "shouldMatch": false,
+      "a": "what currency do they use in denmark",
+      "b": "what currency do they use in poland",
+      "responseA": "The krone, DKK. The country is in the EU but negotiated an opt-out from the euro, and the currency is pegged to it within a narrow band.",
+      "responseB": "The zloty, PLN. The country is in the EU but has not adopted the euro, and the currency floats freely."
+    },
+    {
+      "split": "held-out",
+      "category": "currency",
+      "shouldMatch": false,
+      "a": "what is the currency code for the japanese yen",
+      "b": "what is the currency code for the chinese yuan",
+      "responseA": "JPY. The symbol is shared with another Asian currency, which is why the three-letter code is worth using in anything financial.",
+      "responseB": "CNY. You will also see CNH quoted, which is the same currency traded offshore, and RMB used informally for the currency's name."
+    },
+    {
+      "split": "held-out",
+      "category": "error-code",
+      "shouldMatch": false,
+      "a": "how do i fix a segmentation fault in my c program",
+      "b": "how do i fix a bus error in my c program",
+      "responseA": "You dereferenced memory you do not own: a null or dangling pointer, or an index past the end of an array. Build with -g -fsanitize=address and run it, and AddressSanitizer will name the line.",
+      "responseB": "That usually means a misaligned access or a mapping problem: reading past the end of an mmapped file, or writing through a pointer to a string literal, which lives in read-only memory. Check your mmap lengths and any char * you assigned a literal to."
+    },
+    {
+      "split": "held-out",
+      "category": "timezone",
+      "shouldMatch": false,
+      "a": "does japan observe daylight saving time",
+      "b": "does new zealand observe daylight saving time",
+      "responseA": "No. The country stays on UTC+9 all year and has not used daylight saving since the late 1940s.",
+      "responseB": "Yes. It runs from late September to early April, moving from UTC+12 to UTC+13."
+    },
+    {
+      "split": "held-out",
+      "category": "plural",
+      "shouldMatch": false,
+      "a": "can i claim damage in small claims court",
+      "b": "can i claim damages in small claims court",
+      "responseA": "Yes, if you can show the loss and the amount is within your court's limit. Bring photographs, repair quotes and any correspondence, because the court wants evidence of what was harmed and what putting it right cost.",
+      "responseB": "Yes. That is the general term for the money a court awards you, and small claims exists for modest amounts of exactly that kind, usually without a lawyer."
+    },
+    {
+      "split": "held-out",
+      "category": "plural",
+      "shouldMatch": false,
+      "a": "how many taxes do i pay as a freelancer",
+      "b": "how much tax do i pay as a freelancer",
+      "responseA": "Generally three: federal income tax, state income tax where it applies, and self-employment tax covering Social Security and Medicare. Some cities add a local business tax on top of those.",
+      "responseB": "It depends on net profit, but budget roughly 25 to 30% of it. Self-employment tax alone is 15.3% up to the wage base, with income tax at your marginal rate on top."
+    },
+    {
+      "split": "held-out",
+      "category": "percent-points",
+      "shouldMatch": false,
+      "a": "my conversion rate went up 5 percent last month, what is it now",
+      "b": "my conversion rate went up 5 percentage points last month, what is it now",
+      "responseA": "A relative rise multiplies the old rate by 1.05, so 2.0% becomes 2.1%. Take your previous figure and multiply rather than add.",
+      "responseB": "Those add directly, so a rate of 2.0% is now 7.0%. That is a relative increase of 250%, which is a very large move, and worth double-checking your tracking before celebrating."
+    },
+    {
+      "split": "held-out",
+      "category": "percent-points",
+      "shouldMatch": false,
+      "a": "unemployment rose by 2 percent this quarter, how bad is that",
+      "b": "unemployment rose by 2 percentage points this quarter, how bad is that",
+      "responseA": "Small. If the rate was 5.0%, a relative rise of that size takes it to 5.1%, which is inside ordinary month-to-month noise.",
+      "responseB": "Severe. Going from 5.0% to 7.0% in a quarter is the kind of move seen in a sharp recession, and typically means millions of jobs."
+    },
+    {
+      "split": "held-out",
+      "category": "gross-net",
+      "shouldMatch": false,
+      "a": "what is my gross margin on this product",
+      "b": "what is my net margin on this product",
+      "responseA": "Revenue minus cost of goods sold, divided by revenue. It tells you what each sale contributes before overhead, salaries or marketing.",
+      "responseB": "Profit after every expense, including overhead, salaries, interest and tax, divided by revenue. It is what actually reaches the bottom line."
+    },
+    {
+      "split": "validation",
+      "category": "cooking",
+      "shouldMatch": false,
+      "a": "can i substitute baking soda for baking powder in pancakes",
+      "b": "can i substitute baking powder for baking soda in pancakes",
+      "responseA": "Only where the batter already contains an acid such as buttermilk or yogurt, and then use about a quarter as much. On its own it has nothing to react with and leaves a soapy taste.",
+      "responseB": "Yes, at roughly three times the amount, because it is diluted with acid and starch. Reduce any acidic ingredient a little to keep the balance right."
+    },
+    {
+      "split": "validation",
+      "category": "gardening",
+      "shouldMatch": false,
+      "a": "When should I prune my apple tree?",
+      "b": "When should I prune my cherry tree?",
+      "responseA": "Late winter, while the tree is dormant and before the buds swell. The structure is visible then and the wounds close quickly once growth resumes.",
+      "responseB": "In summer, just after fruiting. These are prone to silver leaf and bacterial canker, and cutting in dry summer weather rather than in winter keeps those spores out of the wounds."
+    },
+    {
+      "split": "validation",
+      "category": "gardening",
+      "shouldMatch": false,
+      "a": "should i plant garlic in spring",
+      "b": "should i plant garlic in fall",
+      "responseA": "You can, but expect smaller bulbs, because it misses the cold period that triggers proper clove division. Plant as early as the soil can be worked and choose a softneck variety.",
+      "responseB": "Yes, that is the right time. Get it in four to six weeks before the ground freezes so roots establish without top growth, mulch well, and harvest the following midsummer."
+    },
+    {
+      "split": "validation",
+      "category": "home-repair",
+      "shouldMatch": false,
+      "a": "how do i fix a running toilet",
+      "b": "how do i fix a leaking toilet",
+      "responseA": "Almost always the flapper or the fill valve. Shut off the supply and look at whether water is spilling into the overflow tube, which means the fill valve is set too high. If not, replace the flapper, which is a five-minute job.",
+      "responseB": "Find where the water is coming from first. At the base it is usually the wax ring, which means pulling the fixture and replacing it. At the tank bolts or the supply line it is a gasket or a loose connection you can tighten or swap."
+    },
+    {
+      "split": "validation",
+      "category": "home-repair",
+      "shouldMatch": false,
+      "a": "can i paint over wallpaper",
+      "b": "can i wallpaper over paint",
+      "responseA": "You can if the paper is firmly stuck. Glue down loose seams, skim any texture, prime with an oil-based or shellac primer so the water does not lift the paper, then finish as normal.",
+      "responseB": "Yes, and it is the easier direction. Clean the wall, sand any gloss so the paste has something to key into, prime, and hang as usual. Fresh paint should cure for a few weeks first."
+    },
+    {
+      "split": "validation",
+      "category": "finance",
+      "shouldMatch": false,
+      "a": "how long do late payments stay on your credit report",
+      "b": "how long do bankruptcies stay on your credit report",
+      "responseA": "Seven years from the date of the missed payment. The impact fades well before then, and one from five years ago counts for very little.",
+      "responseB": "A Chapter 7 stays for ten years from the filing date and a Chapter 13 comes off after seven. Either is the single most damaging entry a report can carry."
+    },
+    {
+      "split": "validation",
+      "category": "finance",
+      "shouldMatch": false,
+      "a": "how much is capital gains tax in the uk",
+      "b": "how much is capital gains tax in the us",
+      "responseA": "For 2024/25, 18% or 24% on residential property and 10% or 20% on other assets depending on whether you are a basic or higher rate taxpayer, after an annual exempt amount of 3,000 pounds.",
+      "responseB": "Assets held over a year are taxed at 0%, 15% or 20% depending on taxable income, plus a 3.8% net investment income tax at higher incomes. Held a year or less, the gain is taxed as ordinary income."
+    },
+    {
+      "split": "validation",
+      "category": "insurance",
+      "shouldMatch": false,
+      "a": "does my auto policy cover a rental car in the us",
+      "b": "does my auto policy cover a rental car abroad",
+      "responseA": "Usually yes. Most policies extend liability and collision to a rental within the country, with the same deductible. Check whether loss of use is included, because that is what rental firms bill for.",
+      "responseB": "Usually not. Most policies stop at the border, apart from Canada and sometimes Mexico. You generally need the rental company's own cover or a credit card benefit that explicitly says it applies outside the country."
+    },
+    {
+      "split": "validation",
+      "category": "insurance",
+      "shouldMatch": false,
+      "a": "does pet insurance cover pre existing conditions",
+      "b": "does pet insurance cover hereditary conditions",
+      "responseA": "No. Every insurer excludes anything that showed signs before the policy started or during the waiting period, and some will exclude a related complaint later as well.",
+      "responseB": "Often yes, provided the policy is bought before any sign appears. Most comprehensive plans include them, though some breed-specific ones are excluded or capped, so read the schedule."
+    },
+    {
+      "split": "validation",
+      "category": "travel",
+      "shouldMatch": false,
+      "a": "do i need a visa for japan with a us passport",
+      "b": "do i need a visa for japan with a uk passport",
+      "responseA": "No, not for a tourist stay of up to 90 days. You will need an onward ticket and a passport valid for the trip.",
+      "responseB": "No. Up to 90 days visa-free, and that can be extended once to six months by applying after you arrive."
+    },
+    {
+      "split": "validation",
+      "category": "travel",
+      "shouldMatch": false,
+      "a": "how long can i stay in the schengen area as a tourist",
+      "b": "how long can i stay in the uk as a tourist",
+      "responseA": "90 days in any rolling 180-day period, counted across the whole area rather than per country. The window moves, so count carefully if you travel often.",
+      "responseB": "Up to six months per visit. There is no fixed annual allowance, and a border officer can refuse entry if your pattern of visits starts to look like living there."
+    },
+    {
+      "split": "validation",
+      "category": "travel",
+      "shouldMatch": false,
+      "a": "cheapest month to fly from london to tokyo",
+      "b": "cheapest month to fly from tokyo to london",
+      "responseA": "Late January and early February, once New Year is over and before the cherry blossom rush starts. May and October are the most expensive.",
+      "responseB": "Late January into February. Fares out of the country spike hardest around New Year, Golden Week and Obon, so the gap between those is where the cheap seats are."
+    },
+    {
+      "split": "validation",
+      "category": "fitness",
+      "shouldMatch": false,
+      "a": "how much protein a day to build muscle",
+      "b": "how much protein a day to lose fat",
+      "responseA": "About 1.6 to 2.2 g per kg of bodyweight a day, spread across three or four meals. Beyond that has not been shown to add anything when training and calories are adequate.",
+      "responseB": "Higher rather than lower, around 2.0 to 2.4 g per kg. Protein is what preserves lean mass while calories are down, and it keeps you full."
+    },
+    {
+      "split": "validation",
+      "category": "nutrition",
+      "shouldMatch": false,
+      "a": "how much caffeine is in a shot of espresso",
+      "b": "how much caffeine is in a cup of drip coffee",
+      "responseA": "About 63 mg in a single shot, though it varies with the bean and the dose.",
+      "responseB": "About 95 mg in an 8 oz cup, and often 150 to 200 mg in the mugs people actually pour."
+    },
+    {
+      "split": "validation",
+      "category": "nutrition",
+      "shouldMatch": false,
+      "a": "how much vitamin d should i take daily",
+      "b": "how much vitamin c should i take daily",
+      "responseA": "600 IU, or 15 mcg, for most adults, and 800 IU over 70. Many people take 1,000 to 2,000 IU; the tolerable upper limit is 4,000 IU.",
+      "responseB": "75 mg a day for women and 90 mg for men, with an extra 35 mg advised for smokers. The upper limit is 2,000 mg, above which you mostly get stomach upset."
+    },
+    {
+      "split": "validation",
+      "category": "pets",
+      "shouldMatch": false,
+      "a": "can dogs eat grapes",
+      "b": "can dogs eat apples",
+      "responseA": "No. Grapes and raisins can cause acute kidney failure, and no safe dose is known. If any have been eaten, call a vet straight away.",
+      "responseB": "Yes, in moderation. Take out the core and seeds, since the seeds contain small amounts of cyanide, and slice it up. It makes a good low-calorie treat."
+    },
+    {
+      "split": "validation",
+      "category": "pets",
+      "shouldMatch": false,
+      "a": "how often should i deworm a puppy",
+      "b": "how often should i deworm an adult dog",
+      "responseA": "Every two weeks from two weeks old until twelve weeks, then monthly to six months.",
+      "responseB": "Typically every three months, more often for one that hunts, scavenges or lives with young children. A faecal test will tell you whether a heavier schedule is warranted."
+    },
+    {
+      "split": "validation",
+      "category": "pets",
+      "shouldMatch": false,
+      "a": "is xylitol toxic to dogs",
+      "b": "is xylitol toxic to cats",
+      "responseA": "Extremely. It triggers a rapid insulin release and life-threatening hypoglycaemia, and liver failure at higher doses. Treat any ingestion as an emergency.",
+      "responseB": "They appear far less sensitive, and no clear toxic dose has been established. It is still not something to offer, but the emergency response does not apply in the same way."
+    },
+    {
+      "split": "validation",
+      "category": "pets",
+      "shouldMatch": false,
+      "a": "when do kittens get their first vaccines",
+      "b": "when do puppies get their first vaccines",
+      "responseA": "At six to eight weeks, then boosters every three to four weeks until about sixteen weeks. The core course covers panleukopenia, calicivirus and herpesvirus.",
+      "responseB": "At six to eight weeks, then every two to four weeks until sixteen weeks. The core course covers distemper, parvovirus and adenovirus, with rabies at twelve to sixteen weeks depending on local law."
+    },
+    {
+      "split": "validation",
+      "category": "pets",
+      "shouldMatch": false,
+      "a": "can i give my dog benadryl for itching",
+      "b": "can i give my cat benadryl for itching",
+      "responseA": "Usually yes, at about 1 mg per pound of bodyweight two or three times a day, using plain diphenhydramine with no added decongestant. Confirm the dose with your vet first.",
+      "responseB": "Sometimes, but they are much more sensitive and often react paradoxically with agitation. Do not give it without a vet's dose, and never a combination product."
+    },
+    {
+      "split": "validation",
+      "category": "cars",
+      "shouldMatch": false,
+      "a": "what psi should my tires be in summer",
+      "b": "what psi should my tires be in winter",
+      "responseA": "Use the figure on the door jamb sticker rather than the number moulded into the sidewall, usually 32 to 35 psi. Check when the tyres are cold, since driving adds a few psi.",
+      "responseB": "The same door jamb figure, but check more often. Pressure falls about 1 psi for every 10 degrees Fahrenheit the temperature drops, so a cold snap can put you several psi under with no leak at all."
+    },
+    {
+      "split": "validation",
+      "category": "cars",
+      "shouldMatch": false,
+      "a": "can i use 87 octane in a car that requires 91",
+      "b": "can i use 91 octane in a car that requires 87",
+      "responseA": "Only if the manual says the higher grade is recommended rather than required. Knock sensors will retard timing to protect the engine, at the cost of power and economy. If the manual says required, do not.",
+      "responseB": "Yes, and it is harmless, but pointless. Higher octane resists knock, it does not carry more energy, so an engine tuned for the lower grade gains nothing and you are paying for it."
+    },
+    {
+      "split": "validation",
+      "category": "music",
+      "shouldMatch": false,
+      "a": "how do i tune a guitar to drop d",
+      "b": "how do i tune a guitar to open d",
+      "responseA": "Drop the low E a whole step to D and leave everything else alone, giving D A D G B E. Match the open sixth string to the fourth string an octave up.",
+      "responseB": "Tune to D A D F# A D: sixth and first strings down a whole step, third down a half step, second down a whole step. Strumming open then gives you a D major chord."
+    },
+    {
+      "split": "validation",
+      "category": "music",
+      "shouldMatch": false,
+      "a": "how do i read bass clef",
+      "b": "how do i read treble clef",
+      "responseA": "It is the F clef, and the two dots straddle the F below middle C. Lines from the bottom are G B D F A, spaces are A C E G.",
+      "responseB": "It is the G clef, and its curl wraps the second line, which is the G above middle C. Lines are E G B D F and the spaces spell FACE."
+    },
+    {
+      "split": "validation",
+      "category": "photography",
+      "shouldMatch": false,
+      "a": "how do i clean my camera sensor",
+      "b": "how do i clean my camera lens",
+      "responseA": "Start with a rocket blower, with a charged battery and the body in cleaning mode. If spots survive, use a correctly sized wet swab with one drop of fluid, a single pass each way. Never use compressed air.",
+      "responseB": "Blow the grit off first, then a few drops of cleaning fluid on a microfibre cloth, wiping from the centre outwards. Never put fluid directly on the glass."
+    },
+    {
+      "split": "validation",
+      "category": "games",
+      "shouldMatch": false,
+      "a": "can you castle out of check in chess",
+      "b": "can you castle through check in chess",
+      "responseA": "No. You have to answer the check first, though castling stays available later once it has been dealt with.",
+      "responseB": "No. The king may not cross a square that is attacked. The rook is allowed to, though, so the restriction applies only to the king's path."
+    },
+    {
+      "split": "validation",
+      "category": "games",
+      "shouldMatch": false,
+      "a": "how many cards do you deal each player in texas holdem",
+      "b": "how many cards do you deal each player in omaha",
+      "responseA": "Two hole cards each, with five community cards on the board.",
+      "responseB": "Four hole cards each, and you must use exactly two of them together with exactly three from the board."
+    },
+    {
+      "split": "validation",
+      "category": "games",
+      "shouldMatch": false,
+      "a": "how long is an nba quarter",
+      "b": "how long is an nhl period",
+      "responseA": "12 minutes, four of them, so 48 minutes of play. Overtime is five minutes.",
+      "responseB": "20 minutes, three of them, so 60 minutes of play. Regular-season overtime is five minutes of three-on-three."
+    },
+    {
+      "split": "validation",
+      "category": "language",
+      "shouldMatch": false,
+      "a": "when do you use ser instead of estar in spanish",
+      "b": "when do you use estar instead of ser in spanish",
+      "responseA": "For what something fundamentally is: identity, origin, profession, inherent characteristics, and time. Es medico, Son las tres, Soy de Madrid.",
+      "responseB": "For state and location, meaning how something is right now and where it is. Esta cansado, Estoy en casa. It also forms the progressive, as in estoy comiendo."
+    },
+    {
+      "split": "validation",
+      "category": "childcare",
+      "shouldMatch": false,
+      "a": "when can a baby start eating solid food",
+      "b": "when can a baby start drinking cows milk",
+      "responseA": "Around six months, once they can sit up with support and have lost the tongue-thrust reflex. Introduce single ingredients a few days apart so you can spot a reaction.",
+      "responseB": "At twelve months. Before then it is too low in iron and too high in protein and minerals for an infant's kidneys, though it is fine used in cooking from six months."
+    },
+    {
+      "split": "validation",
+      "category": "weather",
+      "shouldMatch": false,
+      "a": "What does a tornado watch mean?",
+      "b": "What does a tornado warning mean?",
+      "responseA": "Conditions are favourable for one to form in your area. Stay alert, keep a way to receive alerts, and know where you would shelter.",
+      "responseB": "One has been sighted or picked up on radar. Take shelter immediately: lowest floor, interior room, away from windows."
+    },
+    {
+      "split": "validation",
+      "category": "weather",
+      "shouldMatch": false,
+      "a": "is it humid in phoenix in july",
+      "b": "is it humid in houston in july",
+      "responseA": "Not by most standards. Monsoon season lifts dew points for a few weeks, but it is desert and the moisture stays low compared with the Gulf coast. The heat is the problem, not the humidity.",
+      "responseB": "Very. It sits on the Gulf, and July dew points in the mid-70s Fahrenheit make it feel considerably hotter than the thermometer reads."
+    },
+    {
+      "split": "validation",
+      "category": "weather",
+      "shouldMatch": false,
+      "a": "when is the rainy season in bali",
+      "b": "when is the rainy season in thailand",
+      "responseA": "Roughly November to March, heaviest in December and January. It tends to arrive as intense afternoon downpours rather than all-day rain.",
+      "responseB": "It depends which coast. Most of the country, including the capital and the Andaman side, is wettest from May to October, while the Gulf islands are wettest from October to December."
+    },
+    {
+      "split": "validation",
+      "category": "software",
+      "shouldMatch": false,
+      "a": "how do i copy a file in python",
+      "b": "how do i move a file in python",
+      "responseA": "shutil.copy2(src, dst) copies the contents and preserves timestamps and permissions. shutil.copy skips the metadata.",
+      "responseB": "shutil.move(src, dst). It renames when source and destination are on the same filesystem, and falls back to copy-then-delete when they are not."
+    },
+    {
+      "split": "held-out",
+      "category": "negation",
+      "shouldMatch": true,
+      "a": "Why can't I connect to my company VPN from home?",
+      "b": "Why is my connection to the company VPN failing when I am at home?",
+      "responseA": "Usually one of three things: the client never reaches the gateway, the credentials or certificate have expired, or something on your home network blocks the tunnel. Check that you can reach the gateway by name and by address, then read the client log for the phase it stops at.",
+      "responseB": "Work through it in order, connectivity to the gateway first, then authentication, then the tunnel itself. Home routers break it most often at the last step, because some mishandle IPsec passthrough, and switching to the TCP or SSL transport usually clears it."
+    },
+    {
+      "split": "held-out",
+      "category": "negation",
+      "shouldMatch": true,
+      "a": "How do I run a container without root privileges?",
+      "b": "How do I run a rootless container?",
+      "responseA": "Run the process as a non-root user inside the image with a USER directive, and pass --user at runtime. For the daemon itself, Podman needs no root at all and Docker has a rootless mode you enable per user.",
+      "responseB": "Podman needs no root by default; for Docker, install the rootless setup so the daemon runs under your own account. Either way still drop privileges inside the image with USER, because a rootless daemon does not by itself make the process unprivileged."
+    },
+    {
+      "split": "held-out",
+      "category": "negation",
+      "shouldMatch": true,
+      "a": "What should I not eat when I am taking an iron supplement?",
+      "b": "Which foods interfere with iron absorption from a supplement?",
+      "responseA": "Keep tea, coffee, milk and calcium supplements an hour either side of the dose. Wholegrains and legumes contain phytates that bind iron too. Vitamin C taken with it helps absorption.",
+      "responseB": "The main culprits are tannins in tea and coffee, calcium from dairy or supplements, and phytates in wholegrains and pulses. Take it on an empty stomach with something acidic such as orange juice if your stomach tolerates that."
+    },
+    {
+      "split": "held-out",
+      "category": "temporal",
+      "shouldMatch": true,
+      "a": "How do I check the current branch in git?",
+      "b": "How do I see which branch I am on in git?",
+      "responseA": "git branch --show-current prints just the name. git status shows it too, along with everything else.",
+      "responseB": "git status tells you at the top, and git branch --show-current gives you only the name, which is what you want inside a script."
+    },
+    {
+      "split": "held-out",
+      "category": "temporal",
+      "shouldMatch": true,
+      "a": "How do I print the current working directory from a shell script?",
+      "b": "How do I show which directory my shell script is running in?",
+      "responseA": "pwd prints it, and $PWD holds it. Note that is where the script was invoked from, not where the script file lives.",
+      "responseB": "Use pwd. If what you actually want is the script's own location that is a different question: dirname \"$0\", or cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd to resolve it fully."
+    },
+    {
+      "split": "held-out",
+      "category": "temporal",
+      "shouldMatch": true,
+      "a": "What is the latest LTS release of Node?",
+      "b": "Which Node release is the newest long term support one?",
+      "responseA": "Node 22 is the current long-term-support line. Even-numbered releases move to LTS each October and are then supported for thirty months.",
+      "responseB": "The most recent supported line is Node 22. Odd-numbered releases never become LTS, so a higher number is not necessarily the one you want."
+    },
+    {
+      "split": "held-out",
+      "category": "scope",
+      "shouldMatch": true,
+      "a": "How do I rotate an SSH host key on a server?",
+      "b": "What are the steps to rotate an SSH host key on a server?",
+      "responseA": "Generate the new keys, keep the old ones in place briefly, restart sshd, publish the new fingerprint, then remove the old keys. Clients will otherwise refuse with a host key changed warning.",
+      "responseB": "Generate the replacements, list them alongside the existing ones in sshd_config, reload sshd, distribute the new fingerprints, and only then delete the old keys. That order is what avoids locking anyone out."
+    },
+    {
+      "split": "held-out",
+      "category": "scope",
+      "shouldMatch": true,
+      "a": "How do I set up a systemd timer?",
+      "b": "Walk me through the steps for setting up a systemd timer.",
+      "responseA": "Write a .service unit with the command, then a matching .timer unit with an OnCalendar line. Enable and start the timer rather than the service, and check systemctl list-timers.",
+      "responseB": "Two files sharing a base name: the .service says what runs, the .timer says when. Drop them in /etc/systemd/system, run daemon-reload, then systemctl enable --now on the timer."
+    },
+    {
+      "split": "held-out",
+      "category": "entity-abbrev",
+      "shouldMatch": true,
+      "a": "What does GDPR require when a user asks for their data to be erased?",
+      "b": "What does the General Data Protection Regulation require when a user asks for their data to be erased?",
+      "responseA": "Article 17 gives a right to erasure. Act without undue delay and generally within a month, delete across backups and processors, and tell anyone you shared the data with, unless a legal obligation or a live contract requires you to keep it.",
+      "responseB": "The right to be forgotten applies: remove the personal data within about a month, propagate that to your processors and recipients, and document any exemption you rely on where you keep something."
+    },
+    {
+      "split": "held-out",
+      "category": "entity-abbrev",
+      "shouldMatch": true,
+      "a": "What is TDD?",
+      "b": "Can you explain what Test Driven Development is?",
+      "responseA": "Write a failing test first, write the least code that makes it pass, then refactor with the test as a safety net. Red, green, refactor, in cycles of minutes rather than hours.",
+      "responseB": "It is letting a test drive each change: express the behaviour you want as a failing test, make it pass simply, then clean up. The test suite comes out as a by-product of the design work rather than as an afterthought."
+    },
+    {
+      "split": "held-out",
+      "category": "word-order",
+      "shouldMatch": true,
+      "a": "Which is better for session storage, Redis or Memcached?",
+      "b": "Which is better for session storage, Memcached or Redis?",
+      "responseA": "Redis in most cases. It persists, replicates, and gives you per-key expiry and far better introspection. The alternative is simpler and marginally faster for pure string caching, but sessions usually want durability.",
+      "responseB": "The leaner option is fine when sessions are genuinely disposable, but Redis is the better fit: persistence and replication mean a restart does not log everybody out, and the richer types help."
+    },
+    {
+      "split": "held-out",
+      "category": "synonym",
+      "shouldMatch": true,
+      "a": "How do I make an environment variable persist across reboots on Linux?",
+      "b": "How do I make an environment variable permanent on Linux?",
+      "responseA": "For your own account put the export in ~/.profile or ~/.bashrc. For every user add a file under /etc/profile.d/. For services use Environment= in the unit instead, since they never read a login shell file.",
+      "responseB": "It depends on scope: ~/.profile for you, /etc/environment or a script in /etc/profile.d/ for everyone. Neither is read by systemd units, which need their own Environment= line."
+    },
+    {
+      "split": "held-out",
+      "category": "filler",
+      "shouldMatch": true,
+      "a": "What is a deadlock in a relational database?",
+      "b": "I am new to databases, could you explain what a deadlock is in a relational database?",
+      "responseA": "Two transactions each hold a lock the other needs, so neither can move. The database detects the cycle and aborts one with a deadlock error. Locking rows in a consistent order across your code is the usual prevention.",
+      "responseB": "Picture two transactions that have each grabbed one of two rows and now want the other. Neither can proceed, so the engine picks a victim and rolls it back, and your application should catch that error and retry."
+    },
+    {
+      "split": "held-out",
+      "category": "typo",
+      "shouldMatch": true,
+      "a": "How do I read a gzipped file in Python?",
+      "b": "how do i raed a gziped file in pythno",
+      "responseA": "import gzip, then with gzip.open(path, \"rt\") as fh. The mode rt gives text, rb gives bytes. Pandas reads .gz paths directly as well.",
+      "responseB": "Use the gzip module: gzip.open(path, \"rt\") behaves like an ordinary text handle. Open it with rb instead if you want the raw bytes."
+    },
+    {
+      "split": "held-out",
+      "category": "typo",
+      "shouldMatch": true,
+      "a": "How do I flush the DNS cache on macOS?",
+      "b": "how do i flsuh the dns cahce on macos",
+      "responseA": "sudo dscacheutil -flushcache followed by sudo killall -HUP mDNSResponder. Both halves matter on recent versions.",
+      "responseB": "Run sudo killall -HUP mDNSResponder, and on current versions pair it with sudo dscacheutil -flushcache. You will be asked for your password."
+    },
+    {
+      "split": "held-out",
+      "category": "typo",
+      "shouldMatch": true,
+      "a": "What is the difference between a mutex and a semaphore?",
+      "b": "whats teh diffrence betwen a mutex and a semaphore",
+      "responseA": "A mutex has one holder and enforces ownership, so whoever locked it must unlock it. A semaphore is a counter permitting N holders, and any thread may signal it, which makes it a signalling primitive rather than a lock.",
+      "responseB": "One is about mutual exclusion with ownership: a single holder, and unlocking from another thread is an error. The other just counts permits, so it can admit several threads and can be posted by a thread that never waited on it."
+    },
+    {
+      "split": "held-out",
+      "category": "british-american",
+      "shouldMatch": true,
+      "a": "What is the best way to organise a large CSS codebase?",
+      "b": "What is the best way to organize a large CSS codebase?",
+      "responseA": "Pick one naming convention and apply it everywhere, split by component rather than by page, keep colour and spacing tokens in a single place, and avoid deep selectors so specificity stays flat.",
+      "responseB": "The things that pay off are a single convention, one file per component, tokens for colour and spacing, and a hard rule against nesting selectors deeply. Consistency matters more than which convention you pick."
+    },
+    {
+      "split": "held-out",
+      "category": "british-american",
+      "shouldMatch": true,
+      "a": "How do I set the colour of a table border in CSS?",
+      "b": "How do I set the color of a table border in CSS?",
+      "responseA": "Set border: 1px solid #ccc on the cells, or border-color alone if width and style are already set. Add border-collapse: collapse on the table or you will see doubled lines.",
+      "responseB": "Apply border-color to td and th along with a width and a style. Remember border-collapse: collapse on the table itself, otherwise adjacent cells each draw their own edge."
+    },
+    {
+      "split": "held-out",
+      "category": "british-american",
+      "shouldMatch": true,
+      "a": "How do I normalise a column of values in a spreadsheet?",
+      "b": "How do I normalize a column of values in a spreadsheet?",
+      "responseA": "For a 0 to 1 scale use (x - MIN(range)) / (MAX(range) - MIN(range)), locking the range with dollar signs. For a z-score, subtract the mean and divide by the standard deviation.",
+      "responseB": "Two common meanings. Min-max rescales to between 0 and 1 with (x - min) / (max - min); standardising uses (x - AVERAGE(range)) / STDEV(range). Anchor the range before filling down."
+    },
+    {
+      "split": "held-out",
+      "category": "passive-active",
+      "shouldMatch": true,
+      "a": "How does the garbage collector free unused objects in the JVM?",
+      "b": "How are unused objects freed by the garbage collector in the JVM?",
+      "responseA": "It finds what is still reachable from the roots and reclaims everything else. Modern collectors are generational: most objects die young in the nursery, and the survivors are promoted to an older region.",
+      "responseB": "Unreachable objects are collected, and reachability from the roots is the test rather than reference counting. Young objects are collected frequently and cheaply, and whatever survives moves to a region collected far less often."
+    },
+    {
+      "split": "held-out",
+      "category": "passive-active",
+      "shouldMatch": true,
+      "a": "Who signs the payroll tax return for a limited company?",
+      "b": "By whom is the payroll tax return for a limited company signed?",
+      "responseA": "A director, or another authorised officer or agent. Whoever signs asserts the return is correct, so in practice it is a director or the company secretary, and an accountant can file as agent.",
+      "responseB": "It is signed by a director or another duly authorised officer, or by an agent acting for the company. Responsibility for its accuracy remains with the company either way."
+    },
+    {
+      "split": "held-out",
+      "category": "politeness",
+      "shouldMatch": true,
+      "a": "How do I rename a branch in git?",
+      "b": "Good afternoon, I was wondering how I would rename a branch in git?",
+      "responseA": "git branch -m new-name while you are on it, or git branch -m old new from elsewhere. To move it on the remote, push the new name, delete the old one, and reset the upstream.",
+      "responseB": "Use git branch -m, with one argument if you are already on it and two if you are not. If it has been pushed you also need to push the new name and delete the old remote branch."
+    },
+    {
+      "split": "held-out",
+      "category": "heavy-reword",
+      "shouldMatch": true,
+      "a": "How do I stop my SSH session from timing out?",
+      "b": "My connection to the server keeps dropping after a few minutes of sitting idle, what setting fixes that?",
+      "responseA": "Set ServerAliveInterval 60 in ~/.ssh/config so the client sends keepalives, or ClientAliveInterval on the server side. It is usually a NAT table dropping the idle connection rather than SSH itself.",
+      "responseB": "Almost always a firewall or NAT dropping idle connections. Add ServerAliveInterval 60 to your SSH config, or ClientAliveInterval 60 in sshd_config, so something keeps crossing the link."
+    },
+    {
+      "split": "held-out",
+      "category": "heavy-reword",
+      "shouldMatch": true,
+      "a": "How do I reduce the size of a Docker image?",
+      "b": "My Docker image is enormous, what can I do to slim it down?",
+      "responseA": "Use a multi-stage build so the toolchain never reaches the final layer, start from a slim or distroless base, combine and clean package installs in a single RUN, and add a .dockerignore.",
+      "responseB": "Biggest wins first: multi-stage builds, a smaller base, and not shipping build tools. After that collapse RUN layers, clear package caches in the same layer they were filled, and keep the build context small."
+    },
+    {
+      "split": "held-out",
+      "category": "imperative",
+      "shouldMatch": true,
+      "a": "What is the difference between a soft link and a hard link?",
+      "b": "Explain how soft links and hard links differ.",
+      "responseA": "A hard link is another name for the same inode, so it works only within one filesystem and the data survives until the last name is removed. A symlink is a small file holding a path, can cross filesystems, and breaks if the target moves.",
+      "responseB": "One points at a path and the other at the inode. The path-based kind can dangle and can span filesystems; the inode-based kind can do neither, but the file lives as long as any of its names does."
+    },
+    {
+      "split": "held-out",
+      "category": "abbrev",
+      "shouldMatch": true,
+      "a": "How do I configure CORS on an API gateway?",
+      "b": "How do I configure cross origin resource sharing on an API gateway?",
+      "responseA": "Enable it on the resource so the gateway answers the OPTIONS preflight, and make sure the real method returns Access-Control-Allow-Origin too, because the preflight alone is not enough. Name real origins rather than a wildcard if you send credentials.",
+      "responseB": "There are two halves: the preflight response from the gateway and the headers on the actual response from your integration. People configure the first and forget the second. Credentials require an explicit origin, never a wildcard."
+    },
+    {
+      "split": "held-out",
+      "category": "abbrev",
+      "shouldMatch": true,
+      "a": "What does IOPS mean for an SSD?",
+      "b": "What does input output operations per second mean for an SSD?",
+      "responseA": "How many read or write operations it completes per second, normally quoted at a 4 KB random block size. It matters far more than sequential throughput for databases and anything doing many small reads.",
+      "responseB": "It counts discrete operations per second rather than megabytes. Vendors quote it at 4 KB random and a stated queue depth, and both matter, because the same drive looks very different at queue depth one."
+    },
+    {
+      "split": "held-out",
+      "category": "synonym",
+      "shouldMatch": true,
+      "a": "How do I merge two hashes in Ruby?",
+      "b": "How do I combine two hashes into one in Ruby?",
+      "responseA": "a.merge(b) returns a new hash with b winning on conflicts, and a.merge!(b) does it in place. Pass a block if you want to decide conflicts yourself.",
+      "responseB": "merge gives you a new hash and merge! modifies the receiver. Later keys win by default, and a block lets you resolve collisions, as in a.merge(b) { |_, x, y| x + y }."
+    },
+    {
+      "split": "held-out",
+      "category": "added-context",
+      "shouldMatch": true,
+      "a": "How do I parse an ISO 8601 timestamp in Java?",
+      "b": "I am working on a REST client and need to parse an ISO 8601 timestamp in Java, how do I do that?",
+      "responseA": "Instant.parse for a UTC instant, or OffsetDateTime.parse when there is an explicit offset. Both use the built-in ISO formatters, so you rarely need a custom pattern.",
+      "responseB": "Use java.time: OffsetDateTime.parse handles an offset, Instant.parse handles a trailing Z, and LocalDateTime.parse handles one with no zone at all. Avoid SimpleDateFormat entirely."
+    },
+    {
+      "split": "held-out",
+      "category": "synonym",
+      "shouldMatch": true,
+      "a": "What causes a memory leak in a long running Node process?",
+      "b": "Why would a Node process that stays up for a long time keep growing in memory?",
+      "responseA": "Usually retained references rather than a true leak: arrays or maps used as unbounded caches, listeners added and never removed, or closures holding request scope. Take two heap snapshots under load and compare them.",
+      "responseB": "Something is holding references it no longer needs, typically unbounded caches, per-request event listeners, or timers never cleared. Compare heap snapshots taken minutes apart and look at what grew."
+    },
+    {
+      "split": "held-out",
+      "category": "imperative",
+      "shouldMatch": true,
+      "a": "How do I mount an NFS share on boot?",
+      "b": "Show me how to mount an NFS share automatically at boot.",
+      "responseA": "Add a line to /etc/fstab with the nfs type and the _netdev option so it waits for the network. Test with mount -a before you reboot.",
+      "responseB": "Either an /etc/fstab entry using _netdev, or a systemd .mount unit. Always test with mount -a first, because a bad fstab line can leave the machine unbootable."
+    },
+    {
+      "split": "held-out",
+      "category": "reword",
+      "shouldMatch": true,
+      "a": "What is the difference between a stack and a heap allocation?",
+      "b": "How does stack allocation differ from heap allocation?",
+      "responseA": "Stack allocation is a pointer bump released automatically at scope exit, but the frame is small and the lifetime fixed. Heap allocation is explicit, can outlive the function, and costs bookkeeping and fragmentation.",
+      "responseB": "The stack is last-in-first-out and freed for you, which makes it fast but bounded in size and lifetime. The heap gives arbitrary size and lifetime at the price of an allocator call and either manual or collected release."
+    },
+    {
+      "split": "held-out",
+      "category": "reword",
+      "shouldMatch": true,
+      "a": "How do I schedule a job to run every weekday morning with cron?",
+      "b": "What cron expression runs a job on weekday mornings?",
+      "responseA": "0 7 * * 1-5 runs at 07:00 Monday to Friday. Mind which timezone the daemon uses, and that a DST shift can skip or repeat a run.",
+      "responseB": "The fields are minute, hour, day of month, month, day of week, so weekday mornings at seven is 0 7 * * 1-5. You can write MON-FRI instead of 1-5 if you prefer names."
+    },
+    {
+      "split": "held-out",
+      "category": "typo",
+      "shouldMatch": true,
+      "a": "How do I check which ports are listening on a server?",
+      "b": "hey could u tel me how to chek which ports are listenting on a server",
+      "responseA": "ss -tulpn on Linux, or lsof -iTCP -sTCP:LISTEN -P -n on macOS. Run it with sudo to see which process owns each socket.",
+      "responseB": "ss -tulpn is the modern one, netstat -tulpn still works on older machines, and lsof -nP -iTCP -sTCP:LISTEN covers macOS. Without root you will not see other users' processes."
+    },
+    {
+      "split": "held-out",
+      "category": "reword",
+      "shouldMatch": true,
+      "a": "How do I compare two branches in git?",
+      "b": "What is the way to see the differences between two git branches?",
+      "responseA": "git diff a..b for the content and git log a..b for the commits on b only. The three-dot form, a...b, diffs against the merge base instead.",
+      "responseB": "git diff branch1..branch2 shows the content difference and git log --oneline branch1..branch2 the commits. Three dots compares from where they diverged, which is usually what you want for a review."
+    },
+    {
+      "split": "held-out",
+      "category": "added-context",
+      "shouldMatch": true,
+      "a": "How do I handle a failed payment webhook?",
+      "b": "I am building a subscription billing flow and need to know how to handle a failed payment webhook.",
+      "responseA": "Verify the signature, answer 200 quickly and do the work asynchronously, and make the handler idempotent by event id because providers retry. Then move the subscription into a grace period rather than cancelling on the first failure.",
+      "responseB": "Acknowledge fast and process out of band, deduplicate on the event id because the same event will arrive more than once, and check the signature before trusting anything. On the business side a retry schedule with customer emails beats immediate cancellation."
+    },
+    {
+      "split": "held-out",
+      "category": "synonym",
+      "shouldMatch": true,
+      "a": "How do I convert a timestamp to a readable date in bash?",
+      "b": "How do I turn a unix timestamp into a human readable date in bash?",
+      "responseA": "date -d @1700000000 with GNU coreutils, date -r 1700000000 on macOS. Append a +format string to control the output.",
+      "responseB": "It differs by platform: GNU takes date -d @SECONDS and BSD takes date -r SECONDS. Both accept a +format string afterwards."
+    },
+    {
+      "split": "validation",
+      "category": "cooking",
+      "shouldMatch": true,
+      "a": "how long should i knead pizza dough by hand",
+      "b": "how much time does pizza dough need kneading by hand",
+      "responseA": "About ten minutes by hand. Stop when it passes the windowpane test, meaning a small piece stretches thin enough to see light through without tearing.",
+      "responseB": "Roughly ten minutes of active work, but go by feel rather than the clock. It should end up smooth and elastic and stretch translucent without splitting."
+    },
+    {
+      "split": "validation",
+      "category": "cooking",
+      "shouldMatch": true,
+      "a": "whats the best way to keep guacamole from browning",
+      "b": "how do i stop guacamole going brown?",
+      "responseA": "Press cling film flat onto the surface so no air touches it, or pour a thin layer of water on top and drain it before serving. Lime juice helps but is not enough on its own.",
+      "responseB": "Cut off the oxygen. A layer of water poured over and drained later works best; failing that, plastic wrap pressed against the surface. Extra lime slows it down but will not stop it."
+    },
+    {
+      "split": "validation",
+      "category": "cooking",
+      "shouldMatch": true,
+      "a": "How do I tell if my sourdough starter is ready to use?",
+      "b": "how can i know when my sourdough starter is ready to use",
+      "responseA": "When it reliably doubles four to eight hours after a feed, smells tangy rather than sharply acidic, and a spoonful floats in water.",
+      "responseB": "Look for a predictable rise, doubling within about four to eight hours of feeding, a pleasant sour smell and a domed top. The float test is reasonable confirmation, though not infallible."
+    },
+    {
+      "split": "validation",
+      "category": "gardening",
+      "shouldMatch": true,
+      "a": "why are my tomato leaves turning yellow",
+      "b": "my tomato plant leaves have gone yellow whats causing it",
+      "responseA": "If the lowest leaves go first it is usually nitrogen or simply age. Yellow between the veins points to magnesium, yellow with dark spots to early blight, and constantly soggy soil causes it too.",
+      "responseB": "Start with which leaves are affected. Bottom-up yellowing is normally nitrogen or overwatering, patterned yellowing between the veins suggests magnesium, and spots with yellow haloes mean fungal disease. Check drainage before you feed."
+    },
+    {
+      "split": "validation",
+      "category": "gardening",
+      "shouldMatch": true,
+      "a": "how do i get rid of aphids on roses naturally",
+      "b": "natural ways to remove aphids from my roses?",
+      "responseA": "Blast them off with water every few days, follow with insecticidal soap, and leave ladybirds and lacewings alone, since they do most of the work.",
+      "responseB": "A strong jet of water knocks most of them off and repeating it matters more than the first pass. Insecticidal soap or neem handles the rest, and avoiding broad-spectrum sprays keeps the predators that eat them."
+    },
+    {
+      "split": "validation",
+      "category": "gardening",
+      "shouldMatch": true,
+      "a": "How early before the last frost should I start seeds indoors?",
+      "b": "how many weeks before last frost do i start seeds inside",
+      "responseA": "Six to eight weeks for tomatoes and peppers, four to six for brassicas, and only two to three for cucumbers and squash, which resent being held too long.",
+      "responseB": "It varies by crop and the packet usually says. As a rule, six to eight weeks ahead for slow starters like peppers, and much less for fast-growing cucurbits."
+    },
+    {
+      "split": "validation",
+      "category": "home-repair",
+      "shouldMatch": true,
+      "a": "how do i unclog a kitchen sink without chemicals",
+      "b": "my kitchen sink is blocked how do i clear it without chemicals",
+      "responseA": "Boiling water first, then a plunger with the overflow blocked. If it still will not move, take the trap off underneath with a bucket ready, because grease and food usually collect right there.",
+      "responseB": "Try very hot water, then plunging. Baking soda and vinegar rarely shift a real blockage; clearing the P-trap by hand almost always does."
+    },
+    {
+      "split": "validation",
+      "category": "home-repair",
+      "shouldMatch": true,
+      "a": "whats the best way to remove a stripped screw",
+      "b": "how do i get a stripped screw out?",
+      "responseA": "A rubber band laid over the head often gives the bit enough bite. Otherwise a screw extractor, or cut a fresh slot with a rotary tool and use a flat-head.",
+      "responseB": "In order of effort: a rubber band or steel wool for grip, then a manual impact driver, then a proper extractor bit. As a last resort cut a new slot across the head."
+    },
+    {
+      "split": "validation",
+      "category": "home-repair",
+      "shouldMatch": true,
+      "a": "how do i stop a squeaky door hinge",
+      "b": "My door hinge squeaks, what can I do to fix it?",
+      "responseA": "Put oil at the top of the pin and swing the door to work it in. If that only lasts a while, tap the pin out, clean off the rust, grease it and put it back.",
+      "responseB": "Lubricate the pin with silicone spray or a few drops of oil, then open and close repeatedly. Removing the pin to clean and grease it properly is the fix that actually lasts."
+    },
+    {
+      "split": "validation",
+      "category": "finance",
+      "shouldMatch": true,
+      "a": "how does compound interest work",
+      "b": "can you explain the way compound interest works",
+      "responseA": "Interest is added to the balance and the next period is calculated on the larger balance. The formula is P(1 + r/n) raised to nt, where n is the number of compounding periods a year.",
+      "responseB": "You earn interest on your interest. Each period the return applies to a bigger principal than the last, so growth accelerates, which is what the exponent in P(1 + r/n)^(nt) expresses."
+    },
+    {
+      "split": "validation",
+      "category": "finance",
+      "shouldMatch": true,
+      "a": "whats the difference between apr and apy",
+      "b": "explain how apr differs from apy",
+      "responseA": "APR is the simple annualised rate, including fees but not compounding. APY includes compounding, so for the same nominal rate it is the higher figure. Loans are usually quoted the first way and savings the second.",
+      "responseB": "The difference is compounding. One reflects it and the other does not, which is why the same 12% nominal rate is 12% one way and 12.68% the other when compounded monthly."
+    },
+    {
+      "split": "validation",
+      "category": "finance",
+      "shouldMatch": true,
+      "a": "how big should my emergency fund be",
+      "b": "how much money should i have saved in an emergency fund",
+      "responseA": "Three to six months of essential expenses for most people, nearer six or more with variable income or dependants, nearer three with a stable salary and no debt.",
+      "responseB": "Count expenses rather than income: three to six months of what you actually must pay. Freelancers and single earners should aim at the top of that range or past it."
+    },
+    {
+      "split": "validation",
+      "category": "insurance",
+      "shouldMatch": true,
+      "a": "whats the difference between a deductible and an out of pocket max",
+      "b": "can you explain deductible versus out of pocket maximum",
+      "responseA": "The first is what you pay before the plan starts sharing costs. The second is the ceiling for the year, after which the plan pays everything covered. Copays and coinsurance count towards the ceiling but not towards the first.",
+      "responseB": "You pay in full up to one, share costs after it, and pay nothing once your own spending hits the other. Premiums never count towards either of them."
+    },
+    {
+      "split": "validation",
+      "category": "travel",
+      "shouldMatch": true,
+      "a": "How do I book a Global Entry interview?",
+      "b": "whats the process for scheduling a global entry interview",
+      "responseA": "Once you are conditionally approved, sign in to the Trusted Traveler Programs site and pick an enrolment centre and time. Slots are scarce, so check often, and consider Enrollment on Arrival when you land from abroad.",
+      "responseB": "Conditional approval comes first, then scheduling on the TTP website. Appointments book out for months, so refresh regularly for cancellations or use Enrollment on Arrival at a participating airport."
+    },
+    {
+      "split": "validation",
+      "category": "fitness",
+      "shouldMatch": true,
+      "a": "how do i fix my squat form if my knees cave in",
+      "b": "my knees collapse inward when i squat how do i correct that",
+      "responseA": "Usually weak glute medius plus a missing cue. Widen the stance slightly, screw your feet into the floor, and drop the weight until you can hold the position. A band around the knees teaches the pattern.",
+      "responseB": "That is valgus collapse, normally a strength and cueing problem rather than a mobility one. Lighten the load, actively spread the floor with your feet, and add glute work. A band above the knees gives you something to push against."
+    },
+    {
+      "split": "validation",
+      "category": "fitness",
+      "shouldMatch": true,
+      "a": "whats progressive overload",
+      "b": "could you explain what progressive overload means",
+      "responseA": "Gradually increasing the demand, whether that is more weight, more reps, more sets or better control at the same load, so the body keeps having a reason to adapt.",
+      "responseB": "It means the training stimulus has to rise over time. Adding load is the obvious lever, but reps, sets, range of motion and shorter rest all count as well."
+    },
+    {
+      "split": "validation",
+      "category": "fitness",
+      "shouldMatch": true,
+      "a": "how long does doms usually last",
+      "b": "how long does delayed onset muscle soreness normally last",
+      "responseA": "It normally peaks 24 to 48 hours after the session and clears within three to five days. Longer than a week, or sharp rather than diffuse, is worth looking at.",
+      "responseB": "Soreness usually shows up the next day, peaks around the second, and is gone by day three to five. Light movement helps more than complete rest."
+    },
+    {
+      "split": "validation",
+      "category": "nutrition",
+      "shouldMatch": true,
+      "a": "whats the difference between soluble and insoluble fiber",
+      "b": "can you explain soluble versus insoluble fibre",
+      "responseA": "One dissolves into a gel, slowing digestion and helping cholesterol, and comes from oats, beans and apples. The other does not dissolve, adds bulk and moves things through, and comes from wheat bran, skins and nuts.",
+      "responseB": "It is whether it dissolves in water. The gel-forming kind helps blood sugar and cholesterol; the other adds bulk and keeps you regular. Most plant foods give you a mix of both."
+    },
+    {
+      "split": "validation",
+      "category": "nutrition",
+      "shouldMatch": true,
+      "a": "is brown rice healthier than white rice",
+      "b": "nutritionally speaking is brown rice better for you than white rice",
+      "responseA": "It keeps the bran and germ, so it has more fibre, magnesium and B vitamins and a lower glycaemic index. The white version is often enriched, digests faster, and contains less arsenic.",
+      "responseB": "On fibre and micronutrients the wholegrain wins, with a gentler blood sugar response. The margin is smaller than people assume, and the enriched refined version is not a poor food."
+    },
+    {
+      "split": "validation",
+      "category": "nutrition",
+      "shouldMatch": true,
+      "a": "how much sodium is too much in a day",
+      "b": "whats the daily upper limit for sodium intake",
+      "responseA": "The general guidance is under 2,300 mg a day, and 1,500 mg for people with hypertension. Most of it comes from processed food rather than the salt cellar.",
+      "responseB": "Aim below about 2,300 mg, roughly a teaspoon of salt, and lower with high blood pressure. Bread, sauces and packaged meals account for most of what people actually eat."
+    },
+    {
+      "split": "validation",
+      "category": "pets",
+      "shouldMatch": true,
+      "a": "my dog keeps scratching his ears whats causing it",
+      "b": "why does my dog constantly scratch at his ears",
+      "responseA": "Most often an infection, mites or an allergy. Look for redness, a yeasty smell or dark discharge, and see a vet, because cleaning alone will not clear an infection.",
+      "responseB": "The usual suspects are infection, parasites and allergy. A smell or discharge points to infection, and itching without either often turns out to be environmental or dietary. It takes a vet looking inside the canal to tell."
+    },
+    {
+      "split": "validation",
+      "category": "pets",
+      "shouldMatch": true,
+      "a": "how do i litter train a kitten",
+      "b": "Whats the best way to teach a kitten to use the litter box?",
+      "responseA": "Put the tray somewhere quiet, place them in it after meals and naps, and use unscented clumping litter. Scoop daily. Accidents usually mean the tray is dirty, covered, or too far away.",
+      "responseB": "Most need very little teaching: put them in the tray after eating and sleeping and they take to it themselves. Keep it clean, unscented and easy to reach, and have one more tray than you have cats."
+    },
+    {
+      "split": "validation",
+      "category": "pets",
+      "shouldMatch": true,
+      "a": "how long are dogs pregnant for",
+      "b": "what is the gestation period of a dog",
+      "responseA": "About 63 days from ovulation, with a normal range of 58 to 68 days depending on when mating happened relative to it.",
+      "responseB": "Roughly nine weeks. 63 days is the usual figure, though anywhere between 58 and 68 days after mating is normal."
+    },
+    {
+      "split": "validation",
+      "category": "cars",
+      "shouldMatch": true,
+      "a": "why does my steering wheel shake when i brake",
+      "b": "my steering wheel vibrates whenever i hit the brakes why is that",
+      "responseA": "Almost always the front discs, either warped or carrying uneven pad deposits. If the shake is in the seat rather than the wheel it is usually the rear. Machining is possible but replacement is often cheaper.",
+      "responseB": "Vibration under braking points to thickness variation in the front discs, or material transferred unevenly onto them. Worn bushes or a sticking caliper make it worse. A shop can measure runout in minutes."
+    },
+    {
+      "split": "validation",
+      "category": "cars",
+      "shouldMatch": true,
+      "a": "how do i check tire tread depth with a coin",
+      "b": "whats the coin trick for checking tyre tread depth",
+      "responseA": "Put a penny in the groove head down: if you can see all of the head, you are at or below 2/32 of an inch and the tyre is finished. A quarter marks 4/32 instead.",
+      "responseB": "The British version uses a 20p coin, and if the outer band disappears into the main grooves you are above the 1.6 mm legal limit. The penny test marks 2/32 of an inch the same way. Check in several places across the tread."
+    },
+    {
+      "split": "validation",
+      "category": "cars",
+      "shouldMatch": true,
+      "a": "what does the tpms light mean",
+      "b": "what does the tire pressure monitoring system warning light mean",
+      "responseA": "At least one tyre is significantly under-inflated, typically 25% below the placard figure. Check all four cold with a gauge and reinflate to the door sticker value. A flashing light instead means a sensor fault.",
+      "responseB": "The monitoring system has seen a low tyre. Set them cold to the pressure on the door jamb, since cold weather is the most common trigger. If it blinks for a minute at start-up and then stays on, a sensor or its battery has failed."
+    },
+    {
+      "split": "validation",
+      "category": "music",
+      "shouldMatch": true,
+      "a": "how do i get better at sight reading music",
+      "b": "any tips for improving my sight reading of sheet music",
+      "responseA": "Read new material every day rather than perfecting old material, keep going through mistakes, and train your eyes to stay ahead of your hands. Pick pieces a level or two below what you can play.",
+      "responseB": "Volume and difficulty control. Play something new daily, well below your technical ceiling, with a metronome and no stopping to correct. Staying a bar ahead matters more than accuracy at first."
+    },
+    {
+      "split": "validation",
+      "category": "music",
+      "shouldMatch": true,
+      "a": "whats the difference between a major and a minor chord",
+      "b": "How do major chords differ from minor chords?",
+      "responseA": "The third. A major triad is root, major third, fifth; the minor flattens that third by a semitone, so C E G becomes C E-flat G.",
+      "responseB": "Only one note changes, the middle one. Lower the third by a half step and it turns minor, which is why one sounds bright and the other darker."
+    },
+    {
+      "split": "validation",
+      "category": "music",
+      "shouldMatch": true,
+      "a": "how many frets does a standard stratocaster have",
+      "b": "on a standard strat how many frets are there",
+      "responseA": "21 on the traditional design, though plenty of current models ship with 22.",
+      "responseB": "The vintage-style spec is 21. Many modern versions come with 22, so it is worth checking the particular guitar."
+    },
+    {
+      "split": "validation",
+      "category": "photography",
+      "shouldMatch": true,
+      "a": "whats the exposure triangle",
+      "b": "can you explain the exposure triangle to me",
+      "responseA": "Aperture, shutter speed and ISO. Each controls exposure and each has a side effect: depth of field, motion blur and noise respectively. Change one and you compensate with another.",
+      "responseB": "It is the relationship between the three exposure controls. They trade against each other for brightness, but each also changes the picture itself, in focus depth, motion and grain."
+    },
+    {
+      "split": "validation",
+      "category": "photography",
+      "shouldMatch": true,
+      "a": "why are my indoor photos blurry",
+      "b": "my photos taken inside keep coming out blurry whats going on",
+      "responseA": "Not enough light, so the camera drops the shutter speed until your hands or the subject move. Open the aperture, raise the ISO, and keep the shutter above roughly 1/60s, or add light.",
+      "responseB": "Indoors the camera compensates for darkness with a slow shutter, and that is where the blur comes from. Use a wider aperture, accept a higher ISO, brace the camera, and if the subject is moving nothing but more light will fix it."
+    },
+    {
+      "split": "validation",
+      "category": "games",
+      "shouldMatch": true,
+      "a": "what does en passant mean in chess",
+      "b": "can you explain the en passant rule in chess",
+      "responseA": "When a pawn advances two squares and lands beside an enemy pawn, that pawn may capture it as though it had moved only one, but only on the immediately following move.",
+      "responseB": "It is a capture available only in reply to a two-square pawn advance that slips past an enemy pawn's capture square. You take it as if it had moved one square, and the right disappears if you do not use it at once."
+    },
+    {
+      "split": "validation",
+      "category": "games",
+      "shouldMatch": true,
+      "a": "how does scoring work in pickleball",
+      "b": "explain how you score points in pickleball",
+      "responseA": "Only the serving side scores. Games go to 11, win by two, and the score is called as three numbers: your score, theirs, and which partner is serving.",
+      "responseB": "Points come only on your own serve. First to 11 with a two-point margin, and in doubles you call three numbers, your score, the opponents', and whether you are the first or second server."
+    },
+    {
+      "split": "validation",
+      "category": "games",
+      "shouldMatch": true,
+      "a": "what counts as a double fault in tennis",
+      "b": "In tennis, what is a double fault?",
+      "responseA": "Missing both service attempts on the same point, which loses the point outright. A serve that clips the net and lands in is a let, replayed rather than counted.",
+      "responseB": "It is when both serves miss, so the point goes to the receiver. Each point allows two attempts, and a let on either does not count against you."
+    },
+    {
+      "split": "validation",
+      "category": "language",
+      "shouldMatch": true,
+      "a": "how do i roll my rs in spanish",
+      "b": "any tips for rolling the r sound in spanish",
+      "responseA": "It is the tongue tip vibrating loosely behind the upper teeth, driven by airflow rather than muscle. Repeating butter quickly in an American accent finds the single tap, and adding air pressure sustains it.",
+      "responseB": "Start from the single tap, which English speakers already make in the middle of ladder. Relax the tongue, keep it near the ridge behind the teeth, and push more air. The vibration is passive, so forcing it is what stops it working."
+    },
+    {
+      "split": "validation",
+      "category": "language",
+      "shouldMatch": true,
+      "a": "how many hours of study to get conversational in italian",
+      "b": "roughly how much study time until i can hold a conversation in italian",
+      "responseA": "Roughly 600 hours to a solid B1 for an English speaker, on the usual institute estimates. Basic conversation arrives much sooner, within a few hundred hours if you speak from the start.",
+      "responseB": "It is one of the easier languages for an English speaker, so a few hundred hours gets you holding simple conversations and around 600 gets you comfortable. Speaking practice moves that figure far more than study hours alone."
+    },
+    {
+      "split": "validation",
+      "category": "childcare",
+      "shouldMatch": true,
+      "a": "how do i get my toddler to sleep through the night",
+      "b": "any advice for getting a toddler to sleep the whole night",
+      "responseA": "Consistency does most of the work: the same wind-down at the same time, a dark cool room, and putting them down drowsy but awake so they can settle themselves. Expect regressions around illness and developmental leaps.",
+      "responseB": "A predictable routine and letting them fall asleep without you are the two levers that matter. Keep the room dark, keep any night response brief and boring, and accept that teething and big milestones will undo it temporarily."
+    },
+    {
+      "split": "validation",
+      "category": "childcare",
+      "shouldMatch": true,
+      "a": "which car seat should a 2 year old be in",
+      "b": "what type of car seat is right for a 2 year old",
+      "responseA": "Rear-facing for as long as the seat allows, since most convertibles now go to 40 lb or more and rear-facing is far safer at that age. Move to a forward-facing harness only once they outgrow the rear-facing limits.",
+      "responseB": "A convertible seat, still rear-facing, until they reach the height or weight limit printed on it. Turning them around early is the most common mistake at this age."
+    },
+    {
+      "split": "validation",
+      "category": "childcare",
+      "shouldMatch": true,
+      "a": "how do i deal with toddler tantrums in public",
+      "b": "My toddler has meltdowns in public, how should I handle them?",
+      "responseA": "Stay calm and get low, name the feeling, and do not negotiate mid-tantrum. If it escalates, move somewhere quieter and wait it out. The audience matters far less than it feels like it does.",
+      "responseB": "Get down to their level, keep your voice flat, and resist bargaining, since giving in teaches that the tantrum works. Removing them from the situation for a few minutes is usually faster than reasoning through it."
+    },
+    {
+      "split": "validation",
+      "category": "weather",
+      "shouldMatch": true,
+      "a": "why is the sky blue",
+      "b": "can you explain why the sky appears blue",
+      "responseA": "Rayleigh scattering. Air molecules scatter short wavelengths far more strongly than long ones, so blue is redirected across the sky while red passes straight through, which is also why sunsets are red.",
+      "responseB": "Sunlight meets molecules much smaller than its wavelength, and that scatters blue far more than red. You see scattered blue from every direction, and at sunset the light travels further through the atmosphere so the blue is scattered away and red is left."
+    },
+    {
+      "split": "validation",
+      "category": "weather",
+      "shouldMatch": true,
+      "a": "whats the difference between weather and climate",
+      "b": "how does climate differ from weather?",
+      "responseA": "Weather is the state of the atmosphere now or over days. Climate is the statistics of weather over decades: averages, extremes and variability for a place.",
+      "responseB": "Timescale. One is what you expect over thirty years or so, the other is what you actually get today. A single cold week says nothing about the first."
+    },
+    {
+      "split": "validation",
+      "category": "weather",
+      "shouldMatch": true,
+      "a": "what does the dew point actually tell you",
+      "b": "what information does dew point give you",
+      "responseA": "The temperature at which air becomes saturated. It is an absolute measure of moisture, unlike relative humidity, which is why a figure above about 20 degrees Celsius feels oppressive whatever the temperature.",
+      "responseB": "It tells you how much water is genuinely in the air, rather than how close the air is to full. That makes it a better comfort guide than relative humidity, and on a still night it is roughly the overnight low."
+    },
+    {
+      "split": "validation",
+      "category": "software",
+      "shouldMatch": true,
+      "a": "how do i see which files changed in my last commit",
+      "b": "whats the command to list files changed in the most recent commit",
+      "responseA": "git show --name-only --oneline HEAD, or git diff-tree --no-commit-id --name-only -r HEAD when you want bare paths for a script.",
+      "responseB": "git diff-tree --no-commit-id --name-only -r HEAD gives a plain list, and git show --stat HEAD is friendlier if you want the line counts too."
+    },
+    {
+      "split": "validation",
+      "category": "software",
+      "shouldMatch": true,
+      "a": "how do i exit vim",
+      "b": "help how do you quit vim",
+      "responseA": ":q to quit, :q! to discard changes, :wq or :x to save and quit. Press Escape first if you are in insert mode.",
+      "responseB": "Escape, then :wq to save and leave or :q! to leave without saving. ZZ in normal mode does the same as :wq."
+    },
+    {
+      "split": "validation",
+      "category": "software",
+      "shouldMatch": true,
+      "a": "whats the difference between == and === in js",
+      "b": "in javascript can you explain == versus ===",
+      "responseA": "The strict form compares type and value with no conversion. The loose form coerces first, which is why \"1\" == 1 and null == undefined are both true. Use the strict one unless you specifically want that null check.",
+      "responseB": "Loose equality converts the operands before comparing and strict equality does not, so a type mismatch is simply false. The coercion rules are surprising enough that every style guide defaults to the strict form."
+    }
+  ]
+}

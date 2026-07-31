@@ -1,0 +1,46 @@
+{
+  "measuredOn": "2026-07-31",
+  "note": "Measured out of band: GPTCache is a Python package and CI is a JVM build. Reproduce with tools/gptcache-comparison/README.md.",
+  "evaluator": "gptcache.similarity_evaluation.onnx.OnnxModelEvaluation",
+  "model": "GPTCache/albert-duplicate-onnx",
+  "tokenizer": "albert-base-v2",
+  "decisionRule": "serve when score >= (max - min) * 0.8 * 1.0, GPTCache's own rule with its own defaults",
+  "rankThreshold": 0.8,
+  "sanityCheck": {
+    "trivialRestatement": 0.9635617733001709,
+    "unrelated": 0.0003430186479818076
+  },
+  "versions": {
+    "python": "3.11.15",
+    "gptcache": "0.1.44",
+    "transformers": "4.57.6",
+    "onnxruntime": "1.15.1",
+    "numpy": "1.26.4"
+  },
+  "corpora": [
+    {
+      "corpus": "held-out",
+      "corpusSha256": "8abb4e8cffd0413e445d705fc2c0d5ab8dfd2dddf8884f15fa59cdaf68471d4d",
+      "precision": 0.5128,
+      "recall": 0.4762,
+      "f1": 0.4938,
+      "falseHitRate": 0.2209,
+      "nearMissesServed": 19,
+      "nearMisses": 86,
+      "paraphrasesServed": 20,
+      "paraphrases": 42
+    },
+    {
+      "corpus": "validation",
+      "corpusSha256": "3da55050d3cef99fae1fcd74f2966eecd34205ad3b15cba216d7366fea261a40",
+      "precision": 0.6765,
+      "recall": 0.451,
+      "f1": 0.5412,
+      "falseHitRate": 0.1078,
+      "nearMissesServed": 11,
+      "nearMisses": 102,
+      "paraphrasesServed": 23,
+      "paraphrases": 51
+    }
+  ]
+}

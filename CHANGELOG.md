@@ -8,6 +8,42 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Response-aware guards: `ResponseAwareGuard`, `AnswerAnchorGuard` and `MatchGuards.responseAware()`.
+  Every guard until now compared two prompts, which left one near miss structurally invisible — two
+  honest paraphrases whose answers differ by something neither question contains. "What is the capital
+  gains tax rate when I sell a second home" against "…a primary residence" clears the entire chain, and
+  the cached answer opens "Gain on a second home is taxable in full". The new guard reads the
+  candidate's stored answer and refuses it when it names the word the query replaced. It rejects only on
+  a clean substitution — same content-word count, at most two positions differing, compared with the
+  same fuzzy rule that keeps `organise` and `organize` together — and only when the query does not use
+  that word itself, which is what stops it refusing an expanded abbreviation or a word-order swap.
+  **`MatchGuards.standard()` is unchanged**, and that is a statement about evidence rather than
+  performance: the guard refuses 14 of the 118 near-miss lookups `standard()` still serves on the blind
+  corpora and **none** of the 164 paraphrase lookups, moving the false-hit rate from 0.291 to 0.238
+  held-out and 0.333 to 0.309 on validation — but it is measured on a corpus of **authored** answers,
+  because no corpus of real paired answers exists to harvest. That makes it a regression check rather
+  than the blind measurement every other guard is held to, and folding the two together under one
+  default would quietly downgrade the evidence behind all of them. The answers were written before the
+  guard was designed and written to be realistic rather than catchable; `docs/CORPUS.md` states the
+  rules and `ResponseGuardTest` holds the numbers, including the naive alternative — comparing the
+  query's numbers against the answer's — measured and rejected rather than dismissed in prose.
+- Comparative benchmark (M23, second part): GPTCache, measured. `tools/gptcache-comparison` scores the
+  same blind corpora with GPTCache's own `OnnxModelEvaluation` under its own default threshold, and
+  `ComparativeBenchmarkTest` renders it as a fourth row. **The result is a trade, not a win, and the
+  table says so.** Its cross-encoder serves *fewer* near misses than `standard()` — false-hit rate 0.221
+  held-out and 0.108 validation against 0.291 and 0.333 — and buys that by refusing more than half the
+  genuine paraphrases it is shown, where `standard()` keeps 88%. Kmemo is ahead on F1 on both splits
+  with close to double the hit rate; GPTCache is ahead on false hits. The README carries both numbers
+  and the arithmetic that turns them into money.
+  **The evaluator is proved to work before a single score is believed.** `OnnxModelEvaluation.evaluation`
+  wraps its whole body in `except Exception: return 0`, so every internal failure is reported as a
+  similarity of zero — a harness that trusted the documented entry point would have recorded a false-hit
+  rate of 0.000, concluded GPTCache refuses everything, and been wrong in Kmemo's favour. The harness
+  gates on a mechanical sanity check and re-scores every zero through the raw inference path.
+  It runs out of band, because GPTCache is a Python package that downloads a model and CI is a JVM
+  build. What CI enforces instead is the link: each recorded row carries the SHA-256 of the corpus file
+  it was measured against, so a corpus that grows without the harness being re-run fails the build
+  rather than leaving a stale comparison above fresh data.
 - Comparative benchmark (M23, first part): `ComparativeBenchmarkTest` runs the blind corpora through a
   threshold-only baseline, `standard()` and `strict()`, and reports precision, recall, F1 and false-hit
   rate on identical inputs, plus a machine-readable `comparative-report.json` for CI to diff. The

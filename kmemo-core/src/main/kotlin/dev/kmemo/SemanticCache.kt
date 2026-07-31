@@ -3,6 +3,7 @@ package dev.kmemo
 import dev.kmemo.guard.GuardVerdict
 import dev.kmemo.guard.MatchGuard
 import dev.kmemo.guard.MatchGuards
+import dev.kmemo.guard.ResponseAwareGuard
 import dev.kmemo.internal.ExactCache
 import dev.kmemo.internal.KeyedMutex
 import dev.kmemo.internal.NegativeCache
@@ -288,7 +289,7 @@ public class SemanticCache(
         val embedding = embed(prompt, scope)
         val traces = store.search(scope, embedding, candidates).map { scored ->
             val verdicts = LinkedHashMap<String, GuardVerdict>(guards.size)
-            for (guard in guards) verdicts[guard.name] = guard.evaluate(prompt, scored.entry.prompt)
+            for (guard in guards) verdicts[guard.name] = verdictOf(guard, prompt, scored.entry)
             CandidateTrace(
                 prompt = scored.entry.prompt,
                 similarity = scored.similarity,
@@ -711,7 +712,7 @@ public class SemanticCache(
             )
         }
         // Verdict per candidate, computed once. `null` means the candidate passed every guard.
-        val rejections = found.map { firstRejection(prompt, it.entry.prompt) }
+        val rejections = found.map { firstRejection(prompt, it.entry) }
         val best = found.first()
 
         val decisions = shadowThresholds.map { t ->
@@ -827,7 +828,7 @@ public class SemanticCache(
             // means every remaining one is too.
             if (scored.similarity < thresholdFor(scope)) break
 
-            val rejection = firstRejection(prompt, scored.entry.prompt)
+            val rejection = firstRejection(prompt, scored.entry)
             if (rejection != null) {
                 if (refusal == null) {
                     refusal = Refusal(
@@ -954,13 +955,26 @@ public class SemanticCache(
 
     private class GuardRejection(val guardName: String, val reason: String)
 
-    private fun firstRejection(prompt: String, candidatePrompt: String): GuardRejection? {
+    private fun firstRejection(prompt: String, candidate: CacheEntry): GuardRejection? {
         for (guard in guards) {
-            val verdict = guard.evaluate(prompt, candidatePrompt)
+            val verdict = verdictOf(guard, prompt, candidate)
             if (verdict is GuardVerdict.Reject) return GuardRejection(guard.name, verdict.reason)
         }
         return null
     }
+
+    /**
+     * Asks one guard about one candidate, handing a [ResponseAwareGuard] the stored answer as well.
+     *
+     * The response is already in memory — it is the thing the cache would serve — so the extra
+     * argument costs nothing, and a guard that does not want it never sees it.
+     */
+    private fun verdictOf(guard: MatchGuard, prompt: String, candidate: CacheEntry): GuardVerdict =
+        if (guard is ResponseAwareGuard) {
+            guard.evaluate(prompt, candidate.prompt, candidate.response)
+        } else {
+            guard.evaluate(prompt, candidate.prompt)
+        }
 
     /**
      * Runs the verifier fail-closed: returns a rejection detail, or `null` when the candidate passed

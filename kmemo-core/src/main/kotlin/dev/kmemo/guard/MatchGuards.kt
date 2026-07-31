@@ -58,6 +58,25 @@ public object MatchGuards {
     public fun standard(locale: Locale): List<MatchGuard> = standard(Vocabularies.forLocale(locale))
 
     /**
+     * [standard] plus [AnswerAnchorGuard], the one guard that reads the candidate's stored answer.
+     *
+     * **Opt in deliberately.** Every guard in [standard] is measured on corpora written before it
+     * existed; this one is measured on answers written for the purpose, because no corpus of real
+     * paired answers exists to measure it against. The number is a regression check rather than a
+     * blind measurement, and mixing the two under one default would quietly downgrade the evidence
+     * behind everything else. `docs/CORPUS.md` states the difference and `ResponseGuardTest` holds
+     * the numbers.
+     *
+     * It costs nothing extra to run: the response is already on the candidate entry, and the guard
+     * only reads it once the prompts have proved to differ by a substitution.
+     */
+    public fun responseAware(): List<MatchGuard> = responseAware(GuardVocabulary.ENGLISH)
+
+    /** [responseAware], reading every marker from [vocabulary]. */
+    public fun responseAware(vocabulary: GuardVocabulary): List<MatchGuard> =
+        standard(vocabulary) + AnswerAnchorGuard(vocabulary.stopwords)
+
+    /**
      * [standard] with the tolerant edges pulled in: prompts must share meaningfully more wording,
      * and a large length gap is enough to refuse on its own.
      *

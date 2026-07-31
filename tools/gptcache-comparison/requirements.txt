@@ -1,0 +1,20 @@
+# Pinned deliberately. GPTCache's ONNX evaluator is the only part of it worth comparing against, and it
+# is the part that stopped working with current libraries — so every version here is a version the
+# measurement was actually taken with, not a lower bound.
+#
+# gptcache 0.1.44 declares onnxruntime==1.14.1, which has no wheel for any Python newer than 3.10. It is
+# not the binding constraint: 1.15.1 runs the model unchanged. The real constraint is transformers,
+# because OnnxModelEvaluation.inference calls AlbertTokenizer.encode_plus, which transformers 5 removed.
+# 4.57.6 is the newest release that still has it, and numpy stays on 1.x because onnxruntime 1.15
+# predates the 2.x ABI.
+#
+# Two high-severity advisories against transformers 4.x have no fix below transformers 5, and so no fix
+# that leaves this harness able to run: GHSA-fgcw-684q-jj6r and GHSA-29pf-2h5f-8g72. Both are arbitrary
+# code execution while *loading a model*. This harness loads one model, the one GPTCache itself names,
+# and only when a developer runs the script by hand — nothing here reaches CI, and nothing here reaches
+# a consumer of the library. `ci.yml` allows those two advisories by id and nothing else, so a new one
+# still fails the build. Do not run this environment against a model you did not choose.
+gptcache==0.1.44
+onnxruntime==1.15.1
+transformers==4.57.6
+numpy==1.26.4

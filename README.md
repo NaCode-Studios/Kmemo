@@ -133,10 +133,25 @@ cache.getOrPut(prompt, scope = "gpt-4o|t=0.0|v3") { llm.complete(it) }
 ### Choosing guards
 
 ```kotlin
-SemanticCache(embedder)                                    // MatchGuards.standard()
-SemanticCache(embedder, guards = MatchGuards.strict())     // trades hit rate for margin
-SemanticCache(embedder, guards = MatchGuards.none())       // the naive similarity-only baseline
+SemanticCache(embedder)                                        // MatchGuards.standard()
+SemanticCache(embedder, guards = MatchGuards.strict())         // trades hit rate for margin
+SemanticCache(embedder, guards = MatchGuards.none())           // the naive similarity-only baseline
+SemanticCache(embedder, guards = MatchGuards.responseAware())  // standard(), plus reads the cached answer
 ```
+
+Every guard in `standard()` compares two prompts, which leaves one near miss structurally invisible:
+two honest paraphrases whose answers differ by something neither question contains. "What is the
+capital gains tax rate when I sell a second home" against "…a primary residence" clears the whole
+chain, and the cached answer opens "Gain on a second home is taxable in full". `responseAware()` adds
+the one guard that reads that answer and refuses it when it names the word the query replaced.
+
+It is opt-in because of how it is measured rather than how it performs. It refuses 14 of the 118
+near-miss lookups `standard()` still serves on the blind corpora and **none** of the 164 paraphrase
+lookups, moving the false-hit rate from 0.291 to 0.238 held-out and 0.333 to 0.309 on validation. But
+those answers were written for the measurement — no corpus of real paired answers exists to harvest —
+so the number is a regression check rather than the blind measurement every other guard is held to, and
+mixing the two under one default would quietly downgrade the evidence behind all of them.
+[docs/CORPUS.md](docs/CORPUS.md) has the provenance rules.
 
 The guards work outside English too. Curated packs ship for Italian, Spanish, German and French, each
 covered by a localized near-miss test set. Those sets are hand-written and in-sample, so they are a
@@ -331,7 +346,7 @@ prompt ─► embed ─► nearest 5 in scope ─► similarity ≥ threshold?
                                              HIT
 ```
 
-### Against a threshold-only cache
+### Against a threshold-only cache, and against GPTCache
 
 The claim is that Kmemo refuses near misses a similarity-only cache serves. Measured, on the blind
 corpora, with the same inputs and no verifier in the loop:
@@ -341,9 +356,11 @@ corpora, with the same inputs and no verifier in the loop:
 | held-out | threshold-only | 0.328 | 1.000 | 0.494 | **1.000** |
 | held-out | `standard()` | 0.597 | 0.881 | 0.712 | **0.291** |
 | held-out | `strict()` | 0.589 | 0.786 | 0.673 | **0.267** |
+| held-out | GPTCache `OnnxModelEvaluation` | 0.513 | 0.476 | 0.494 | **0.221** |
 | validation | threshold-only | 0.333 | 1.000 | 0.500 | **1.000** |
 | validation | `standard()` | 0.570 | 0.882 | 0.692 | **0.333** |
 | validation | `strict()` | 0.536 | 0.725 | 0.617 | **0.314** |
+| validation | GPTCache `OnnxModelEvaluation` | 0.676 | 0.451 | 0.541 | **0.108** |
 
 The false-hit rate is the share of near misses that were **served**, and it is the number the project
 turns on. A threshold-only cache serves all of them: that is not a straw man, it is what every "add a
@@ -351,16 +368,34 @@ semantic cache" tutorial builds. `standard()` cuts it to roughly a third while k
 paraphrases. `strict()` buys a little more margin and pays for it in recall, which is the trade stated
 rather than hidden.
 
-Reproduce with:
+**Against GPTCache the result is a trade, not a win, and the table says so.** Its ONNX cross-encoder
+serves *fewer* near misses than `standard()` on both splits — it is a stricter filter, not a weaker
+one. It buys that by refusing more than half the genuine paraphrases it is shown, where `standard()`
+keeps 88%, so the cache does roughly half the work. Kmemo's decision quality is higher by F1 on both
+splits and its hit rate is close to double; GPTCache's false-hit rate is lower. Which of those you
+should want depends on what a wrong answer costs you, and the arithmetic is below.
+
+Two things about that row. GPTCache's *default* evaluator is `SearchDistanceEvaluation`, which scores
+the vector distance the retrieval step already produced — that is the threshold-only row under another
+name, and re-running it through GPTCache would measure the embedding model rather than the cache. And
+retrieval is factored out of the whole table: every configuration is handed the same candidate pair and
+asked only whether to serve it, which controls for the embedder more tightly than matching embedders
+would.
+
+Reproduce the Kmemo rows with:
 
 ```bash
 ./gradlew :kmemo-core:test --tests '*ComparativeBenchmarkTest*'
 ```
 
-Not measured here: anything against GPTCache, the Python incumbent. That comparison needs a second
-runtime in the harness and is still open. And deliberately no cross-runtime latency — a JVM against
-Python wall-clock figure compares runtimes while appearing to compare caches. Latency and throughput
-live in `kmemo-benchmarks`, across Kmemo's own configurations.
+The GPTCache row is measured out of band, because GPTCache is a Python package that downloads a model
+on first use and CI is a JVM build — see [tools/gptcache-comparison](tools/gptcache-comparison). The
+recorded numbers carry the SHA-256 of the corpus files they were taken against, and the build fails if
+a corpus changes without the harness being re-run.
+
+Deliberately absent: cross-runtime latency. A JVM against Python wall-clock figure compares runtimes
+while appearing to compare caches. Latency and throughput live in `kmemo-benchmarks`, across Kmemo's
+own configurations.
 
 ### Is it worth it
 
@@ -375,7 +410,15 @@ false hits per day = Q × H × (near-miss share of your traffic) × false-hit ra
 
 At 100,000 queries a day, a 40% hit rate and $0.002 a call, the cache saves **$80 a day**. If 5% of
 those hits are near misses rather than paraphrases, a threshold-only cache serves **2,000 wrong answers
-a day** at a false-hit rate of 1.0; `standard()` serves about **660**.
+a day** at a false-hit rate of 1.0; `standard()` serves about **660**, and `responseAware()` about
+**620**.
+
+The GPTCache row cannot be read off the false-hit rate alone, which is exactly why the saving sits in
+the formula next to it. Facing the same 2,000 near-miss lookups, its evaluator serves about **220** of
+them — a third of `standard()`. But it also refuses half the genuine paraphrases, so the hit rate that
+produced the $80 falls with it, to about **$41 a day**. Roughly $39 a day of extra model calls, and a
+transformer inference on every candidate, to avoid around 440 wrong answers. Whether that is worth it
+is the same question as before, now with numbers in it.
 
 Whether that trade is acceptable is not something a library can decide for you — it depends entirely on
 what a wrong answer costs in your domain, which is the one input no benchmark can supply. What the

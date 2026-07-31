@@ -8,7 +8,7 @@ labelled corpora of prompt pairs, and this document is the process that keeps th
 
 Every pair is a `(a, b, category, kind)` where `kind` is either a **near-miss** (the two prompts need
 different answers) or a **paraphrase** (they need the same answer). The pairs live in
-`kmemo-core/src/test/kotlin/dev/kmemo/fixtures/Corpora.kt`.
+`kmemo-core/src/test/resources/*-corpus.json`.
 
 | Split | Role | May the guards be tuned against it? |
 | --- | --- | --- |
@@ -59,3 +59,35 @@ This is the delicate one. To add pairs **without** contaminating the split:
 
 The one-sentence version: **the tuned split is where you improve the guards; the held-out and validation
 splits are where you find out, honestly, whether it worked.**
+
+## The response corpus, and why it is labelled differently
+
+`response-corpus.json` is a fourth artifact and it is **in-sample**. It borrows prompts from the
+held-out and validation splits and adds, to each side of a pair, the answer that prompt would have
+received. `MatchGuards.responseAware()` is measured against it, and nothing else is.
+
+**It is authored, and it could not have been harvested.** A semantic cache corpus records prompts; the
+near misses worth catching are precisely the ones whose prompts look alike, and no public dataset pairs
+those prompts with the answers that separate them. So the answers were written, and a written answer is
+evidence about the person who wrote it as much as about the guard. The number that comes out of it is a
+**regression check**, not a blind measurement, and it is labelled that way in the README, in the guard's
+own documentation, and in the JSON report.
+
+Two rules kept it as honest as an authored corpus can be, and both are conditions on any future change
+to it:
+
+1. **Answers are written before the guard is designed.** Every answer in the file predates
+   `AnswerAnchorGuard`, so the guard could not be reverse-engineered from them. Nothing was rephrased
+   afterwards to make a rejection land.
+2. **Answers are realistic, not catchable.** What an assistant would actually reply — including the many
+   answers that never name the term separating the two questions. `what is the boiling point of ethanol`
+   is answered with `78.4 degrees Celsius at one atmosphere`, which no response-aware guard can use.
+   Those are misses, and they stay in the denominator.
+
+**The prompts are borrowed, never owned.** `ResponseGuardTest` asserts that every pair is still present,
+verbatim and with the same label, in the split it names — so the two files cannot drift apart — and that
+the response corpus covers every near miss the standard chain still serves. Add pairs to a blind split
+and that second assertion fails, which is the signal to author their answers or to stop quoting the
+coverage. Neither assertion touches the blind splits' own numbers: those are still measured on prompts
+alone, by guards that never see an answer.
+

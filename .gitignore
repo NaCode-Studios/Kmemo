@@ -23,3 +23,7 @@ out/
 local.properties
 .env
 .env.*
+
+# Python, for tools/gptcache-comparison
+.venv/
+__pycache__/
