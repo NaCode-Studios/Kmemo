@@ -100,6 +100,15 @@ import java.time.Duration as JavaDuration
  *   already dropped. Past the TTL nothing stale is served — the remembered *embedding* is still reused,
  *   so the lookup goes through the ordinary path with the network call already paid. `null` means the
  *   layer never expires, which is only correct when the store has no TTL either.
+ * @param thresholds per-scope overrides of [threshold], consulted by scope name with the global value
+ *   as the fallback. One threshold is necessarily wrong for a service answering both regulated and
+ *   casual questions, and tuning the single value to the strictest caller makes every other caller pay
+ *   for it.
+ * @param shadowThresholds when non-empty, puts the cache in **shadow mode**: every [getOrPut] runs the
+ *   full lookup, reports what it *would* have decided at each of these thresholds through
+ *   [CacheEvent.Shadow], and then **always** computes. Nothing is ever served from the cache, so a false
+ *   hit cannot reach a user while you are still choosing a threshold; writes still happen, because a
+ *   shadow cache that never fills would report a miss for everything and measure nothing.
  * @param cachePolicy vetoes writes of data that must never be persisted, consulted once per write on
  *   every write path including [warm]. `null` (the default) caches everything the cache decides to
  *   cache. A vetoed write is a policy decision, not a failure: the call still returns its response.
@@ -146,6 +155,8 @@ public class SemanticCache(
     private val cachePolicy: CachePolicy? = null,
     private val exactCacheSize: Int = 0,
     private val exactCacheTtl: Duration? = null,
+    private val thresholds: Map<String, Double> = emptyMap(),
+    private val shadowThresholds: List<Double> = emptyList(),
 ) {
 
     init {
@@ -162,6 +173,12 @@ public class SemanticCache(
         require(exactCacheSize >= 0) { "exactCacheSize must be non-negative, was $exactCacheSize" }
         require(exactCacheTtl == null || exactCacheTtl.isPositive()) {
             "exactCacheTtl must be positive, was $exactCacheTtl"
+        }
+        for ((scope, value) in thresholds) {
+            require(value in -1.0..1.0) { "threshold for scope '$scope' must be within [-1.0, 1.0], was $value" }
+        }
+        for (value in shadowThresholds) {
+            require(value in -1.0..1.0) { "shadow threshold must be within [-1.0, 1.0], was $value" }
         }
     }
 
@@ -227,23 +244,31 @@ public class SemanticCache(
      * reason — a cache whose hit rate is 4% is untunable unless you know whether prompts are
      * landing below the threshold or being vetoed by a guard.
      */
-    public suspend fun lookup(prompt: String, scope: String = DEFAULT_SCOPE): CacheLookup {
-        val recalled = exactHit(prompt, scope, counted = true)
+    public suspend fun lookup(
+        prompt: String,
+        scope: String = DEFAULT_SCOPE,
+        context: List<String> = emptyList(),
+    ): CacheLookup {
+        val key = keyed(prompt, context)
+        val recalled = exactHit(key, scope, counted = true)
         if (recalled != null && recalled.fresh) {
             val entry = recalled.entry
             val age = JavaDuration.between(entry.createdAt, clock.instant()).toNanos().nanoseconds
             return CacheLookup.Hit(entry.response, entry.prompt, 1.0, entry.id, age, entry.metadata)
         }
         val embedStart = if (observed) System.nanoTime() else 0L
-        val embedding = recalled?.embedding ?: embed(prompt, scope)
+        val embedding = recalled?.embedding ?: embed(key, scope)
         val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
         // Already counted by the exact layer when it recalled a stale entry, so do not count twice.
-        return lookup(prompt, scope, embedding, counted = recalled == null, embedNanos = embedNanos)
+        return lookup(key, scope, embedding, counted = recalled == null, embedNanos = embedNanos)
     }
 
     /** Returns the cached response for [prompt], or `null`. The short form of [lookup]. */
-    public suspend fun get(prompt: String, scope: String = DEFAULT_SCOPE): String? =
-        (lookup(prompt, scope) as? CacheLookup.Hit)?.response
+    public suspend fun get(
+        prompt: String,
+        scope: String = DEFAULT_SCOPE,
+        context: List<String> = emptyList(),
+    ): String? = (lookup(prompt, scope, context) as? CacheLookup.Hit)?.response
 
     /**
      * Explains how [prompt] would be decided in [scope], without changing anything.
@@ -271,7 +296,7 @@ public class SemanticCache(
                 guardVerdicts = verdicts,
             )
         }
-        return CacheExplanation(prompt, scope, threshold, traces)
+        return CacheExplanation(prompt, scope, thresholdFor(scope), traces)
     }
 
     /**
@@ -304,6 +329,12 @@ public class SemanticCache(
      * val answer = cache.getOrPut(prompt) { llm.complete(it) }
      * ```
      *
+     * Pass [context] for a turn in a conversation. Without it the cache keys on the last turn alone, so
+     * "what about the second one?" can be served an answer computed after a completely different
+     * exchange — the context is not weighed, it is *ignored*. With it, the prior turns are folded into
+     * what gets embedded and keyed, so a different conversation is a different question. [compute]
+     * still receives the bare [prompt]: the context is the cache's business, not the model's.
+     *
      * Concurrent callers asking the same thing are **coalesced**: the first one computes, the rest
      * wait and are served its answer. Without that, a cold cache under load is worse than no cache
      * — fifty requests for the same prompt arrive together, all miss, and all pay. Coalescing is
@@ -315,13 +346,31 @@ public class SemanticCache(
         scope: String = DEFAULT_SCOPE,
         metadata: Map<String, String> = emptyMap(),
         compute: suspend (String) -> String,
+    ): String = getOrPut(prompt, emptyList(), scope, metadata, compute)
+
+    /**
+     * The conversation-aware [getOrPut]: keys the turn on [context] as well as [prompt].
+     *
+     * A separate overload rather than a parameter on the one above, because inserting anything ahead of
+     * a trailing lambda rebinds it for every caller who passes `scope` or `metadata` positionally. That
+     * is a source break, and `1.x` does not take those.
+     */
+    public suspend fun getOrPut(
+        prompt: String,
+        context: List<String>,
+        scope: String = DEFAULT_SCOPE,
+        metadata: Map<String, String> = emptyMap(),
+        compute: suspend (String) -> String,
     ): String {
-        val recalled = exactHit(prompt, scope, counted = true)
+        val key = keyed(prompt, context)
+        if (shadowThresholds.isNotEmpty()) return shadowCompute(key, scope, metadata) { compute(prompt) }
+
+        val recalled = exactHit(key, scope, counted = true)
         if (recalled != null && recalled.fresh) return recalled.entry.response
 
         val embedStart = if (observed) System.nanoTime() else 0L
         val embedding = try {
-            recalled?.embedding ?: embed(prompt, scope)
+            recalled?.embedding ?: embed(key, scope)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -330,27 +379,29 @@ public class SemanticCache(
             // than with no cache. The answer cannot be written back — there is no embedding to key it —
             // so nothing is cached until the embedder recovers.
             if (embedFailurePolicy == EmbedFailurePolicy.FALL_BACK_TO_COMPUTE) {
-                degraded(scope, listOf(prompt), DegradedOperation.GET_OR_PUT, e)
+                degraded(scope, listOf(key), DegradedOperation.GET_OR_PUT, e)
                 return compute(prompt)
             }
             throw e
         }
         val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
-        val result = lookup(prompt, scope, embedding, embedNanos = embedNanos)
+        val result = lookup(key, scope, embedding, embedNanos = embedNanos)
         if (result is CacheLookup.Hit) return result.response
-        if (!coalesceConcurrentMisses) return computeAndPut(prompt, scope, metadata, embedding, compute)
+        if (!coalesceConcurrentMisses) {
+            return computeAndPut(key, scope, metadata, embedding) { compute(prompt) }
+        }
 
-        return inFlight.withKeyLock("$scope\u0000$prompt") {
+        return inFlight.withKeyLock("$scope\u0000$key") {
             // Whoever held the lock before us may have just answered this exact question. Looking
             // again costs a store read; not looking costs a model call.
             // Not counted: this is the same caller's single lookup, resumed. Counting it again
             // reported more misses than there were calls and halved the hit rate of the very
             // workload coalescing exists to improve.
-            val second = lookup(prompt, scope, embedding, counted = false)
+            val second = lookup(key, scope, embedding, counted = false)
             if (second is CacheLookup.Hit) {
                 second.response
             } else {
-                computeAndPut(prompt, scope, metadata, embedding, compute)
+                computeAndPut(key, scope, metadata, embedding) { compute(prompt) }
             }
         }
     }
@@ -485,6 +536,28 @@ public class SemanticCache(
         }
     }
 
+
+    /**
+     * The shadow-mode [getOrPut]: embed, search, judge every threshold, emit the report, then **always**
+     * compute and write.
+     *
+     * Writing still happens because a shadow cache that never fills would report a miss for everything
+     * and measure nothing. Serving never happens, which is the entire point: the team gets its own curve
+     * with no risk of a false hit reaching a user while they are still deciding on a threshold.
+     */
+    private suspend fun shadowCompute(
+        prompt: String,
+        scope: String,
+        metadata: Map<String, String>,
+        compute: suspend (String) -> String,
+    ): String {
+        val embedding = embed(prompt, scope)
+        if (observed) emit(CacheEvent.Shadow(shadow(prompt, scope, embedding)))
+        val response = compute(prompt)
+        enqueueOrPut(buildEntry(prompt, response, scope, metadata, embedding))
+        return response
+    }
+
     private suspend fun computeAndPut(
         prompt: String,
         scope: String,
@@ -582,6 +655,82 @@ public class SemanticCache(
         exactCache?.put(scope, prompt, entry, embedding)
     }
 
+
+    /**
+     * The similarity floor for [scope]: its override when one is configured, otherwise the global
+     * [threshold].
+     *
+     * One global threshold is necessarily wrong for a service answering both regulated and casual
+     * questions, and the honest fix is per-scope rather than a single value tuned to the strictest
+     * caller and paid for by every other one.
+     */
+
+    /**
+     * Judges [prompt] at every configured shadow threshold **without serving anything**.
+     *
+     * One search, one guard pass per candidate, every threshold read off the same result: the guard
+     * verdicts are the expensive part and a candidate's verdict does not depend on the threshold, so
+     * computing them once and reusing them across thresholds is what makes a whole curve affordable on
+     * live traffic. Reuses the same candidate machinery [explain] does rather than growing a parallel
+     * path beside it.
+     *
+     * Moves no counter and touches no entry: a mode that changed the numbers you are measuring would
+     * defeat its own purpose.
+     */
+    private suspend fun shadow(prompt: String, scope: String, embedding: FloatArray): ShadowReport {
+        val found = store.search(scope, embedding, candidates)
+        if (found.isEmpty()) {
+            return ShadowReport(
+                scope, prompt,
+                shadowThresholds.map { ShadowDecision(it, false, MissReason.EMPTY_SCOPE, null, null, null) },
+            )
+        }
+        // Verdict per candidate, computed once. `null` means the candidate passed every guard.
+        val rejections = found.map { firstRejection(prompt, it.entry.prompt) }
+        val best = found.first()
+
+        val decisions = shadowThresholds.map { t ->
+            var refused: ShadowDecision? = null
+            for ((i, scored) in found.withIndex()) {
+                if (scored.similarity < t) break
+                val rejection = rejections[i]
+                if (rejection == null) {
+                    return@map ShadowDecision(t, true, null, scored.similarity, scored.entry.prompt, null)
+                }
+                if (refused == null) {
+                    refused = ShadowDecision(
+                        t, false, MissReason.REJECTED_BY_GUARD, scored.similarity,
+                        scored.entry.prompt, rejection.guardName,
+                    )
+                }
+            }
+            refused ?: ShadowDecision(
+                t, false, MissReason.BELOW_THRESHOLD, best.similarity, best.entry.prompt, null,
+            )
+        }
+        return ShadowReport(scope, prompt, decisions)
+    }
+
+
+    /**
+     * The text the cache actually keys and embeds for a turn in a conversation.
+     *
+     * With no [context] this is the prompt itself, so every existing caller is unaffected. With one, the
+     * prior turns are folded in, which is what stops "what about the second one?" being answered from a
+     * completely different exchange that happened to phrase its last turn the same way. Context is part
+     * of the question, and a cache that keys only the last turn is silently answering a question nobody
+     * asked.
+     *
+     * Folded into the *embedded text* rather than into the scope on purpose: two conversations that
+     * differ only in phrasing should still be able to match, and the guards still read the whole thing.
+     * Partitioning by scope would make only byte-identical histories comparable and throw the hit rate
+     * away.
+     */
+    private fun keyed(prompt: String, context: List<String>): String =
+        if (context.isEmpty()) prompt else context.joinToString("\n") + "\n" + prompt
+
+    private fun thresholdFor(scope: String): Double = thresholds[scope] ?: threshold
+
     private fun degraded(
         scope: String,
         prompts: List<String>,
@@ -651,7 +800,7 @@ public class SemanticCache(
         for (scored in found) {
             // Results are sorted by descending similarity, so the first one below the threshold
             // means every remaining one is too.
-            if (scored.similarity < threshold) break
+            if (scored.similarity < thresholdFor(scope)) break
 
             val rejection = firstRejection(prompt, scored.entry.prompt)
             if (rejection != null) {

@@ -99,6 +99,12 @@ public class Slf4jCacheListener @JvmOverloads constructor(
 
             // Logged with the throwable attached: this is the one event where the cause is the whole
             // story, and it is the line a postmortem goes looking for.
+            is CacheEvent.Shadow -> builder
+                .addKeyValue("event", "shadow")
+                .addKeyValue("wouldHit", event.report.decisions.count { it.wouldHit })
+                .addKeyValue("thresholds", event.report.decisions.size)
+                .promptOf(event.report.prompt)
+
             is CacheEvent.Degraded -> builder
                 .addKeyValue("event", "degraded")
                 .addKeyValue("operation", event.operation)

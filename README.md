@@ -185,6 +185,62 @@ Falling back is never silent: every degraded call moves `stats().degradedLookups
 `CacheEvent.Degraded` naming the operation and the cause. A cache that has quietly become a
 pass-through is otherwise the one failure mode with no telemetry pointing at it.
 
+### Calibrating on your own traffic before serving anything
+
+`ThresholdCalibrator` measures the right threshold, but it needs a labelled set — so the honest answer
+to "what threshold should I use?" is "measure it, on data you first have to build", and that first step
+is what stops teams putting a cache in front of production traffic.
+
+Shadow mode removes it. The cache runs the full lookup against real traffic, **serves nothing**, and
+reports what it *would* have decided at every threshold you name, in one pass:
+
+```kotlin
+val cache = semanticCache(embedder) {
+    shadowThresholds = listOf(0.99, 0.97, 0.95, 0.90)
+    listeners = listOf(CacheListener { e -> if (e is CacheEvent.Shadow) record(e.report) })
+}
+```
+
+Every `getOrPut` computes as if there were no cache, so a false hit cannot reach a user while you are
+still deciding. Writes still happen, because a shadow cache that never fills would report a miss for
+everything. The output is your own precision and recall curve, against your own questions, rather than
+somebody else's corpus. `kmemo-micrometer` exposes it as `kmemo.cache.shadow`, tagged by threshold and
+outcome.
+
+One threshold is also rarely right for a whole service. Override it per scope:
+
+```kotlin
+SemanticCache(embedder, threshold = 0.97, thresholds = mapOf("billing" to 0.995))
+```
+
+### Conversations
+
+A cache that keys on the last turn alone will answer "what about the second one?" from a completely
+different exchange. Pass the prior turns and they become part of the question:
+
+```kotlin
+cache.getOrPut("what about the second one", context = history) { llm.complete(it) }
+```
+
+`compute` still receives the bare prompt — the context is the cache's business, not the model's. It is
+folded into the embedded text rather than into the scope, so two conversations that differ only in
+phrasing can still match and the guards still read the whole thing.
+
+### Invalidating when a fact changes
+
+A TTL is a guess about when knowledge might go stale, not a way to act on knowing that it just did. The
+pattern that needs no new API is to **version the scope** and clear the old one:
+
+```kotlin
+// pricing-v3.2 → pricing-v3.3 when the price list changes
+cache.getOrPut(prompt, scope = "pricing-v3.3") { llm.complete(it) }
+cache.clear("pricing-v3.2")
+```
+
+It cuts over atomically: the new scope is empty and starts filling, and nothing can serve the old
+answers in the meantime. For a single entry proven wrong, `invalidate(id)` takes the id from the
+`CacheLookup.Hit` that reported it. Finer-grained bulk invalidation is not in `1.x` yet.
+
 ### The repeat that costs nothing
 
 Retries, replayed agent loops, polling clients and test suites send the *same* prompt over and over, and
