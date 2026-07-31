@@ -32,13 +32,15 @@ kotlin {
             }
         }
     }
+    // Node only, no browser environment. A browser test run pulls in the whole webpack and karma
+    // toolchain, which is a few hundred npm packages this project never ships and would have to keep
+    // patched. The published artifacts are identical either way — the environment decides where tests
+    // run, not what is compiled — and the cache has no DOM in it to test against.
     js(IR) {
-        browser()
         nodejs()
     }
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     wasmJs {
-        browser()
         nodejs()
     }
     iosArm64()

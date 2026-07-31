@@ -77,3 +77,17 @@ dependencies {
     dokka(project(":kmemo-langchain4j"))
     dokka(project(":kmemo-ktor"))
 }
+
+// The Kotlin/JS toolchain resolves its own npm tooling, and one transitive package carries a
+// high-severity advisory with no fix on the line its consumer asks for: brace-expansion 2.x, pulled
+// by minimatch, against an advisory patched only in 5.0.8. Forcing the patched version is the fix;
+// the package is a single string-expansion function whose signature has not moved across those
+// majors, and the JS tests are what prove it still works.
+//
+// This is build tooling for running tests. It is never published and never reaches a consumer of the
+// library, but "it does not ship" is a reason to be able to explain a finding, not a reason to leave
+// it in the lock file.
+plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
+    the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>()
+        .resolution("brace-expansion", "5.0.8")
+}
