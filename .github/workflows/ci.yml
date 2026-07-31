@@ -49,7 +49,7 @@ jobs:
       # The corpus report is this project's headline claim. Keeping it in the build log means the
       # numbers in the README can always be checked against a real run.
       - name: Corpus report (tuned and held-out)
-        run: ./gradlew :kmemo-core:test --tests '*CorpusTest*' --rerun-tasks --no-daemon
+        run: ./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*' --rerun-tasks --no-daemon
 
       - name: Upload test reports
         if: failure()
@@ -61,6 +61,41 @@ jobs:
             **/build/test-results/
             **/build/reports/ktlint/
             **/build/reports/detekt/
+          retention-days: 7
+
+  # kmemo-core is multiplatform, and the Apple targets cannot be compiled on Linux at all — the
+  # Kotlin plugin disables those tasks rather than failing, which would leave iOS and macOS silently
+  # unbuilt if this job did not exist. One JDK is enough here: the matrix above already covers the
+  # runtime dimension, and this job covers the host dimension.
+  apple-targets:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Compile and test the Apple targets
+        run: >-
+          ./gradlew
+          macosArm64Test iosSimulatorArm64Test
+          compileKotlinIosArm64 compileKotlinIosX64 compileKotlinMacosX64
+          --no-daemon --stacktrace
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports-apple
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/
           retention-days: 7
 
   # Fail a PR that introduces a dependency with a known vulnerability or a disallowed license.
