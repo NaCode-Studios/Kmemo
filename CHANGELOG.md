@@ -45,12 +45,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Notes
 
-- **Binary compatibility.** Both additions change the `kmemo-core` `.api` surface in ways that are
-  source-compatible but require a recompile: `CacheStats` gains two components, so its constructor,
+- **Recompile required, no source change.** `CacheStats` gains two components, so its constructor,
   `copy` and `componentN` signatures change, and `SemanticCache` gains a trailing `cachePolicy`
-  parameter, which changes its synthetic default-argument constructors. No user source change is needed.
-  Whether that ships as `1.1.0` or waits for a major bump is a release decision, since
-  [STABILITY.md](docs/STABILITY.md) commits to no breaking change to a stable public API within `1.x`.
+  parameter, which changes its synthetic default-argument constructors. Code compiled against `1.0.0`
+  must be rebuilt against this version; no calling code has to be edited, and `CacheStats` is only ever
+  constructed by the library. This ships as a **minor**, not a major:
+  [STABILITY.md](docs/STABILITY.md) now states the distinction it previously left implicit, between
+  source compatibility (guaranteed across `1.x`) and binary compatibility (a minor-version boundary).
 
 ## [1.0.0] - 2026-07-22
 
