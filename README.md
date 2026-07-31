@@ -331,6 +331,58 @@ prompt ─► embed ─► nearest 5 in scope ─► similarity ≥ threshold?
                                              HIT
 ```
 
+### Against a threshold-only cache
+
+The claim is that Kmemo refuses near misses a similarity-only cache serves. Measured, on the blind
+corpora, with the same inputs and no verifier in the loop:
+
+| Corpus | Configuration | Precision | Recall | F1 | False-hit rate |
+| --- | --- | --- | --- | --- | --- |
+| held-out | threshold-only | 0.328 | 1.000 | 0.494 | **1.000** |
+| held-out | `standard()` | 0.597 | 0.881 | 0.712 | **0.291** |
+| held-out | `strict()` | 0.589 | 0.786 | 0.673 | **0.267** |
+| validation | threshold-only | 0.333 | 1.000 | 0.500 | **1.000** |
+| validation | `standard()` | 0.570 | 0.882 | 0.692 | **0.333** |
+| validation | `strict()` | 0.536 | 0.725 | 0.617 | **0.314** |
+
+The false-hit rate is the share of near misses that were **served**, and it is the number the project
+turns on. A threshold-only cache serves all of them: that is not a straw man, it is what every "add a
+semantic cache" tutorial builds. `standard()` cuts it to roughly a third while keeping 88% of
+paraphrases. `strict()` buys a little more margin and pays for it in recall, which is the trade stated
+rather than hidden.
+
+Reproduce with:
+
+```bash
+./gradlew :kmemo-core:test --tests '*ComparativeBenchmarkTest*'
+```
+
+Not measured here: anything against GPTCache, the Python incumbent. That comparison needs a second
+runtime in the harness and is still open. And deliberately no cross-runtime latency — a JVM against
+Python wall-clock figure compares runtimes while appearing to compare caches. Latency and throughput
+live in `kmemo-benchmarks`, across Kmemo's own configurations.
+
+### Is it worth it
+
+The arithmetic whoever approves this is already doing, with the measured numbers in it.
+
+At **Q** queries a day, a hit rate of **H**, and a model call costing **C**:
+
+```
+saved per day     = Q × H × C
+false hits per day = Q × H × (near-miss share of your traffic) × false-hit rate
+```
+
+At 100,000 queries a day, a 40% hit rate and $0.002 a call, the cache saves **$80 a day**. If 5% of
+those hits are near misses rather than paraphrases, a threshold-only cache serves **2,000 wrong answers
+a day** at a false-hit rate of 1.0; `standard()` serves about **660**.
+
+Whether that trade is acceptable is not something a library can decide for you — it depends entirely on
+what a wrong answer costs in your domain, which is the one input no benchmark can supply. What the
+library can do is make sure you are looking at a measured number instead of an assumed one, and
+[shadow mode](#calibrating-on-your-own-traffic-before-serving-anything) puts *your* traffic on that
+axis before you serve a single cached answer.
+
 ### Correctness, measured
 
 The guards are judged against three labelled corpora with blind splits that no guard was tuned against,

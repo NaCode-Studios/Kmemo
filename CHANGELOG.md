@@ -8,6 +8,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Comparative benchmark (M23, first part): `ComparativeBenchmarkTest` runs the blind corpora through a
+  threshold-only baseline, `standard()` and `strict()`, and reports precision, recall, F1 and false-hit
+  rate on identical inputs, plus a machine-readable `comparative-report.json` for CI to diff. The
+  positioning is now an assertion rather than a paragraph: a similarity-only cache serves **every** near
+  miss it is shown (false-hit rate 1.000), `standard()` cuts that to 0.291 held-out and 0.333 validation
+  while keeping 88% of paraphrases. The README also carries the cost model — saving per day against
+  wrong answers per day, with the measured rates in it.
 - Tag invalidation (M21): `CacheEntry.tags`, `CacheStore.invalidateByTag(tag, scope)` and
   `SemanticCache.invalidateByTag(…)`, plus `tags` on `put` and `getOrPut`. A TTL is a guess about when
   knowledge might go stale; this is how a caller acts on knowing that it just did. Tags are **indexed**
