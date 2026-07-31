@@ -89,6 +89,23 @@ public class Slf4jCacheListener @JvmOverloads constructor(
                 .addKeyValue("event", "eviction")
                 .addKeyValue("cause", event.cause)
                 .promptOf(event.prompt)
+
+            // The reason is a low-cardinality rule id by contract, never the matched text, so it is
+            // safe to log even when prompts are redacted.
+            is CacheEvent.WriteVetoed -> builder
+                .addKeyValue("event", "write_vetoed")
+                .addKeyValue("reason", event.reason)
+                .promptOf(event.prompt)
+
+            // Logged with the throwable attached: this is the one event where the cause is the whole
+            // story, and it is the line a postmortem goes looking for.
+            is CacheEvent.Degraded -> builder
+                .addKeyValue("event", "degraded")
+                .addKeyValue("operation", event.operation)
+                .addKeyValue("policy", event.policy)
+                .addKeyValue("prompts", event.prompts.size)
+                .setCause(event.cause)
+                .promptOf(event.prompts.first())
         }
         correlationId()?.let { builder.addKeyValue("correlationId", it) }
         builder.log(MESSAGE)

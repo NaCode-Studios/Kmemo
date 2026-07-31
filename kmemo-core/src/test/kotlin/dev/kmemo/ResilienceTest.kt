@@ -3,6 +3,8 @@ package dev.kmemo
 import dev.kmemo.fixtures.CountingEmbedder
 import dev.kmemo.fixtures.HashingEmbedder
 import dev.kmemo.fixtures.MutableClock
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import java.io.IOException
 import kotlin.coroutines.cancellation.CancellationException
@@ -67,6 +69,128 @@ class ResilienceTest {
         // The fall-back only covers getOrPut, the one entry point with a compute to fall back to.
         assertFailsWith<IOException> { cache.lookup("anything") }
         assertFailsWith<IOException> { cache.put("anything", "answer") }
+    }
+
+    // --- Degraded telemetry -------------------------------------------------------------------
+
+    @Test
+    fun `a fall-back is counted, so stepping aside is never silent`() = runTest {
+        val cache = SemanticCache(
+            AlwaysFailingEmbedder(),
+            embedFailurePolicy = EmbedFailurePolicy.FALL_BACK_TO_COMPUTE,
+        )
+
+        cache.getOrPut("anything") { "fresh from the model" }
+
+        val stats = cache.stats()
+        assertEquals(1, stats.degradedLookups)
+        // A fall-back is not a miss: no lookup ever happened, so the hit rate must not move.
+        assertEquals(0, stats.lookups)
+        assertEquals(0, stats.misses)
+        assertEquals(0.0, stats.hitRate)
+    }
+
+    @Test
+    fun `the counter moves with no listener attached`() = runTest {
+        val cache = SemanticCache(
+            AlwaysFailingEmbedder(),
+            embedFailurePolicy = EmbedFailurePolicy.FALL_BACK_TO_COMPUTE,
+        )
+
+        repeat(3) { cache.getOrPut("anything") { "answer" } }
+
+        // stats() is the floor of observability and must answer this on its own.
+        assertEquals(3, cache.stats().degradedLookups)
+    }
+
+    @Test
+    fun `a fall-back emits Degraded naming the operation, the policy and the cause`() = runTest {
+        val listener = CollectingListener()
+        val cache = SemanticCache(
+            AlwaysFailingEmbedder(),
+            embedFailurePolicy = EmbedFailurePolicy.FALL_BACK_TO_COMPUTE,
+            listeners = listOf(listener),
+        )
+
+        cache.getOrPut("anything", scope = "tenant-a") { "answer" }
+
+        val degraded = assertIs<CacheEvent.Degraded>(listener.events.single { it is CacheEvent.Degraded })
+        assertEquals(DegradedOperation.GET_OR_PUT, degraded.operation)
+        assertEquals(EmbedFailurePolicy.FALL_BACK_TO_COMPUTE, degraded.policy)
+        assertEquals("tenant-a", degraded.scope)
+        assertEquals(listOf("anything"), degraded.prompts)
+        assertIs<IOException>(degraded.cause)
+    }
+
+    @Test
+    fun `a degraded batch is one event carrying every prompt`() = runTest {
+        val listener = CollectingListener()
+        val cache = SemanticCache(
+            AlwaysFailingEmbedder(),
+            embedFailurePolicy = EmbedFailurePolicy.FALL_BACK_TO_COMPUTE,
+            listeners = listOf(listener),
+        )
+
+        cache.getOrPutAll(listOf("a", "b", "c")) { "answer for $it" }
+
+        val degraded = assertIs<CacheEvent.Degraded>(listener.events.single { it is CacheEvent.Degraded })
+        assertEquals(DegradedOperation.GET_OR_PUT_ALL, degraded.operation)
+        assertEquals(listOf("a", "b", "c"), degraded.prompts)
+        // One failed embedAll call is one degraded call, not one per prompt.
+        assertEquals(1, cache.stats().degradedLookups)
+    }
+
+    @Test
+    fun `a degraded streaming call is reported as its own operation`() = runTest {
+        val listener = CollectingListener()
+        val cache = SemanticCache(
+            AlwaysFailingEmbedder(),
+            embedFailurePolicy = EmbedFailurePolicy.FALL_BACK_TO_COMPUTE,
+            listeners = listOf(listener),
+        )
+
+        val chunks = cache.getOrPutStreaming("anything") { flowOf("one", "two") }.toList()
+
+        assertEquals(listOf("one", "two"), chunks)
+        val degraded = assertIs<CacheEvent.Degraded>(listener.events.single { it is CacheEvent.Degraded })
+        assertEquals(DegradedOperation.GET_OR_PUT_STREAMING, degraded.operation)
+    }
+
+    @Test
+    fun `nothing is reported under PROPAGATE, where the caller sees the exception instead`() = runTest {
+        val listener = CollectingListener()
+        val cache = SemanticCache(AlwaysFailingEmbedder(), listeners = listOf(listener))
+
+        assertFailsWith<IOException> { cache.getOrPut("anything") { "unreachable" } }
+
+        assertEquals(0, cache.stats().degradedLookups)
+        assertTrue(listener.events.none { it is CacheEvent.Degraded })
+    }
+
+    @Test
+    fun `a retrying embedder that exhausts its attempts arrives as the Degraded cause`() = runTest {
+        val listener = CollectingListener()
+        val cache = SemanticCache(
+            AlwaysFailingEmbedder().retrying(maxAttempts = 2, initialDelay = 1.milliseconds),
+            embedFailurePolicy = EmbedFailurePolicy.FALL_BACK_TO_COMPUTE,
+            listeners = listOf(listener),
+        )
+
+        cache.getOrPut("anything") { "answer" }
+
+        // Retrying is transparent to the cache, so there is no separate "retries exhausted" event:
+        // the final throwable is what surfaces here.
+        val degraded = assertIs<CacheEvent.Degraded>(listener.events.single { it is CacheEvent.Degraded })
+        assertIs<IOException>(degraded.cause)
+        assertEquals(1, cache.stats().degradedLookups)
+    }
+
+    private class CollectingListener : CacheListener {
+        val events: MutableList<CacheEvent> = java.util.concurrent.CopyOnWriteArrayList()
+
+        override fun onEvent(event: CacheEvent) {
+            events += event
+        }
     }
 
     // --- RetryingEmbedder ---------------------------------------------------------------------

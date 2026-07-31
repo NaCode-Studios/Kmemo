@@ -6,6 +6,38 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Cache policy (M22): a `CachePolicy` seam and `SemanticCache(cachePolicy = …)`. One suspending
+  predicate over the prompt, the computed response and the scope can veto a write, returning
+  `PolicyVerdict.Veto(reason)` instead of `PolicyVerdict.Store`. It is consulted at the single choke
+  point every write goes through, so `put`, `getOrPut`, `getOrPutAll`, `getOrPutStreaming`, `warm` and
+  the write-behind queue are all covered — a guarantee with one path around it is not a guarantee. A
+  vetoed write is a policy decision, not a failure: the call still returns its response. kmemo ships the
+  seam and no detector, as with `Embedder` and `Verifier`.
+- Degraded-lookup telemetry: `CacheEvent.Degraded` and `CacheStats.degradedLookups`. A
+  `FALL_BACK_TO_COMPUTE` fall-back previously left no trace at all — it is not a miss, so it moved no
+  `MissReason` and no counter, and a team running with a flapping embedder would watch its hit rate
+  collapse with nothing naming the cause. The event carries the operation (`GET_OR_PUT`,
+  `GET_OR_PUT_ALL`, `GET_OR_PUT_STREAMING`), the policy and the throwable; a `RetryingEmbedder` that
+  exhausts its attempts arrives as that throwable rather than as a separate event, because retrying is
+  transparent to the cache. The counter moves with no listener attached.
+- Write-veto telemetry: `CacheEvent.WriteVetoed` and `CacheStats.writesVetoed`.
+- Metrics (`kmemo-micrometer`): `kmemo.cache.degraded` tagged by `operation`, pre-registered so an alert
+  can be written before the embedder ever fails, and `kmemo.cache.writes.vetoed` tagged by `reason`.
+  Neither touches `kmemo.cache.lookups`, so the hit ratio is not moved by something that never consulted
+  the cache.
+- Logging (`kmemo-slf4j`): `degraded` and `write_vetoed` lines. The degraded line carries the throwable.
+
+### Notes
+
+- **Binary compatibility.** Both additions change the `kmemo-core` `.api` surface in ways that are
+  source-compatible but require a recompile: `CacheStats` gains two components, so its constructor,
+  `copy` and `componentN` signatures change, and `SemanticCache` gains a trailing `cachePolicy`
+  parameter, which changes its synthetic default-argument constructors. No user source change is needed.
+  Whether that ships as `1.1.0` or waits for a major bump is a release decision, since
+  [STABILITY.md](docs/STABILITY.md) commits to no breaking change to a stable public API within `1.x`.
+
 ## [1.0.0] - 2026-07-22
 
 `1.0.0` is the **Tier 5 "quality & the road to `1.0`"** release, and the milestone it leads to: CI, supply

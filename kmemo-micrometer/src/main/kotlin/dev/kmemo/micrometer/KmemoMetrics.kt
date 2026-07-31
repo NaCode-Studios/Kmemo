@@ -2,6 +2,7 @@ package dev.kmemo.micrometer
 
 import dev.kmemo.CacheEvent
 import dev.kmemo.CacheListener
+import dev.kmemo.DegradedOperation
 import dev.kmemo.EvictionCause
 import dev.kmemo.MissReason
 import dev.kmemo.SemanticCache
@@ -41,6 +42,8 @@ import java.util.concurrent.TimeUnit
  * | `kmemo.cache.guard.rejections` | counter | `guard` | guard rejections, split by guard name |
  * | `kmemo.cache.writes` | counter | — | entries written |
  * | `kmemo.cache.evictions` | counter | `cause` | evictions, split by [EvictionCause] (needs a store listener) |
+ * | `kmemo.cache.degraded` | counter | `operation` | calls that ran uncached after an embedder failure |
+ * | `kmemo.cache.writes.vetoed` | counter | `reason` | writes refused by a [dev.kmemo.CachePolicy] |
  * | `kmemo.cache.hit.ratio` | gauge | — | hits / lookups |
  * | `kmemo.cache.embed` | timer | — | [dev.kmemo.Embedder] latency per lookup |
  * | `kmemo.cache.search` | timer | — | [dev.kmemo.CacheStore] search latency per lookup |
@@ -91,6 +94,10 @@ public class KmemoMetrics @JvmOverloads constructor(
             }
             is CacheEvent.Write -> m.writes.increment()
             is CacheEvent.Eviction -> m.eviction(event.cause).increment()
+            // Neither of these is a lookup, so neither touches m.lookups: folding them in would move
+            // the hit ratio for something that never consulted the cache.
+            is CacheEvent.WriteVetoed -> m.writeVeto(event.reason).increment()
+            is CacheEvent.Degraded -> m.degraded(event.operation).increment()
         }
     }
 
@@ -115,6 +122,8 @@ public class KmemoMetrics @JvmOverloads constructor(
         private val missReasons = ConcurrentHashMap<MissReason, Counter>()
         private val evictionCauses = ConcurrentHashMap<EvictionCause, Counter>()
         private val guardRejections = ConcurrentHashMap<String, Counter>()
+        private val degradedOperations = ConcurrentHashMap<DegradedOperation, Counter>()
+        private val writeVetoes = ConcurrentHashMap<String, Counter>()
 
         init {
             Gauge.builder("kmemo.cache.hit.ratio") { hitRatio() }
@@ -125,6 +134,9 @@ public class KmemoMetrics @JvmOverloads constructor(
             // rather than being absent — an alert on a rare miss reason needs the series to exist.
             MissReason.entries.forEach { missReason(it) }
             EvictionCause.entries.forEach { eviction(it) }
+            // The degraded counter matters most at 0: an alert on "the cache started stepping aside"
+            // needs the series to exist before the embedder ever fails.
+            DegradedOperation.entries.forEach { degraded(it) }
         }
 
         private fun hitRatio(): Double {
@@ -145,6 +157,22 @@ public class KmemoMetrics @JvmOverloads constructor(
                 .tags(tags)
                 .tag("cause", cause.name.lowercase())
                 .description("Entries removed by the store, split by cause.")
+                .register(registry)
+        }
+
+        fun degraded(operation: DegradedOperation): Counter = degradedOperations.getOrPut(operation) {
+            Counter.builder("kmemo.cache.degraded")
+                .tags(tags)
+                .tag("operation", operation.name.lowercase())
+                .description("Calls that ran uncached because the embedder failed and the cache stepped aside.")
+                .register(registry)
+        }
+
+        fun writeVeto(reason: String): Counter = writeVetoes.getOrPut(reason) {
+            Counter.builder("kmemo.cache.writes.vetoed")
+                .tags(tags)
+                .tag("reason", reason)
+                .description("Writes refused by the cache policy.")
                 .register(registry)
         }
 

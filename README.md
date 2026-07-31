@@ -171,6 +171,29 @@ val cache = SemanticCache(
 cache.warm(faqPairs.map { WarmEntry(it.question, it.answer) })
 ```
 
+Falling back is never silent: every degraded call moves `stats().degradedLookups` and emits a
+`CacheEvent.Degraded` naming the operation and the cause. A cache that has quietly become a
+pass-through is otherwise the one failure mode with no telemetry pointing at it.
+
+### What must never be cached
+
+The cache stores prompts and responses verbatim. `CachePolicy` is the seam that vetoes a write for data
+that must not be persisted at all — consulted once per write, on every write path including `warm`:
+
+```kotlin
+val cache = semanticCache(embedder) {
+    cachePolicy = CachePolicy { prompt, response, _ ->
+        if (containsPii(prompt) || containsPii(response)) PolicyVerdict.Veto("pii") else PolicyVerdict.Store
+    }
+}
+```
+
+A vetoed write is a policy decision, not a failure: the call still returns its computed response, and
+the veto surfaces as `CacheEvent.WriteVetoed` and `stats().writesVetoed` rather than being
+indistinguishable from a miss. Kmemo ships the seam and no detector, for the same reason `Embedder` and
+`Verifier` are seams. Isolation *between* tenants is a different problem and is already `scope`, which
+the store TCK has enforced on every store since M4.
+
 ### Verifying what lexical guards cannot see
 
 A third of near misses need world knowledge (`deworm a puppy` vs `an adult dog`, `boiling point of

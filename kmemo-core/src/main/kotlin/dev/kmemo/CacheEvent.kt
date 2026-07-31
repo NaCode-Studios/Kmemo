@@ -69,6 +69,55 @@ public sealed interface CacheEvent {
         override fun toString(): String = "CacheEvent.Write(scope=$scope, entryId=$entryId)"
     }
 
+    /**
+     * A write the cache declined to make because a [CachePolicy] vetoed it.
+     *
+     * Distinct from [Miss] on purpose: nothing was looked up and nothing failed. The call that produced
+     * the response returned it normally; the cache simply did not keep a copy. Counted in
+     * [CacheStats.writesVetoed].
+     */
+    public class WriteVetoed(
+        override val scope: String,
+        /** The prompt whose entry was not written. */
+        public val prompt: String,
+        /** The [PolicyVerdict.Veto.reason] the policy gave, suitable as a low-cardinality metrics tag. */
+        public val reason: String,
+    ) : CacheEvent {
+        override fun toString(): String = "CacheEvent.WriteVetoed(scope=$scope, reason=$reason)"
+    }
+
+    /**
+     * The [Embedder] failed and [EmbedFailurePolicy.FALL_BACK_TO_COMPUTE] stepped aside, so the call ran
+     * uncached.
+     *
+     * This is the one failure mode that otherwise leaves no trace. A rejected candidate produces a
+     * [MissReason] and moves a counter; a fall-back produces neither, because it is not a miss — no
+     * lookup ever happened. A team running with [EmbedFailurePolicy.FALL_BACK_TO_COMPUTE] and a flapping
+     * embedder would watch its hit rate collapse with nothing naming the cause, and would reasonably
+     * suspect the part that *is* instrumented, the guards. Counted in [CacheStats.degradedLookups].
+     *
+     * A [RetryingEmbedder] that exhausts its attempts arrives here too: retrying is transparent to the
+     * cache, so the final throwable is what [cause] carries. There is no separate "retries exhausted"
+     * event, because the cache cannot see that a retry happened at all.
+     */
+    public class Degraded(
+        override val scope: String,
+        /**
+         * The prompts the failed call covered — one element for the single-prompt entry points, the
+         * whole batch for [SemanticCache.getOrPutAll]. Never empty.
+         */
+        public val prompts: List<String>,
+        /** Which entry point stepped aside. */
+        public val operation: DegradedOperation,
+        /** The policy that decided to step aside, always [EmbedFailurePolicy.FALL_BACK_TO_COMPUTE] today. */
+        public val policy: EmbedFailurePolicy,
+        /** The embedder failure that triggered it. */
+        public val cause: Throwable,
+    ) : CacheEvent {
+        override fun toString(): String =
+            "CacheEvent.Degraded(scope=$scope, operation=$operation, cause=${cause::class.simpleName})"
+    }
+
     /** An entry left the store, either evicted for capacity/memory or dropped past its TTL. */
     public class Eviction(
         override val scope: String,
@@ -105,6 +154,18 @@ public class EventTimings(
         /** All-zero timings, for events emitted off the measured lookup path. */
         public val NONE: EventTimings = EventTimings(0, 0, 0)
     }
+}
+
+/** Which entry point a [CacheEvent.Degraded] came from. */
+public enum class DegradedOperation {
+    /** [SemanticCache.getOrPut], including the typed overload that wraps it. */
+    GET_OR_PUT,
+
+    /** [SemanticCache.getOrPutAll]; the whole batch degraded together on one failed batch embed. */
+    GET_OR_PUT_ALL,
+
+    /** [SemanticCache.getOrPutStreaming]; the upstream flow was returned uncached. */
+    GET_OR_PUT_STREAMING,
 }
 
 /** Why a [CacheEvent.Eviction] happened. */

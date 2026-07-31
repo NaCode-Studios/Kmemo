@@ -86,7 +86,12 @@ import java.time.Duration as JavaDuration
  * @param embedFailurePolicy what [getOrPut] does when the [Embedder] throws — propagate (the default)
  *   or fall back to [compute] so a lookup is never *worse* than no cache. See [EmbedFailurePolicy].
  *   [lookup], [get] and [put] have no fallback and always propagate. [CancellationException] always
- *   propagates.
+ *   propagates. Every fall-back is counted in [CacheStats.degradedLookups] and reported as
+ *   [CacheEvent.Degraded], so stepping aside is never silent.
+ * @param cachePolicy vetoes writes of data that must never be persisted, consulted once per write on
+ *   every write path including [warm]. `null` (the default) caches everything the cache decides to
+ *   cache. A vetoed write is a policy decision, not a failure: the call still returns its response.
+ *   See [CachePolicy].
  * @param negativeCacheSize when positive, turns on a bounded negative cache: the embedding of a prompt
  *   that just missed is remembered, so an immediate repeat of the *same brand-new prompt* is embedded
  *   once rather than once per caller. Extends the concurrent-miss coalescing to the near-in-time
@@ -126,6 +131,7 @@ public class SemanticCache(
     private val writeBehindScope: CoroutineScope? = null,
     private val writeBehindCapacity: Int = DEFAULT_WRITE_BEHIND_CAPACITY,
     private val clock: Clock = Clock.systemUTC(),
+    private val cachePolicy: CachePolicy? = null,
 ) {
 
     init {
@@ -182,6 +188,8 @@ public class SemanticCache(
     private val guardRejectionCount = AtomicLong()
     private val verifierRejectionCount = AtomicLong()
     private val writeCount = AtomicLong()
+    private val degradedCount = AtomicLong()
+    private val writeVetoCount = AtomicLong()
 
     // One counter per guard, fixed at construction so no entry is ever inserted concurrently — the
     // hot path only ever does an atomic increment on a key that already exists. Guards that share a
@@ -241,6 +249,12 @@ public class SemanticCache(
      *
      * Costs one [Embedder.embed] call. Prefer [getOrPut], which embeds once for the lookup and the
      * write together.
+     *
+     * The returned id is the one **assigned** to the entry. If a [CachePolicy] vetoes the write, no
+     * entry is stored and the id names nothing — the veto is reported as [CacheEvent.WriteVetoed] and
+     * counted in [CacheStats.writesVetoed], which is where a caller that needs to know should look.
+     * The return type is kept as-is rather than made nullable because narrowing it would break every
+     * existing caller for a case that only arises once a policy is configured.
      */
     public suspend fun put(
         prompt: String,
@@ -282,7 +296,10 @@ public class SemanticCache(
             // FALL_BACK_TO_COMPUTE degrades to an uncached model call so the caller is never worse off
             // than with no cache. The answer cannot be written back — there is no embedding to key it —
             // so nothing is cached until the embedder recovers.
-            if (embedFailurePolicy == EmbedFailurePolicy.FALL_BACK_TO_COMPUTE) return compute(prompt)
+            if (embedFailurePolicy == EmbedFailurePolicy.FALL_BACK_TO_COMPUTE) {
+                degraded(scope, listOf(prompt), DegradedOperation.GET_OR_PUT, e)
+                return compute(prompt)
+            }
             throw e
         }
         val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
@@ -335,7 +352,11 @@ public class SemanticCache(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            if (embedFailurePolicy == EmbedFailurePolicy.FALL_BACK_TO_COMPUTE) return prompts.map { compute(it) }
+            if (embedFailurePolicy == EmbedFailurePolicy.FALL_BACK_TO_COMPUTE) {
+                // One event for the batch, not one per prompt: a single embedAll call failed once.
+                degraded(scope, prompts, DegradedOperation.GET_OR_PUT_ALL, e)
+                return prompts.map { compute(it) }
+            }
             throw e
         }
 
@@ -408,7 +429,10 @@ public class SemanticCache(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            if (embedFailurePolicy == EmbedFailurePolicy.FALL_BACK_TO_COMPUTE) return compute(prompt)
+            if (embedFailurePolicy == EmbedFailurePolicy.FALL_BACK_TO_COMPUTE) {
+                degraded(scope, listOf(prompt), DegradedOperation.GET_OR_PUT_STREAMING, e)
+                return compute(prompt)
+            }
             throw e
         }
         val embedNanos = if (observed) System.nanoTime() - embedStart else 0L
@@ -469,7 +493,27 @@ public class SemanticCache(
             verifierRejections = verifierRejectionCount.get(),
             writes = writeCount.get(),
             guardRejectionsByGuard = guardRejectionCountersByName.mapValues { it.value.get() },
+            degradedLookups = degradedCount.get(),
+            writesVetoed = writeVetoCount.get(),
         )
+    }
+
+    /**
+     * Records that the embedder failed and the cache stepped aside, then hands the failure back so the
+     * caller can run [compute] uncached.
+     *
+     * The counter moves whether or not anyone is listening — [CacheStats] is the floor of observability
+     * and must answer "how often did the cache step aside" on its own. Only the event construction is
+     * gated on [observed].
+     */
+    private fun degraded(
+        scope: String,
+        prompts: List<String>,
+        operation: DegradedOperation,
+        cause: Exception,
+    ) {
+        degradedCount.incrementAndGet()
+        if (observed) emit(CacheEvent.Degraded(scope, prompts, operation, embedFailurePolicy, cause))
     }
 
     /**
@@ -737,8 +781,21 @@ public class SemanticCache(
         metadata = metadata,
     )
 
-    /** The actual store write shared by every write path: put, getOrPut, warm, and the write-behind worker. */
+    /**
+     * The actual store write shared by every write path: put, getOrPut, warm, and the write-behind
+     * worker.
+     *
+     * [cachePolicy] is consulted here rather than at each call site precisely because this is the one
+     * choke point every write goes through. A policy that can be routed around by one entry point is
+     * not something an adopter can put in front of an auditor.
+     */
     private suspend fun putEntry(entry: CacheEntry) {
+        val verdict = cachePolicy?.evaluate(entry.prompt, entry.response, entry.scope)
+        if (verdict is PolicyVerdict.Veto) {
+            writeVetoCount.incrementAndGet()
+            if (observed) emit(CacheEvent.WriteVetoed(entry.scope, entry.prompt, verdict.reason))
+            return
+        }
         store.put(entry)
         writeCount.incrementAndGet()
         // The prompt is now answerable from the store, so its "recently missed" note is stale — drop it
