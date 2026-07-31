@@ -45,10 +45,11 @@ source; Kmemo ships none and depends on no provider SDK.
 > **See it end to end.** [`examples/`](examples) is a runnable demo (no API key needed) that shows a
 > guard catching a live near miss, with a `docker-compose` for the Redis store.
 
-> **Status: `1.0`, stable.** The cache, the ten guards, the in-memory / Redis / Postgres / HNSW stores,
-> the threshold calibrator, an optional verifier, observability (events, Micrometer, SLF4J), and Spring
-> Boot / Spring AI / LangChain4j / Ktor integrations are implemented and measured against a labelled
-> corpus. The public API is stable under SemVer; see [STABILITY.md](docs/STABILITY.md).
+> **Status — `1.1`, stable.** The cache, the ten guards, the in-memory / Redis / Postgres / HNSW stores,
+> the threshold calibrator, an optional verifier, observability (events, Micrometer, SLF4J), a
+> `CachePolicy` veto for data that must never be persisted, and Spring Boot / Spring AI / LangChain4j /
+> Ktor integrations are implemented and measured against a labelled corpus. The public API is stable
+> under SemVer; see [STABILITY.md](STABILITY.md).
 
 ## Why Kmemo
 
@@ -71,7 +72,7 @@ Requires JDK 17+. Artifacts are published to Maven Central under `io.github.naco
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:1.0.0")
+    implementation("io.github.nacode-studios:kmemo-core:1.1.0")
 }
 ```
 
@@ -254,12 +255,16 @@ ergonomics (typed and streaming `getOrPut`, a config DSL, a BOM); multilingual g
 (IT/ES/DE/FR); and Spring Boot, Spring AI, LangChain4j and Ktor integrations with a runnable
 [`examples/`](examples) demo. The public API is stable under SemVer.
 
+**Shipped (`1.1.0`).** The first slice of Tier 6: a `CachePolicy` veto for data that must never be
+persisted, enforced at the single choke point every write goes through; telemetry for the one failure
+mode that previously left no trace, an embed failure that degrades a `getOrPut` to an uncached call; and
+an honesty pass on the published corpus numbers, which are now labelled guard-only.
+
 **Next.** An exact-match fast path that answers a repeated prompt without embedding it at all; shadow
 mode, which runs the full lookup against your own traffic and reports what *would* have matched at a
 range of thresholds without serving anything, so the threshold is calibrated before a single cached
-answer goes out; invalidation beyond TTL, for when the fact behind an answer changes; a `CachePolicy`
-veto for data that must never be persisted; and a comparative false-hit benchmark against GPTCache and a
-threshold-only baseline.
+answer goes out; invalidation beyond TTL, for when the fact behind an answer changes; and a comparative
+false-hit benchmark against GPTCache and a threshold-only baseline.
 
 **Later.** Kotlin Multiplatform (`commonMain`) for on-device, browser and edge caches, and
 advanced matching (reranking/MMR, near-duplicate eviction, quantized candidates with exact rescoring,
@@ -267,7 +272,7 @@ adaptive thresholds).
 
 The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5) — one item per milestone, each with its exit
 criterion — and every tier is a [milestone](https://github.com/NaCode-Studios/Kmemo/milestones) in this repository. See
-[STABILITY.md](docs/STABILITY.md) for the versioning and stability policy.
+[STABILITY.md](STABILITY.md) for the versioning and stability policy.
 
 ## Building and testing
 
