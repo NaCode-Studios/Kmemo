@@ -8,6 +8,36 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Shadow mode (M20): `SemanticCache(shadowThresholds = listOf(…))`. Every `getOrPut` runs the full
+  lookup, reports what it *would* have decided at each threshold through `CacheEvent.Shadow`, and then
+  always computes. Nothing is served, so a false hit cannot reach a user while a team is still choosing
+  a threshold; writes still happen, because a shadow cache that never fills measures nothing. One search
+  and one guard pass per candidate serve the whole curve — a candidate's guard verdict does not depend
+  on the threshold — so a five-point curve costs one embed call, not five. Exposed as
+  `kmemo.cache.shadow` (tagged `threshold`, `outcome`) and as a `shadow` log line.
+- Per-scope thresholds (M20): `SemanticCache(thresholds = mapOf("billing" to 0.995))`. One global value
+  is necessarily wrong for a service answering both regulated and casual questions, and tuning it to the
+  strictest caller makes every other one pay. `explain()` reports the threshold that would actually
+  apply in that scope.
+- Conversation-aware keys (M19, part 2): `getOrPut(prompt, context, …)`, `lookup(prompt, scope, context)`
+  and `get(prompt, scope, context)`. Without context the cache keys on the last turn alone, so "what
+  about the second one?" can be answered from a different exchange — the context was not weighed, it was
+  ignored. The prior turns are folded into the embedded text rather than into the scope, so
+  conversations that differ only in phrasing can still match. `compute` still receives the bare prompt.
+  Shipped as an **overload** rather than a parameter: inserting anything ahead of a trailing lambda
+  rebinds it for every caller passing `scope` or `metadata` positionally, which `kmemo-ktor` caught at
+  compile time and which `1.x` does not allow.
+- Exact-match layer (M19, part 1): `SemanticCache(exactCacheSize = …, exactCacheTtl = …)`, off by
+  default. A byte-for-byte repeat of a prompt in the same scope is answered without an `Embedder` call
+  *or* a store search, which is the path retries, replayed agent loops, polling clients and test suites
+  hammer. It runs no guards, because an identical prompt in the same scope is the same question — the
+  fast path adds no false-hit risk by construction rather than by measurement. Counted in
+  `CacheStats.exactHits`, a subset of `hits`.
+  **The trade, stated rather than hidden:** `CacheStore` exposes no read-by-id, so this layer cannot ask
+  whether an entry is still live without the search it exists to avoid. It therefore carries its own
+  TTL, which must not outlast the store's. Past that TTL nothing stale is served: the remembered
+  *embedding* is still reused, so the lookup falls through to the ordinary path with the network call
+  already paid. `invalidate` and `clear` purge it, so a retracted answer cannot survive there.
 - **Build provenance (SLSA)** on every published jar. The release workflow attests, through
   `actions/attest-build-provenance`, that each artifact was built by this workflow from a named commit,
   and the attestation is verifiable with `gh attestation verify <jar> --repo NaCode-Studios/Kmemo`.
@@ -22,6 +52,14 @@ All notable changes to this project are documented here. The format follows
   record carries the jar's digest, so it lines up with the provenance attestation for the same artifact.
   The step is non-fatal: it annotates a publish that already succeeded and must never fail a good
   release.
+
+### Changed
+
+- Docs (M21, first part): the README documents **scope versioning** as the invalidation pattern that
+  needs no new API — bump `pricing-v3.2` to `pricing-v3.3` and clear the old scope, which cuts over
+  atomically. The issue asks for this to ship before any seam change, and it is the whole answer for
+  many teams. Tag-based bulk invalidation is still ahead and touches `CacheStore`, the TCK and all four
+  adapters.
 
 ### Removed
 

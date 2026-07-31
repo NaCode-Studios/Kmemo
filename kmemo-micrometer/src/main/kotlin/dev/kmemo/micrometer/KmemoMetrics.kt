@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit
  * | `kmemo.cache.evictions` | counter | `cause` | evictions, split by [EvictionCause] (needs a store listener) |
  * | `kmemo.cache.degraded` | counter | `operation` | calls that ran uncached after an embedder failure |
  * | `kmemo.cache.writes.vetoed` | counter | `reason` | writes refused by a [dev.kmemo.CachePolicy] |
+ * | `kmemo.cache.shadow` | counter | `threshold`, `outcome` | shadow-mode decisions per threshold |
  * | `kmemo.cache.hit.ratio` | gauge | — | hits / lookups |
  * | `kmemo.cache.embed` | timer | — | [dev.kmemo.Embedder] latency per lookup |
  * | `kmemo.cache.search` | timer | — | [dev.kmemo.CacheStore] search latency per lookup |
@@ -98,6 +99,12 @@ public class KmemoMetrics @JvmOverloads constructor(
             // the hit ratio for something that never consulted the cache.
             is CacheEvent.WriteVetoed -> m.writeVeto(event.reason).increment()
             is CacheEvent.Degraded -> m.degraded(event.operation).increment()
+            // Shadow decisions are counted per threshold, tagged by the outcome, so a whole precision
+            // and recall curve reads straight off one counter. Not a lookup: nothing was served.
+            is CacheEvent.Shadow -> for (d in event.report.decisions) {
+                m.shadow(d.threshold, if (d.wouldHit) "hit" else d.reason?.name?.lowercase() ?: "miss")
+                    .increment()
+            }
         }
     }
 
@@ -124,6 +131,7 @@ public class KmemoMetrics @JvmOverloads constructor(
         private val guardRejections = ConcurrentHashMap<String, Counter>()
         private val degradedOperations = ConcurrentHashMap<DegradedOperation, Counter>()
         private val writeVetoes = ConcurrentHashMap<String, Counter>()
+        private val shadowOutcomes = ConcurrentHashMap<String, Counter>()
 
         init {
             Gauge.builder("kmemo.cache.hit.ratio") { hitRatio() }
@@ -167,6 +175,16 @@ public class KmemoMetrics @JvmOverloads constructor(
                 .description("Calls that ran uncached because the embedder failed and the cache stepped aside.")
                 .register(registry)
         }
+
+        fun shadow(threshold: Double, outcome: String): Counter =
+            shadowOutcomes.getOrPut("$threshold|$outcome") {
+                Counter.builder("kmemo.cache.shadow")
+                    .tags(tags)
+                    .tag("threshold", threshold.toString())
+                    .tag("outcome", outcome)
+                    .description("Shadow-mode decisions, by threshold and what would have happened.")
+                    .register(registry)
+            }
 
         fun writeVeto(reason: String): Counter = writeVetoes.getOrPut(reason) {
             Counter.builder("kmemo.cache.writes.vetoed")

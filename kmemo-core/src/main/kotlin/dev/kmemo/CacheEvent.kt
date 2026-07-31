@@ -118,6 +118,22 @@ public sealed interface CacheEvent {
             "CacheEvent.Degraded(scope=$scope, operation=$operation, cause=${cause::class.simpleName})"
     }
 
+    /**
+     * A shadow-mode lookup: what the cache **would** have decided, at every configured threshold.
+     *
+     * Emitted instead of a [Hit] or a [Miss], because in shadow mode neither happened — nothing was
+     * served. Subscribe to this to build your own precision and recall curve from live traffic before
+     * committing to a threshold.
+     */
+    public class Shadow(
+        /** The full report, one decision per configured threshold. */
+        public val report: ShadowReport,
+    ) : CacheEvent {
+        override val scope: String get() = report.scope
+
+        override fun toString(): String = "CacheEvent.Shadow(scope=$scope, thresholds=${report.decisions.size})"
+    }
+
     /** An entry left the store, either evicted for capacity/memory or dropped past its TTL. */
     public class Eviction(
         override val scope: String,
