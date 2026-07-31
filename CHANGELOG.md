@@ -8,6 +8,25 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Response-aware guards: `ResponseAwareGuard`, `AnswerAnchorGuard` and `MatchGuards.responseAware()`.
+  Every guard until now compared two prompts, which left one near miss structurally invisible — two
+  honest paraphrases whose answers differ by something neither question contains. "What is the capital
+  gains tax rate when I sell a second home" against "…a primary residence" clears the entire chain, and
+  the cached answer opens "Gain on a second home is taxable in full". The new guard reads the
+  candidate's stored answer and refuses it when it names the word the query replaced. It rejects only on
+  a clean substitution — same content-word count, at most two positions differing, compared with the
+  same fuzzy rule that keeps `organise` and `organize` together — and only when the query does not use
+  that word itself, which is what stops it refusing an expanded abbreviation or a word-order swap.
+  **`MatchGuards.standard()` is unchanged**, and that is a statement about evidence rather than
+  performance: the guard refuses 14 of the 118 near-miss lookups `standard()` still serves on the blind
+  corpora and **none** of the 164 paraphrase lookups, moving the false-hit rate from 0.291 to 0.238
+  held-out and 0.333 to 0.309 on validation — but it is measured on a corpus of **authored** answers,
+  because no corpus of real paired answers exists to harvest. That makes it a regression check rather
+  than the blind measurement every other guard is held to, and folding the two together under one
+  default would quietly downgrade the evidence behind all of them. The answers were written before the
+  guard was designed and written to be realistic rather than catchable; `docs/CORPUS.md` states the
+  rules and `ResponseGuardTest` holds the numbers, including the naive alternative — comparing the
+  query's numbers against the answer's — measured and rejected rather than dismissed in prose.
 - Comparative benchmark (M23, second part): GPTCache, measured. `tools/gptcache-comparison` scores the
   same blind corpora with GPTCache's own `OnnxModelEvaluation` under its own default threshold, and
   `ComparativeBenchmarkTest` renders it as a fourth row. **The result is a trade, not a win, and the

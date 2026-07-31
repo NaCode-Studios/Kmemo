@@ -546,6 +546,15 @@ public final class dev/kmemo/calibration/ThresholdOutcome {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/kmemo/guard/AnswerAnchorGuard : dev/kmemo/guard/ResponseAwareGuard {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;I)V
+	public synthetic fun <init> (Ljava/util/Set;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
 public final class dev/kmemo/guard/AntonymGuard : dev/kmemo/guard/MatchGuard {
 	public fun <init> ()V
 	public fun <init> (Ljava/util/Set;)V
@@ -658,6 +667,8 @@ public abstract interface class dev/kmemo/guard/MatchGuard {
 public final class dev/kmemo/guard/MatchGuards {
 	public static final field INSTANCE Ldev/kmemo/guard/MatchGuards;
 	public final fun none ()Ljava/util/List;
+	public final fun responseAware ()Ljava/util/List;
+	public final fun responseAware (Ldev/kmemo/guard/GuardVocabulary;)Ljava/util/List;
 	public final fun standard ()Ljava/util/List;
 	public final fun standard (Ldev/kmemo/guard/GuardVocabulary;)Ljava/util/List;
 	public final fun standard (Ljava/util/Locale;)Ljava/util/List;
@@ -689,6 +700,15 @@ public final class dev/kmemo/guard/NumericGuard : dev/kmemo/guard/MatchGuard {
 	public fun <init> ()V
 	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
 	public fun getName ()Ljava/lang/String;
+}
+
+public abstract interface class dev/kmemo/guard/ResponseAwareGuard : dev/kmemo/guard/MatchGuard {
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public abstract fun evaluate (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+}
+
+public final class dev/kmemo/guard/ResponseAwareGuard$DefaultImpls {
+	public static fun evaluate (Ldev/kmemo/guard/ResponseAwareGuard;Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
 }
 
 public final class dev/kmemo/guard/ScopeGuard : dev/kmemo/guard/MatchGuard {
