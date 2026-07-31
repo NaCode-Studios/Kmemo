@@ -8,7 +8,7 @@ labelled corpora of prompt pairs, and this document is the process that keeps th
 
 Every pair is a `(a, b, category, kind)` where `kind` is either a **near-miss** (the two prompts need
 different answers) or a **paraphrase** (they need the same answer). The pairs live in
-`kmemo-core/src/test/resources/*-corpus.json`.
+`kmemo-core/src/jvmTest/resources/*-corpus.json`.
 
 | Split | Role | May the guards be tuned against it? |
 | --- | --- | --- |
@@ -39,7 +39,7 @@ Adding pairs is how the corpus stays representative of real traffic. Do it per s
 
 ### Growing **tuned** (in-sample)
 
-Free to do anytime. Add pairs, run `./gradlew :kmemo-core:test --tests '*CorpusTest*'`, and if a new
+Free to do anytime. Add pairs, run `./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*'`, and if a new
 near-miss slips through, that is exactly the signal to improve a guard. Raise the tuned floor to match.
 
 ### Growing **held-out** or **validation** (out-of-sample)

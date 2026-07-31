@@ -45,11 +45,12 @@ source; Kmemo ships none and depends on no provider SDK.
 > **See it end to end.** [`examples/`](examples) is a runnable demo (no API key needed) that shows a
 > guard catching a live near miss, with a `docker-compose` for the Redis store.
 
-> **Status — `1.1`, stable.** The cache, the eleven guards, the in-memory / Redis / Postgres / HNSW stores,
-> the threshold calibrator, an optional verifier, observability (events, Micrometer, SLF4J), a
-> `CachePolicy` veto for data that must never be persisted, and Spring Boot / Spring AI / LangChain4j /
-> Ktor integrations are implemented and measured against a labelled corpus. The public API is stable
-> under SemVer; see [STABILITY.md](STABILITY.md).
+> **Status — `2.0`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
+> Windows, JS and WasmJS. The Redis, Postgres and HNSW stores, the framework integrations, the threshold
+> calibrator, the optional verifier and the observability stream are JVM-side and unchanged. Everything
+> here is measured against a labelled corpus with blind splits. The public API is stable under SemVer;
+> `2.0` breaks compatibility with `1.x` in two named places, both listed in
+> [docs/MIGRATION.md](docs/MIGRATION.md), and the policy is in [STABILITY.md](STABILITY.md).
 
 ## Why Kmemo
 
@@ -75,7 +76,7 @@ are published to Maven Central under `io.github.nacode-studios`.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:1.1.0")
+    implementation("io.github.nacode-studios:kmemo-core:2.0.0")
 }
 ```
 
@@ -83,9 +84,9 @@ You also need an embedding source, which is any function from `String` to `Float
 users can pin one version with the BOM (`io.github.nacode-studios:kmemo-bom`); every module past
 `kmemo-core` is opt-in and never lands on the core classpath.
 
-From the next release on, every published jar carries a signed [SLSA build provenance](https://slsa.dev/)
-attestation, so you can check that the artifact you resolved was built by this repository's release
-workflow and not by someone else. `1.0.0` and `1.1.0` shipped before this and have none.
+Every artifact published from `2.0.0` onwards carries a signed [SLSA build provenance](https://slsa.dev/)
+attestation, so you can check that what you resolved was built by this repository's release workflow and
+not by someone else. `1.0.0` and `1.1.0` shipped before this existed and have none.
 
 ```bash
 gh attestation verify <jar> --repo NaCode-Studios/Kmemo
@@ -448,7 +449,7 @@ would.
 Reproduce the Kmemo rows with:
 
 ```bash
-./gradlew :kmemo-core:test --tests '*ComparativeBenchmarkTest*'
+./gradlew :kmemo-core:jvmTest --tests '*ComparativeBenchmarkTest*'
 ```
 
 The GPTCache row is measured out of band, because GPTCache is a Python package that downloads a model
@@ -503,7 +504,7 @@ getting contaminated is written up in
 [docs/CORPUS.md](docs/CORPUS.md); reproduce the numbers with:
 
 ```bash
-./gradlew :kmemo-core:test --tests '*CorpusTest*'
+./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*'
 ```
 
 ## Roadmap
@@ -515,24 +516,33 @@ ergonomics (typed and streaming `getOrPut`, a config DSL, a BOM); multilingual g
 (IT/ES/DE/FR); and Spring Boot, Spring AI, LangChain4j and Ktor integrations with a runnable
 [`examples/`](examples) demo. The public API is stable under SemVer.
 
-**Shipped (`1.1.0`).** The first slice of Tier 6: a `CachePolicy` veto for data that must never be
-persisted, enforced at the single choke point every write goes through; telemetry for the one failure
-mode that previously left no trace, an embed failure that degrades a `getOrPut` to an uncached call; and
-an honesty pass on the published corpus numbers, which are now labelled guard-only.
+**Shipped (`1.1.0`).** A `CachePolicy` veto for data that must never be persisted, enforced at the
+single choke point every write goes through; telemetry for an embed failure that degrades a `getOrPut`
+to an uncached call, which previously left no trace; and an honesty pass on the published corpus
+numbers, which are now labelled guard-only.
 
-**Next.** An exact-match fast path that answers a repeated prompt without embedding it at all; shadow
-mode, which runs the full lookup against your own traffic and reports what *would* have matched at a
-range of thresholds without serving anything, so the threshold is calibrated before a single cached
-answer goes out; invalidation beyond TTL, for when the fact behind an answer changes; and a comparative
-false-hit benchmark against GPTCache and a threshold-only baseline.
+**Shipped (`2.0.0`).** The rest of Tier 6, and the two Post-1.0 milestones with it.
 
-**Later.** Kotlin Multiplatform (`commonMain`) for on-device, browser and edge caches, and
-advanced matching (reranking/MMR, near-duplicate eviction, quantized candidates with exact rescoring,
-adaptive thresholds).
+The cache moved off the JVM: `kmemo-core` and `InMemoryStore` build for iOS, macOS, Linux, Windows, JS
+and WasmJS as well, at the cost of no new dependency. The lookup path grew an exact-match fast path,
+conversation-aware keys, per-scope thresholds and shadow mode, which reports what your own traffic
+*would* have matched at a range of thresholds without serving anything. Tag invalidation covers the case
+a TTL only guesses at. Reranking, quantized retrieval with exact rescoring, write deduplication and
+adaptive thresholds sit around the match path, each opt-in and each with its trade written down.
+
+Three claims stopped being claims. GPTCache is measured on the same blind corpora, and the result is a
+trade rather than a win: its cross-encoder serves fewer near misses than `standard()` and refuses more
+than half the genuine paraphrases to do it. A named reference verifier is measured on the residual the
+guards leave, stopping about four fifths of it at a real cost in hit rate. And a guard now reads the
+cached *answer*, not only the two prompts, which is the near miss no prompt-side check can see.
+
+**Next.** Nothing is scheduled. Tier 6 and Tier 7 are complete, and the 2027 plan is written in
+December against whatever the year's traffic and feedback have shown.
 
 The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5) — one item per milestone, each with its exit
 criterion — and every tier is a [milestone](https://github.com/NaCode-Studios/Kmemo/milestones) in this repository. See
-[STABILITY.md](STABILITY.md) for the versioning and stability policy.
+[STABILITY.md](STABILITY.md) for the versioning and stability policy, and
+[docs/MIGRATION.md](docs/MIGRATION.md) to move from `1.x` to `2.0`.
 
 ## Building and testing
 

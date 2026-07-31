@@ -4,7 +4,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.dokka)
-    alias(libs.plugins.dokka.javadoc)
     alias(libs.plugins.maven.publish)
 }
 
@@ -78,6 +77,18 @@ kotlin {
 
 mavenPublishing {
     publishToMavenCentral()
+
+    // Maven Central requires a javadoc jar, and the Dokka Javadoc plugin refuses to run on a
+    // multiplatform project — it says so outright rather than producing something wrong, which is the
+    // right call and also stops the release dead. The HTML output is what the API site already
+    // publishes, so it goes in the jar instead: the requirement is that the artifact exists and
+    // documents the code, not that it is in the 2007 Javadoc frameset.
+    configure(
+        com.vanniktech.maven.publish.KotlinMultiplatform(
+            javadocJar = com.vanniktech.maven.publish.JavadocJar.Dokka("dokkaGeneratePublicationHtml"),
+            sourcesJar = true,
+        ),
+    )
 
     // Maven Central requires signatures, but a developer running publishToMavenLocal has no key and
     // should not be stopped by that — an unconditional signAllPublications() fails the local build

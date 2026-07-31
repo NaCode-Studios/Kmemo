@@ -38,7 +38,7 @@ from pathlib import Path
 from sentence_transformers import CrossEncoder
 
 HERE = Path(__file__).resolve().parent
-RESOURCES = HERE.parent.parent / "kmemo-core" / "src" / "test" / "resources"
+RESOURCES = HERE.parent.parent / "kmemo-core" / "src" / "jvmTest" / "resources"
 CORPUS = RESOURCES / "response-corpus.json"
 
 # A duplicate-question cross-encoder, asked the question a Verifier is asked: do these two prompts

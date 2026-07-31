@@ -18,13 +18,11 @@ python3.11 -m venv .venv
 
 The first run downloads an ONNX model from the Hugging Face hub, so it needs network access.
 
-**Two known advisories come with the pins, and neither has a fix this harness can take.**
-GHSA-fgcw-684q-jj6r and GHSA-29pf-2h5f-8g72 are arbitrary code execution while loading a model, and
-both are fixed only in transformers 5, which removed the tokenizer method GPTCache's evaluator calls.
-The exposure is bounded by what this script does: it loads one model, the one GPTCache itself names, and
-only when you run it. Nothing here is installed by CI and no Python package here reaches a consumer of
-the library. Do not point this environment at a model you did not choose. `ci.yml` allows those two
-advisories by id and nothing else, so a third one still fails the build.
+**The one incompatibility is shimmed, not pinned around.** GPTCache's evaluator calls
+`tokenizer.encode_plus`, which transformers 5 removed, and it needs `token_type_ids`, which the ALBERT
+tokenizer no longer returns by default. `compare.py` forwards both to the documented replacement in six
+lines. Pinning transformers back to 4.57.6 would have worked too and would have meant carrying two
+high-severity advisories with no fix below 5.
 
 ## Why this is a script and not a test
 

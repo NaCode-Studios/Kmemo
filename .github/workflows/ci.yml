@@ -108,11 +108,3 @@ jobs:
         uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
-          # Two advisories against transformers, allowed by id so that anything else still fails.
-          # Both are arbitrary code execution while loading a model, and neither has a fix below
-          # transformers 5 — which removed the tokenizer method GPTCache's evaluator calls, so taking
-          # the fix means the comparison in tools/gptcache-comparison cannot run at all. That harness
-          # is a developer-run script: it loads the single model GPTCache itself names, it is never
-          # installed by this workflow, and no Python package here reaches a consumer of the library.
-          # Revisit when GPTCache supports a transformers that has the fix.
-          allow-ghsas: GHSA-fgcw-684q-jj6r, GHSA-29pf-2h5f-8g72
