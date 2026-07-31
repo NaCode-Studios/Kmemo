@@ -318,7 +318,24 @@ validation. That residual is what an optional `Verifier` exists for — typicall
 runs only on candidates that already cleared the threshold and every guard, and it fails closed: a
 timeout or an error rejects rather than serving something unconfirmed. Cases like `deworm a puppy` vs
 `an adult dog` or `boiling point of ethanol` vs `methanol` turn on world knowledge no lexical check has.
-How much of the residual a verifier actually catches has not been measured yet.
+
+**How much of that residual a verifier actually stops is measured**, against a named reference
+implementation — `sentence_transformers.CrossEncoder` over `cross-encoder/quora-distilroberta-base`,
+serving at a duplicate probability of 0.5:
+
+| Corpus | Residual the guards serve | The verifier stops | False-hit rate | Paraphrases kept |
+| --- | --- | --- | --- | --- |
+| held-out | 50 lookups | 40 (80%) | 0.291 → **0.058** | 0.881 → **0.452** |
+| validation | 68 lookups | 53 (78%) | 0.333 → **0.074** | 0.882 → **0.686** |
+
+It stops about four fifths of what the guards miss, and that is the answer to the question. It is also
+expensive in the other direction, and this reference model is expensive unevenly: it keeps 69% of
+validation's paraphrases and 45% of held-out's, which is heavier on software questions than on everyday
+ones. **Your verifier is not this one.** What the table says is how much of the residual is reachable at
+all by a model that reads the two prompts, and that a verifier is a hit-rate decision as much as a
+correctness one — which is why it is a seam and not a default. Reproduce it with
+[tools/verifier-catch-rate](tools/verifier-catch-rate); it is deliberately not a CI gate, because a
+build that spends a model call per run is a build nobody keeps.
 
 ## Architecture
 
@@ -433,8 +450,10 @@ run as a CI regression gate on every build. **These figures are guard-only**: `C
 `MatchGuards.standard()` with no `Verifier` in the loop, so they describe the free lexical layer rather
 than the cache as a whole. On the validation split, near misses are rejected 67% of the time and
 paraphrases are kept 88%; on the held-out split, 71% and 88%. Neither is 100%. The near misses that get
-through are what the optional `Verifier` is for, but its catch rate on them is not measured here and is
-not folded into these numbers. How the blind splits grow without getting contaminated is written up in
+through are what the optional `Verifier` is for; its catch rate on them is measured
+[above](#verifying-what-lexical-guards-cannot-see) against a named reference model, and is deliberately
+not folded into these numbers, which describe the free layer alone. How the blind splits grow without
+getting contaminated is written up in
 [docs/CORPUS.md](docs/CORPUS.md); reproduce the numbers with:
 
 ```bash

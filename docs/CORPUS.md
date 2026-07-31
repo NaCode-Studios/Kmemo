@@ -84,6 +84,14 @@ to it:
    is answered with `78.4 degrees Celsius at one atmosphere`, which no response-aware guard can use.
    Those are misses, and they stay in the denominator.
 
+It carries a second measurement as well. Because its near misses are exactly the lookups the guards
+still serve, it is also the population a `Verifier` claims, so `tools/verifier-catch-rate` scores every
+one of them with a named reference verifier and `VerifierCatchRateTest` reports the catch rate. That
+file records a **verdict per lookup rather than a rate**: the residual moves when a guard improves, and
+a recorded percentage would go on describing the set it was taken from. The rate is computed against the
+residual as it stands on the day the build runs, and it is never a floor — a build that spends a model
+call per run is a build nobody keeps.
+
 **The prompts are borrowed, never owned.** `ResponseGuardTest` asserts that every pair is still present,
 verbatim and with the same label, in the split it names — so the two files cannot drift apart — and that
 the response corpus covers every near miss the standard chain still serves. Add pairs to a blind split
