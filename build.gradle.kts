@@ -78,21 +78,21 @@ dependencies {
     dokka(project(":kmemo-ktor"))
 }
 
-// The Kotlin/JS toolchain resolves its own npm tooling, and two transitive packages carry
-// high-severity advisories with no fix on the line their consumers ask for: brace-expansion, pulled
-// by minimatch and patched only in 5.0.8, and serialize-javascript, pulled by mocha and patched only
-// in 7.0.3. Both are forced to the patched version here.
+// The Kotlin/JS toolchain resolves its own npm tooling, and three transitive packages carry advisories
+// with no fix on the line their consumers ask for. Each is forced to its patched version here rather
+// than left in the lock file with an explanation attached.
 //
-// Forcing across a major is only safe because of what these two are: one is a string-expansion
-// function and the other a value serializer, each with a signature that has not moved, and the JS and
-// Wasm test suites running on them is the evidence rather than the assumption.
+// Forcing across a major is only safe because of what these are: a string-expansion function, a value
+// serializer and a text-diff library, none of whose signatures have moved. The JS and Wasm test suites
+// running on them is the evidence rather than the assumption.
 //
-// This is build tooling for running tests. It is never published and never reaches a consumer of the
-// library, but "it does not ship" is a reason to be able to explain a finding, not a reason to leave
-// it in a lock file that could just as easily not have it.
+// **This is where those versions are decided, not in the lock file.** `kotlin-js-store/yarn.lock` is
+// generated from here by `kotlinUpgradeYarnLock`, so a patch applied to the lock alone is undone by the
+// next build. `.github/dependabot.yml` says the same thing to Dependabot.
 plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
     the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>().apply {
         resolution("brace-expansion", "5.0.8")
-        resolution("serialize-javascript", "7.0.3")
+        resolution("serialize-javascript", "7.0.5")
+        resolution("diff", "8.0.3")
     }
 }
