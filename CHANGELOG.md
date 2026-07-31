@@ -16,6 +16,12 @@ All notable changes to this project are documented here. The format follows
   publish step so a failure cannot leave released-but-unattested artifacts.
 - Every tag now gets a **GitHub Release**, with its body extracted from this file rather than written
   separately, so the two cannot disagree. Releases were backfilled for `0.1.0` through `1.1.0`.
+- Published jars are recorded on GitHub's **linked artifacts** page, so the repository shows what it
+  built and points at Maven Central as the registry that holds it. This is metadata and not a second
+  place to download from, which is the distinction from the GitHub Packages copy removed above. Each
+  record carries the jar's digest, so it lines up with the provenance attestation for the same artifact.
+  The step is non-fatal: it annotates a publish that already succeeded and must never fail a good
+  release.
 
 ### Removed
 
@@ -25,7 +31,9 @@ All notable changes to this project are documented here. The format follows
   channel that most people cannot use without extra setup is a channel that goes stale unnoticed, so the
   `GitHubPackages` repository is gone from all eleven modules and the release workflow publishes to
   Maven Central alone. Nothing changes for anyone depending on `io.github.nacode-studios` coordinates.
-  Packages already pushed to GitHub Packages for `0.1.0` through `1.1.0` are left in place.
+  The packages previously pushed there for `0.1.0` through `1.1.0` have been deleted; every one of those
+  45 versions was verified present on Maven Central first, so nothing was lost, but
+  `maven.pkg.github.com` URLs for them now return 404 permanently.
 
 ## [1.1.0] - 2026-07-31
 

@@ -78,3 +78,36 @@ jobs:
           # An empty body means the tag and the changelog disagree. Fail rather than publish a blank one.
           [ -s notes.md ] || { echo "::error::no CHANGELOG.md section for $VERSION"; exit 1; }
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
+
+      # Metadata only, not a distribution channel: this tells GitHub which artifacts the repository
+      # built and where they actually live, so the Packages panel reflects Maven Central instead of
+      # sitting empty. Nothing is hosted here and nobody downloads from here, which is the whole
+      # difference from the GitHub Packages copy dropped in this same release.
+      #
+      # Non-fatal on purpose. It annotates a publish that has already succeeded, so a metadata call
+      # failing must never turn a good release into a failed one. The endpoint is org-scoped and the
+      # write permission is undocumented, so if GITHUB_TOKEN turns out not to carry it, set an
+      # ARTIFACT_METADATA_TOKEN secret with org access and this starts working with no code change.
+      - name: Link the published artifacts to this repository
+        if: github.event_name == 'push'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.ARTIFACT_METADATA_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          BASE="https://repo1.maven.org/maven2/io/github/nacode-studios"
+          for m in $(grep -l 'mavenPublishing' */build.gradle.kts | xargs -n1 dirname); do
+            JAR="$m/build/libs/$m-$VERSION.jar"
+            # The BOM ships no jar, so it has nothing to record.
+            [ -f "$JAR" ] || continue
+            gh api -X POST "/orgs/${GITHUB_REPOSITORY_OWNER}/artifacts/metadata/storage-record" \
+              -H "X-GitHub-Api-Version: 2026-03-10" \
+              -f name="$m" \
+              -f version="$VERSION" \
+              -f digest="sha256:$(sha256sum "$JAR" | cut -d' ' -f1)" \
+              -f registry_url="https://repo1.maven.org/maven2/" \
+              -f artifact_url="$BASE/$m/$VERSION/$m-$VERSION.jar" \
+              -f repository="io.github.nacode-studios" \
+              -f status="active" \
+              --silent && echo "recorded $m $VERSION"
+          done
