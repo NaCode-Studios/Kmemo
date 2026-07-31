@@ -80,6 +80,14 @@ You also need an embedding source, which is any function from `String` to `Float
 users can pin one version with the BOM (`io.github.nacode-studios:kmemo-bom`); every module past
 `kmemo-core` is opt-in and never lands on the core classpath.
 
+From the next release on, every published jar carries a signed [SLSA build provenance](https://slsa.dev/)
+attestation, so you can check that the artifact you resolved was built by this repository's release
+workflow and not by someone else. `1.0.0` and `1.1.0` shipped before this and have none.
+
+```bash
+gh attestation verify <jar> --repo NaCode-Studios/Kmemo
+```
+
 ## Usage
 
 ### Caching a call

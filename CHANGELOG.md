@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Build provenance (SLSA)** on every published jar. The release workflow attests, through
+  `actions/attest-build-provenance`, that each artifact was built by this workflow from a named commit,
+  and the attestation is verifiable with `gh attestation verify <jar> --repo NaCode-Studios/Kmemo`.
+  The attested set is derived from the build rather than listed in the workflow, so a module that starts
+  publishing is covered without anyone remembering to add it, and the attestation runs *before* the
+  publish step so a failure cannot leave released-but-unattested artifacts.
+
 ### Removed
 
 - **Publishing to GitHub Packages.** Maven Central was always the primary registry and is where every
