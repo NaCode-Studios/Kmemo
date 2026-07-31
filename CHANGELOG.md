@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-31
+
 ### Added
 
 - **Kotlin Multiplatform core (M17).** `kmemo-core` and `InMemoryStore` build for the JVM, iOS, macOS,
@@ -58,6 +60,11 @@ All notable changes to this project are documented here. The format follows
     span must open with a qualifier rather than a pronoun or a hedge. Measured at **zero** false
     rejections across all three corpora and one new catch on the blind validation split, which moves
     `standard()` from 0.333 to 0.324 there and `strict()` from 0.314 to 0.304.
+- **[docs/MIGRATION.md](docs/MIGRATION.md)**, for moving from `1.x`. Five breaks, each with who it
+  affects and the edit that resolves it: a recompile, the Maven coordinate, `kotlin.time.Instant` on
+  `CacheEntry.createdAt`, the import the `Locale` overloads now need, and the fourth `EvictionCause`
+  value that makes an exhaustive `when` stop compiling. It also names the one behaviour change, the
+  eleventh guard in `standard()`.
 - The tuned corpus grows by twenty pairs covering the added-qualifier shape, twelve near misses and
   eight paraphrases that look like them and are not. The tuned split is in-sample by definition and
   `docs/CORPUS.md` says growing it is free; the blind splits are untouched, and the tuned near-miss
@@ -196,6 +203,19 @@ All notable changes to this project are documented here. The format follows
   adapters.
 
 ### Internal
+
+- The GPTCache harness runs on **current** transformers instead of a pinned-back one. GPTCache's
+  evaluator calls `tokenizer.encode_plus`, removed in transformers 5, and needs `token_type_ids`, which
+  the ALBERT tokenizer no longer returns by default; six lines forward both to the documented
+  replacement. Pinning back to 4.57.6 would also have worked and would have meant carrying two
+  high-severity advisories with no fix below 5, so `ci.yml` now allows no advisory at all. The measured
+  numbers are unchanged to four decimal places, which is the check that the shim is faithful.
+- The Kotlin/JS toolchain's lock file no longer carries two high-severity npm advisories. The JS and
+  Wasm targets test on Node and not in a browser, which drops the webpack and karma toolchain and cuts
+  the lock file by more than half, and the two packages that survived that are forced to their patched
+  versions through yarn resolutions.
+- `release.yml` runs on macOS and creates the GitHub Release from `CHANGELOG.md`; `ci.yml` gained a job
+  that compiles and tests the Apple targets, which a Linux runner disables rather than failing on.
 
 - Tag invalidation needs a **schema migration** on the two remote stores, and both are idempotent and
   safe on a live deployment. `PostgresStore` creates its table with `CREATE TABLE IF NOT EXISTS`, which
@@ -517,7 +537,8 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
 - Published to Maven Central and GitHub Packages under `io.github.nacode-studios` (package
   `dev.kmemo`), with the public API tracked by binary-compatibility-validator (`./gradlew apiCheck`).
 
-[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/NaCode-Studios/Kmemo/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/NaCode-Studios/Kmemo/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.5.0...v1.0.0
 [0.5.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.4.0...v0.5.0

@@ -11,7 +11,7 @@ plugins {
 
 subprojects {
     group = "io.github.nacode-studios"
-    version = "1.1.0"
+    version = "2.0.0"
 
     // Lint every Kotlin module — this skips the java-platform BOM, which has no sources. ktlint and
     // detekt each wire their check task into `check`, so `./gradlew build` (and CI) gates on both.

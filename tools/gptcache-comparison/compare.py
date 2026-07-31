@@ -43,7 +43,7 @@ from pathlib import Path
 from gptcache.similarity_evaluation.onnx import OnnxModelEvaluation
 
 HERE = Path(__file__).resolve().parent
-RESOURCES = HERE.parent.parent / "kmemo-core" / "src" / "test" / "resources"
+RESOURCES = HERE.parent.parent / "kmemo-core" / "src" / "jvmTest" / "resources"
 CORPORA = {"held-out": "held-out-corpus.json", "validation": "validation-corpus.json"}
 
 # GPTCache's own decision rule, from gptcache/adapter/adapter.py:
@@ -61,6 +61,30 @@ CACHE_FACTOR = 1.0
 # about the measurement, and neither is a pair kmemo and GPTCache could reasonably disagree about.
 TRIVIAL_RESTATEMENT = ("How do I reverse a list in Python?", "In Python, how can I reverse a list?")
 UNRELATED = ("How do I reverse a list in Python?", "What is the capital of France?")
+
+
+class EncodePlusShim:
+    """Restores the one tokenizer method GPTCache calls and transformers 5 removed.
+
+    `OnnxModelEvaluation.inference` calls `tokenizer.encode_plus(a, b, padding="longest")`.
+    `encode_plus` was removed in transformers 5, and calling the tokenizer directly is the documented
+    replacement, so this forwards one to the other. It also asks for `token_type_ids`, which the ALBERT
+    tokenizer no longer returns by default and which the ONNX model requires as an input.
+
+    The alternative was pinning transformers back to 4.57.6, where `encode_plus` still exists. That
+    version carries two high-severity advisories with no fix below 5, so it would have meant allowing
+    them in CI for the sake of a method name. Six lines of shim buys a harness that runs on current
+    libraries with nothing allowed.
+    """
+
+    def __init__(self, tokenizer):
+        self._tokenizer = tokenizer
+
+    def __getattr__(self, name):
+        return getattr(self._tokenizer, name)
+
+    def encode_plus(self, text_a, text_b, **kwargs):
+        return self._tokenizer(text_a, text_b, return_token_type_ids=True, **kwargs)
 
 
 def verify_evaluator(evaluator: OnnxModelEvaluation, threshold: float) -> dict[str, float]:
@@ -159,6 +183,7 @@ def versions() -> dict[str, str]:
 
 def main() -> None:
     evaluator = OnnxModelEvaluation()
+    evaluator.tokenizer = EncodePlusShim(evaluator.tokenizer)
     threshold = rank_threshold(evaluator)
     gate = verify_evaluator(evaluator, threshold)
     print(f"evaluator verified at threshold {threshold:.4f}: trivial restatement "
