@@ -78,16 +78,21 @@ dependencies {
     dokka(project(":kmemo-ktor"))
 }
 
-// The Kotlin/JS toolchain resolves its own npm tooling, and one transitive package carries a
-// high-severity advisory with no fix on the line its consumer asks for: brace-expansion 2.x, pulled
-// by minimatch, against an advisory patched only in 5.0.8. Forcing the patched version is the fix;
-// the package is a single string-expansion function whose signature has not moved across those
-// majors, and the JS tests are what prove it still works.
+// The Kotlin/JS toolchain resolves its own npm tooling, and two transitive packages carry
+// high-severity advisories with no fix on the line their consumers ask for: brace-expansion, pulled
+// by minimatch and patched only in 5.0.8, and serialize-javascript, pulled by mocha and patched only
+// in 7.0.3. Both are forced to the patched version here.
+//
+// Forcing across a major is only safe because of what these two are: one is a string-expansion
+// function and the other a value serializer, each with a signature that has not moved, and the JS and
+// Wasm test suites running on them is the evidence rather than the assumption.
 //
 // This is build tooling for running tests. It is never published and never reaches a consumer of the
 // library, but "it does not ship" is a reason to be able to explain a finding, not a reason to leave
-// it in the lock file.
+// it in a lock file that could just as easily not have it.
 plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
-    the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>()
-        .resolution("brace-expansion", "5.0.8")
+    the<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension>().apply {
+        resolution("brace-expansion", "5.0.8")
+        resolution("serialize-javascript", "7.0.3")
+    }
 }
