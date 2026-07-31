@@ -21,3 +21,18 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+
+  # The Kotlin/JS toolchain writes kotlin-js-store/yarn.lock, and the versions in it come from the yarn
+  # resolutions in the root build.gradle.kts. Dependabot has no package.json to edit here, so its
+  # security updates fail every time they run and leave a red check on a green repository. Worse, a
+  # patch it did manage to write into the lock would be undone by the next kotlinUpgradeYarnLock.
+  #
+  # Turning it off is not the same as ignoring the alerts: the alerts still fire, and they are answered
+  # by adding a resolution in the Gradle build, which is where those versions are actually decided.
+  - package-ecosystem: npm
+    directory: "/kotlin-js-store"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"

@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Internal
+
+- Three fixes the `2.0.0` release surfaced, none of which change what is published:
+  the provenance step attests `.klib` artifacts as well as `.jar`s, so the Apple, Linux and Windows
+  targets are covered by the same claim the README makes about every artifact; the linked-artifacts step
+  uses `shasum`, since the release job moved to macOS where `sha256sum` does not exist; and Dependabot
+  is told to leave `kotlin-js-store` alone, because that lock file is generated from the yarn
+  resolutions in `build.gradle.kts` and a patch written into it is undone by the next build. Its alerts
+  are answered by adding a resolution, which is what `serialize-javascript` 7.0.5 and `diff` 8.0.3 are.
+
 ## [2.0.0] - 2026-07-31
 
 ### Added

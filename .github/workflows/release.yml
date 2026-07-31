@@ -44,8 +44,14 @@ jobs:
         run: |
           {
             echo 'paths<<PATHS'
+            # Both extensions, because kmemo-core is multiplatform: its JVM and JS artifacts are jars
+            # and its Apple, Linux and Windows artifacts are klibs. Globbing jars alone would have
+            # published the native targets with no provenance while the README claimed every artifact
+            # carries one.
             for m in $(grep -l 'mavenPublishing' */build.gradle.kts | xargs -n1 dirname); do
-              compgen -G "$m/build/libs/*.jar" >/dev/null && echo "$m/build/libs/*.jar"
+              for ext in jar klib; do
+                compgen -G "$m/build/libs/*.$ext" >/dev/null && echo "$m/build/libs/*.$ext"
+              done
             done
             echo PATHS
           } >> "$GITHUB_OUTPUT"
@@ -108,7 +114,7 @@ jobs:
               -H "X-GitHub-Api-Version: 2026-03-10" \
               -f name="$m" \
               -f version="$VERSION" \
-              -f digest="sha256:$(sha256sum "$JAR" | cut -d' ' -f1)" \
+              -f digest="sha256:$(shasum -a 256 "$JAR" | cut -d' ' -f1)" \
               -f registry_url="https://repo1.maven.org/maven2/" \
               -f artifact_url="$BASE/$m/$VERSION/$m-$VERSION.jar" \
               -f repository="io.github.nacode-studios" \
