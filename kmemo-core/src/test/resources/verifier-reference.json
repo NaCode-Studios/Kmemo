@@ -1,0 +1,2276 @@
+{
+  "measuredOn": "2026-07-31",
+  "note": "A verdict per lookup, not a catch rate. The rate is computed by VerifierCatchRateTest over the residual it recomputes. Reproduce with tools/verifier-catch-rate/README.md.",
+  "referenceImplementation": "sentence_transformers.CrossEncoder, used as a dev.kmemo.Verifier",
+  "model": "cross-encoder/quora-distilroberta-base",
+  "decisionRule": "serve when the duplicate probability is >= 0.5",
+  "sanityCheck": {
+    "trivialRestatement": 0.9867300987243652,
+    "unrelated": 0.0002550971112214029
+  },
+  "versions": {
+    "python": "3.11.15",
+    "sentence-transformers": "5.6.1",
+    "transformers": "5.14.1",
+    "torch": "2.13.0"
+  },
+  "responseCorpusSha256": "c4ce31caebb417a9cb8e639cf553e9e63dee502de8ee71ca35ce8993c512e588",
+  "verdicts": [
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "Is 400 mcg of folic acid enough for a pregnant adult?",
+      "cached": "Is 400 mg of folic acid enough for a pregnant adult?",
+      "score": 0.0593,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "Is 400 mg of folic acid enough for a pregnant adult?",
+      "cached": "Is 400 mcg of folic acid enough for a pregnant adult?",
+      "score": 0.0345,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what is the capital gains tax rate when i sell a second home",
+      "cached": "what is the capital gains tax rate when i sell a primary residence",
+      "score": 0.0326,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what is the capital gains tax rate when i sell a primary residence",
+      "cached": "what is the capital gains tax rate when i sell a second home",
+      "score": 0.0137,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "in pandas does groupby sort the keys by default",
+      "cached": "in pandas does groupby drop na keys by default",
+      "score": 0.0367,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "in pandas does groupby drop na keys by default",
+      "cached": "in pandas does groupby sort the keys by default",
+      "score": 0.1034,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "does a dict preserve insertion order in python",
+      "cached": "does a map preserve insertion order in go",
+      "score": 0.0004,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "does a map preserve insertion order in go",
+      "cached": "does a dict preserve insertion order in python",
+      "score": 0.0004,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "are strings mutable in go",
+      "cached": "are strings mutable in ruby",
+      "score": 0.0005,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "are strings mutable in ruby",
+      "cached": "are strings mutable in go",
+      "score": 0.001,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "how many goals did the top scorer net in the premier league last season",
+      "cached": "how many goals did the top scorer net in la liga last season",
+      "score": 0.2012,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "how many goals did the top scorer net in la liga last season",
+      "cached": "how many goals did the top scorer net in the premier league last season",
+      "score": 0.0387,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "What is the NBA record for most points in a regular season game?",
+      "cached": "What is the NBA record for most points in a playoff game?",
+      "score": 0.0034,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "What is the NBA record for most points in a playoff game?",
+      "cached": "What is the NBA record for most points in a regular season game?",
+      "score": 0.0051,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "how do i escape a comma inside a csv field",
+      "cached": "how do i escape a tab inside a tsv field",
+      "score": 0.3813,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "how do i escape a tab inside a tsv field",
+      "cached": "how do i escape a comma inside a csv field",
+      "score": 0.3534,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what is the maximum row limit in an xlsx spreadsheet",
+      "cached": "what is the maximum row limit in an xls spreadsheet",
+      "score": 0.1019,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what is the maximum row limit in an xls spreadsheet",
+      "cached": "what is the maximum row limit in an xlsx spreadsheet",
+      "score": 0.0824,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what anomalies are still possible under read committed in postgres",
+      "cached": "what anomalies are still possible under repeatable read in postgres",
+      "score": 0.2394,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what anomalies are still possible under repeatable read in postgres",
+      "cached": "what anomalies are still possible under read committed in postgres",
+      "score": 0.0709,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "does serializable isolation prevent phantom reads",
+      "cached": "does read committed isolation prevent phantom reads",
+      "score": 0.0227,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "does read committed isolation prevent phantom reads",
+      "cached": "does serializable isolation prevent phantom reads",
+      "score": 0.0211,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what does a bad gateway error mean on my website",
+      "cached": "what does a gateway timeout error mean on my website",
+      "score": 0.0729,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what does a gateway timeout error mean on my website",
+      "cached": "what does a bad gateway error mean on my website",
+      "score": 0.1446,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "why is the api returning a too many requests error",
+      "cached": "why is the api returning a service unavailable error",
+      "score": 0.061,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "why is the api returning a service unavailable error",
+      "cached": "why is the api returning a too many requests error",
+      "score": 0.0875,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what is the boiling point of ethanol at sea level",
+      "cached": "what is the boiling point of methanol at sea level",
+      "score": 0.0013,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what is the boiling point of methanol at sea level",
+      "cached": "what is the boiling point of ethanol at sea level",
+      "score": 0.0021,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "can i use baking soda instead of baking powder in pancakes",
+      "cached": "can i use baking powder instead of baking soda in pancakes",
+      "score": 0.9751,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "can i use baking powder instead of baking soda in pancakes",
+      "cached": "can i use baking soda instead of baking powder in pancakes",
+      "score": 0.972,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what can i substitute for buttermilk in a cake",
+      "cached": "what can i substitute for butter in a cake",
+      "score": 0.0004,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what can i substitute for butter in a cake",
+      "cached": "what can i substitute for buttermilk in a cake",
+      "score": 0.0004,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what currency do they use in denmark",
+      "cached": "what currency do they use in poland",
+      "score": 0.0004,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what currency do they use in poland",
+      "cached": "what currency do they use in denmark",
+      "score": 0.0003,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what is the currency code for the japanese yen",
+      "cached": "what is the currency code for the chinese yuan",
+      "score": 0.0004,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what is the currency code for the chinese yuan",
+      "cached": "what is the currency code for the japanese yen",
+      "score": 0.0005,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "how do i fix a segmentation fault in my c program",
+      "cached": "how do i fix a bus error in my c program",
+      "score": 0.0036,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "how do i fix a bus error in my c program",
+      "cached": "how do i fix a segmentation fault in my c program",
+      "score": 0.0035,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "does japan observe daylight saving time",
+      "cached": "does new zealand observe daylight saving time",
+      "score": 0.1467,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "does new zealand observe daylight saving time",
+      "cached": "does japan observe daylight saving time",
+      "score": 0.0461,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "can i claim damage in small claims court",
+      "cached": "can i claim damages in small claims court",
+      "score": 0.9867,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "can i claim damages in small claims court",
+      "cached": "can i claim damage in small claims court",
+      "score": 0.9861,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "how many taxes do i pay as a freelancer",
+      "cached": "how much tax do i pay as a freelancer",
+      "score": 0.9899,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "how much tax do i pay as a freelancer",
+      "cached": "how many taxes do i pay as a freelancer",
+      "score": 0.9903,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "my conversion rate went up 5 percent last month, what is it now",
+      "cached": "my conversion rate went up 5 percentage points last month, what is it now",
+      "score": 0.9723,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "my conversion rate went up 5 percentage points last month, what is it now",
+      "cached": "my conversion rate went up 5 percent last month, what is it now",
+      "score": 0.9745,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "unemployment rose by 2 percent this quarter, how bad is that",
+      "cached": "unemployment rose by 2 percentage points this quarter, how bad is that",
+      "score": 0.9817,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "unemployment rose by 2 percentage points this quarter, how bad is that",
+      "cached": "unemployment rose by 2 percent this quarter, how bad is that",
+      "score": 0.9888,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what is my gross margin on this product",
+      "cached": "what is my net margin on this product",
+      "score": 0.012,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": false,
+      "query": "what is my net margin on this product",
+      "cached": "what is my gross margin on this product",
+      "score": 0.0094,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can i substitute baking soda for baking powder in pancakes",
+      "cached": "can i substitute baking powder for baking soda in pancakes",
+      "score": 0.9741,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can i substitute baking powder for baking soda in pancakes",
+      "cached": "can i substitute baking soda for baking powder in pancakes",
+      "score": 0.974,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "When should I prune my apple tree?",
+      "cached": "When should I prune my cherry tree?",
+      "score": 0.0011,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "When should I prune my cherry tree?",
+      "cached": "When should I prune my apple tree?",
+      "score": 0.0011,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "should i plant garlic in spring",
+      "cached": "should i plant garlic in fall",
+      "score": 0.0256,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "should i plant garlic in fall",
+      "cached": "should i plant garlic in spring",
+      "score": 0.0141,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how do i fix a running toilet",
+      "cached": "how do i fix a leaking toilet",
+      "score": 0.0225,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how do i fix a leaking toilet",
+      "cached": "how do i fix a running toilet",
+      "score": 0.0188,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can i paint over wallpaper",
+      "cached": "can i wallpaper over paint",
+      "score": 0.0751,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can i wallpaper over paint",
+      "cached": "can i paint over wallpaper",
+      "score": 0.0785,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how long do late payments stay on your credit report",
+      "cached": "how long do bankruptcies stay on your credit report",
+      "score": 0.0214,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how long do bankruptcies stay on your credit report",
+      "cached": "how long do late payments stay on your credit report",
+      "score": 0.0265,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how much is capital gains tax in the uk",
+      "cached": "how much is capital gains tax in the us",
+      "score": 0.8137,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how much is capital gains tax in the us",
+      "cached": "how much is capital gains tax in the uk",
+      "score": 0.8344,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "does my auto policy cover a rental car in the us",
+      "cached": "does my auto policy cover a rental car abroad",
+      "score": 0.0339,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "does my auto policy cover a rental car abroad",
+      "cached": "does my auto policy cover a rental car in the us",
+      "score": 0.8754,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "does pet insurance cover pre existing conditions",
+      "cached": "does pet insurance cover hereditary conditions",
+      "score": 0.0121,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "does pet insurance cover hereditary conditions",
+      "cached": "does pet insurance cover pre existing conditions",
+      "score": 0.0096,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "do i need a visa for japan with a us passport",
+      "cached": "do i need a visa for japan with a uk passport",
+      "score": 0.0359,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "do i need a visa for japan with a uk passport",
+      "cached": "do i need a visa for japan with a us passport",
+      "score": 0.0628,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how long can i stay in the schengen area as a tourist",
+      "cached": "how long can i stay in the uk as a tourist",
+      "score": 0.0343,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how long can i stay in the uk as a tourist",
+      "cached": "how long can i stay in the schengen area as a tourist",
+      "score": 0.0357,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "cheapest month to fly from london to tokyo",
+      "cached": "cheapest month to fly from tokyo to london",
+      "score": 0.9717,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "cheapest month to fly from tokyo to london",
+      "cached": "cheapest month to fly from london to tokyo",
+      "score": 0.9676,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how much protein a day to build muscle",
+      "cached": "how much protein a day to lose fat",
+      "score": 0.0154,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how much protein a day to lose fat",
+      "cached": "how much protein a day to build muscle",
+      "score": 0.0041,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how much caffeine is in a shot of espresso",
+      "cached": "how much caffeine is in a cup of drip coffee",
+      "score": 0.0026,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how much caffeine is in a cup of drip coffee",
+      "cached": "how much caffeine is in a shot of espresso",
+      "score": 0.0004,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how much vitamin d should i take daily",
+      "cached": "how much vitamin c should i take daily",
+      "score": 0.0036,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how much vitamin c should i take daily",
+      "cached": "how much vitamin d should i take daily",
+      "score": 0.0143,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can dogs eat grapes",
+      "cached": "can dogs eat apples",
+      "score": 0.0006,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can dogs eat apples",
+      "cached": "can dogs eat grapes",
+      "score": 0.0007,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how often should i deworm a puppy",
+      "cached": "how often should i deworm an adult dog",
+      "score": 0.9582,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how often should i deworm an adult dog",
+      "cached": "how often should i deworm a puppy",
+      "score": 0.8784,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "is xylitol toxic to dogs",
+      "cached": "is xylitol toxic to cats",
+      "score": 0.0004,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "is xylitol toxic to cats",
+      "cached": "is xylitol toxic to dogs",
+      "score": 0.0006,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "when do kittens get their first vaccines",
+      "cached": "when do puppies get their first vaccines",
+      "score": 0.0037,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "when do puppies get their first vaccines",
+      "cached": "when do kittens get their first vaccines",
+      "score": 0.001,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can i give my dog benadryl for itching",
+      "cached": "can i give my cat benadryl for itching",
+      "score": 0.0246,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can i give my cat benadryl for itching",
+      "cached": "can i give my dog benadryl for itching",
+      "score": 0.0484,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "what psi should my tires be in summer",
+      "cached": "what psi should my tires be in winter",
+      "score": 0.0014,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "what psi should my tires be in winter",
+      "cached": "what psi should my tires be in summer",
+      "score": 0.0013,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can i use 87 octane in a car that requires 91",
+      "cached": "can i use 91 octane in a car that requires 87",
+      "score": 0.0687,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can i use 91 octane in a car that requires 87",
+      "cached": "can i use 87 octane in a car that requires 91",
+      "score": 0.158,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how do i tune a guitar to drop d",
+      "cached": "how do i tune a guitar to open d",
+      "score": 0.0089,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how do i tune a guitar to open d",
+      "cached": "how do i tune a guitar to drop d",
+      "score": 0.0299,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how do i read bass clef",
+      "cached": "how do i read treble clef",
+      "score": 0.9565,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how do i read treble clef",
+      "cached": "how do i read bass clef",
+      "score": 0.9908,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how do i clean my camera sensor",
+      "cached": "how do i clean my camera lens",
+      "score": 0.0592,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how do i clean my camera lens",
+      "cached": "how do i clean my camera sensor",
+      "score": 0.0799,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can you castle out of check in chess",
+      "cached": "can you castle through check in chess",
+      "score": 0.4329,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "can you castle through check in chess",
+      "cached": "can you castle out of check in chess",
+      "score": 0.396,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how many cards do you deal each player in texas holdem",
+      "cached": "how many cards do you deal each player in omaha",
+      "score": 0.0004,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how many cards do you deal each player in omaha",
+      "cached": "how many cards do you deal each player in texas holdem",
+      "score": 0.0005,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how long is an nba quarter",
+      "cached": "how long is an nhl period",
+      "score": 0.0128,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how long is an nhl period",
+      "cached": "how long is an nba quarter",
+      "score": 0.0173,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "when do you use ser instead of estar in spanish",
+      "cached": "when do you use estar instead of ser in spanish",
+      "score": 0.986,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "when do you use estar instead of ser in spanish",
+      "cached": "when do you use ser instead of estar in spanish",
+      "score": 0.9839,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "when can a baby start eating solid food",
+      "cached": "when can a baby start drinking cows milk",
+      "score": 0.0167,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "when can a baby start drinking cows milk",
+      "cached": "when can a baby start eating solid food",
+      "score": 0.011,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "What does a tornado watch mean?",
+      "cached": "What does a tornado warning mean?",
+      "score": 0.9775,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "What does a tornado warning mean?",
+      "cached": "What does a tornado watch mean?",
+      "score": 0.98,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "is it humid in phoenix in july",
+      "cached": "is it humid in houston in july",
+      "score": 0.0008,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "is it humid in houston in july",
+      "cached": "is it humid in phoenix in july",
+      "score": 0.0007,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "when is the rainy season in bali",
+      "cached": "when is the rainy season in thailand",
+      "score": 0.0005,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "when is the rainy season in thailand",
+      "cached": "when is the rainy season in bali",
+      "score": 0.0005,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how do i copy a file in python",
+      "cached": "how do i move a file in python",
+      "score": 0.0056,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": false,
+      "query": "how do i move a file in python",
+      "cached": "how do i copy a file in python",
+      "score": 0.0022,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Why can't I connect to my company VPN from home?",
+      "cached": "Why is my connection to the company VPN failing when I am at home?",
+      "score": 0.925,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Why is my connection to the company VPN failing when I am at home?",
+      "cached": "Why can't I connect to my company VPN from home?",
+      "score": 0.9557,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I run a container without root privileges?",
+      "cached": "How do I run a rootless container?",
+      "score": 0.0338,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I run a rootless container?",
+      "cached": "How do I run a container without root privileges?",
+      "score": 0.0084,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What should I not eat when I am taking an iron supplement?",
+      "cached": "Which foods interfere with iron absorption from a supplement?",
+      "score": 0.0826,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Which foods interfere with iron absorption from a supplement?",
+      "cached": "What should I not eat when I am taking an iron supplement?",
+      "score": 0.0445,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I check the current branch in git?",
+      "cached": "How do I see which branch I am on in git?",
+      "score": 0.0806,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I see which branch I am on in git?",
+      "cached": "How do I check the current branch in git?",
+      "score": 0.1209,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I print the current working directory from a shell script?",
+      "cached": "How do I show which directory my shell script is running in?",
+      "score": 0.0004,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I show which directory my shell script is running in?",
+      "cached": "How do I print the current working directory from a shell script?",
+      "score": 0.0006,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What is the latest LTS release of Node?",
+      "cached": "Which Node release is the newest long term support one?",
+      "score": 0.0006,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Which Node release is the newest long term support one?",
+      "cached": "What is the latest LTS release of Node?",
+      "score": 0.0006,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I rotate an SSH host key on a server?",
+      "cached": "What are the steps to rotate an SSH host key on a server?",
+      "score": 0.9558,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What are the steps to rotate an SSH host key on a server?",
+      "cached": "How do I rotate an SSH host key on a server?",
+      "score": 0.952,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I set up a systemd timer?",
+      "cached": "Walk me through the steps for setting up a systemd timer.",
+      "score": 0.831,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Walk me through the steps for setting up a systemd timer.",
+      "cached": "How do I set up a systemd timer?",
+      "score": 0.8766,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What does GDPR require when a user asks for their data to be erased?",
+      "cached": "What does the General Data Protection Regulation require when a user asks for their data to be erased?",
+      "score": 0.9055,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What does the General Data Protection Regulation require when a user asks for their data to be erased?",
+      "cached": "What does GDPR require when a user asks for their data to be erased?",
+      "score": 0.9857,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What is TDD?",
+      "cached": "Can you explain what Test Driven Development is?",
+      "score": 0.001,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Can you explain what Test Driven Development is?",
+      "cached": "What is TDD?",
+      "score": 0.0169,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Which is better for session storage, Redis or Memcached?",
+      "cached": "Which is better for session storage, Memcached or Redis?",
+      "score": 0.8564,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Which is better for session storage, Memcached or Redis?",
+      "cached": "Which is better for session storage, Redis or Memcached?",
+      "score": 0.8255,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I make an environment variable persist across reboots on Linux?",
+      "cached": "How do I make an environment variable permanent on Linux?",
+      "score": 0.1813,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I make an environment variable permanent on Linux?",
+      "cached": "How do I make an environment variable persist across reboots on Linux?",
+      "score": 0.0917,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What is a deadlock in a relational database?",
+      "cached": "I am new to databases, could you explain what a deadlock is in a relational database?",
+      "score": 0.9947,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "I am new to databases, could you explain what a deadlock is in a relational database?",
+      "cached": "What is a deadlock in a relational database?",
+      "score": 0.9945,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I read a gzipped file in Python?",
+      "cached": "how do i raed a gziped file in pythno",
+      "score": 0.7947,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "how do i raed a gziped file in pythno",
+      "cached": "How do I read a gzipped file in Python?",
+      "score": 0.8159,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I flush the DNS cache on macOS?",
+      "cached": "how do i flsuh the dns cahce on macos",
+      "score": 0.9854,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "how do i flsuh the dns cahce on macos",
+      "cached": "How do I flush the DNS cache on macOS?",
+      "score": 0.9809,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What is the difference between a mutex and a semaphore?",
+      "cached": "whats teh diffrence betwen a mutex and a semaphore",
+      "score": 0.9926,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "whats teh diffrence betwen a mutex and a semaphore",
+      "cached": "What is the difference between a mutex and a semaphore?",
+      "score": 0.9922,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What is the best way to organise a large CSS codebase?",
+      "cached": "What is the best way to organize a large CSS codebase?",
+      "score": 0.9918,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What is the best way to organize a large CSS codebase?",
+      "cached": "What is the best way to organise a large CSS codebase?",
+      "score": 0.9905,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I set the colour of a table border in CSS?",
+      "cached": "How do I set the color of a table border in CSS?",
+      "score": 0.9849,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I set the color of a table border in CSS?",
+      "cached": "How do I set the colour of a table border in CSS?",
+      "score": 0.9843,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I normalise a column of values in a spreadsheet?",
+      "cached": "How do I normalize a column of values in a spreadsheet?",
+      "score": 0.9885,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I normalize a column of values in a spreadsheet?",
+      "cached": "How do I normalise a column of values in a spreadsheet?",
+      "score": 0.9884,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How does the garbage collector free unused objects in the JVM?",
+      "cached": "How are unused objects freed by the garbage collector in the JVM?",
+      "score": 0.9785,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How are unused objects freed by the garbage collector in the JVM?",
+      "cached": "How does the garbage collector free unused objects in the JVM?",
+      "score": 0.9833,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Who signs the payroll tax return for a limited company?",
+      "cached": "By whom is the payroll tax return for a limited company signed?",
+      "score": 0.9871,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "By whom is the payroll tax return for a limited company signed?",
+      "cached": "Who signs the payroll tax return for a limited company?",
+      "score": 0.9811,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I rename a branch in git?",
+      "cached": "Good afternoon, I was wondering how I would rename a branch in git?",
+      "score": 0.9787,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Good afternoon, I was wondering how I would rename a branch in git?",
+      "cached": "How do I rename a branch in git?",
+      "score": 0.9789,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I stop my SSH session from timing out?",
+      "cached": "My connection to the server keeps dropping after a few minutes of sitting idle, what setting fixes that?",
+      "score": 0.0002,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "My connection to the server keeps dropping after a few minutes of sitting idle, what setting fixes that?",
+      "cached": "How do I stop my SSH session from timing out?",
+      "score": 0.0002,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I reduce the size of a Docker image?",
+      "cached": "My Docker image is enormous, what can I do to slim it down?",
+      "score": 0.0123,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "My Docker image is enormous, what can I do to slim it down?",
+      "cached": "How do I reduce the size of a Docker image?",
+      "score": 0.027,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What is the difference between a soft link and a hard link?",
+      "cached": "Explain how soft links and hard links differ.",
+      "score": 0.9915,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Explain how soft links and hard links differ.",
+      "cached": "What is the difference between a soft link and a hard link?",
+      "score": 0.9901,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I configure CORS on an API gateway?",
+      "cached": "How do I configure cross origin resource sharing on an API gateway?",
+      "score": 0.0005,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I configure cross origin resource sharing on an API gateway?",
+      "cached": "How do I configure CORS on an API gateway?",
+      "score": 0.0005,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What does IOPS mean for an SSD?",
+      "cached": "What does input output operations per second mean for an SSD?",
+      "score": 0.0036,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What does input output operations per second mean for an SSD?",
+      "cached": "What does IOPS mean for an SSD?",
+      "score": 0.012,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I merge two hashes in Ruby?",
+      "cached": "How do I combine two hashes into one in Ruby?",
+      "score": 0.6915,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I combine two hashes into one in Ruby?",
+      "cached": "How do I merge two hashes in Ruby?",
+      "score": 0.2153,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I parse an ISO 8601 timestamp in Java?",
+      "cached": "I am working on a REST client and need to parse an ISO 8601 timestamp in Java, how do I do that?",
+      "score": 0.035,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "I am working on a REST client and need to parse an ISO 8601 timestamp in Java, how do I do that?",
+      "cached": "How do I parse an ISO 8601 timestamp in Java?",
+      "score": 0.1497,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What causes a memory leak in a long running Node process?",
+      "cached": "Why would a Node process that stays up for a long time keep growing in memory?",
+      "score": 0.0187,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Why would a Node process that stays up for a long time keep growing in memory?",
+      "cached": "What causes a memory leak in a long running Node process?",
+      "score": 0.0018,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I mount an NFS share on boot?",
+      "cached": "Show me how to mount an NFS share automatically at boot.",
+      "score": 0.2379,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "Show me how to mount an NFS share automatically at boot.",
+      "cached": "How do I mount an NFS share on boot?",
+      "score": 0.15,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What is the difference between a stack and a heap allocation?",
+      "cached": "How does stack allocation differ from heap allocation?",
+      "score": 0.9487,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How does stack allocation differ from heap allocation?",
+      "cached": "What is the difference between a stack and a heap allocation?",
+      "score": 0.9556,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I schedule a job to run every weekday morning with cron?",
+      "cached": "What cron expression runs a job on weekday mornings?",
+      "score": 0.002,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What cron expression runs a job on weekday mornings?",
+      "cached": "How do I schedule a job to run every weekday morning with cron?",
+      "score": 0.0012,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I check which ports are listening on a server?",
+      "cached": "hey could u tel me how to chek which ports are listenting on a server",
+      "score": 0.0634,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "hey could u tel me how to chek which ports are listenting on a server",
+      "cached": "How do I check which ports are listening on a server?",
+      "score": 0.118,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I compare two branches in git?",
+      "cached": "What is the way to see the differences between two git branches?",
+      "score": 0.2745,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "What is the way to see the differences between two git branches?",
+      "cached": "How do I compare two branches in git?",
+      "score": 0.886,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I handle a failed payment webhook?",
+      "cached": "I am building a subscription billing flow and need to know how to handle a failed payment webhook.",
+      "score": 0.8725,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "I am building a subscription billing flow and need to know how to handle a failed payment webhook.",
+      "cached": "How do I handle a failed payment webhook?",
+      "score": 0.8462,
+      "served": true
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I convert a timestamp to a readable date in bash?",
+      "cached": "How do I turn a unix timestamp into a human readable date in bash?",
+      "score": 0.0346,
+      "served": false
+    },
+    {
+      "split": "held-out",
+      "shouldMatch": true,
+      "query": "How do I turn a unix timestamp into a human readable date in bash?",
+      "cached": "How do I convert a timestamp to a readable date in bash?",
+      "score": 0.0061,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how long should i knead pizza dough by hand",
+      "cached": "how much time does pizza dough need kneading by hand",
+      "score": 0.9865,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how much time does pizza dough need kneading by hand",
+      "cached": "how long should i knead pizza dough by hand",
+      "score": 0.9909,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the best way to keep guacamole from browning",
+      "cached": "how do i stop guacamole going brown?",
+      "score": 0.9981,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i stop guacamole going brown?",
+      "cached": "whats the best way to keep guacamole from browning",
+      "score": 0.9982,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "How do I tell if my sourdough starter is ready to use?",
+      "cached": "how can i know when my sourdough starter is ready to use",
+      "score": 0.9871,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how can i know when my sourdough starter is ready to use",
+      "cached": "How do I tell if my sourdough starter is ready to use?",
+      "score": 0.9782,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "why are my tomato leaves turning yellow",
+      "cached": "my tomato plant leaves have gone yellow whats causing it",
+      "score": 0.9943,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "my tomato plant leaves have gone yellow whats causing it",
+      "cached": "why are my tomato leaves turning yellow",
+      "score": 0.9956,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i get rid of aphids on roses naturally",
+      "cached": "natural ways to remove aphids from my roses?",
+      "score": 0.9904,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "natural ways to remove aphids from my roses?",
+      "cached": "how do i get rid of aphids on roses naturally",
+      "score": 0.963,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "How early before the last frost should I start seeds indoors?",
+      "cached": "how many weeks before last frost do i start seeds inside",
+      "score": 0.9926,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how many weeks before last frost do i start seeds inside",
+      "cached": "How early before the last frost should I start seeds indoors?",
+      "score": 0.9945,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i unclog a kitchen sink without chemicals",
+      "cached": "my kitchen sink is blocked how do i clear it without chemicals",
+      "score": 0.9883,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "my kitchen sink is blocked how do i clear it without chemicals",
+      "cached": "how do i unclog a kitchen sink without chemicals",
+      "score": 0.9927,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the best way to remove a stripped screw",
+      "cached": "how do i get a stripped screw out?",
+      "score": 0.0901,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i get a stripped screw out?",
+      "cached": "whats the best way to remove a stripped screw",
+      "score": 0.048,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i stop a squeaky door hinge",
+      "cached": "My door hinge squeaks, what can I do to fix it?",
+      "score": 0.0275,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "My door hinge squeaks, what can I do to fix it?",
+      "cached": "how do i stop a squeaky door hinge",
+      "score": 0.0305,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how does compound interest work",
+      "cached": "can you explain the way compound interest works",
+      "score": 0.9717,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "can you explain the way compound interest works",
+      "cached": "how does compound interest work",
+      "score": 0.9769,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the difference between apr and apy",
+      "cached": "explain how apr differs from apy",
+      "score": 0.9974,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "explain how apr differs from apy",
+      "cached": "whats the difference between apr and apy",
+      "score": 0.9973,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how big should my emergency fund be",
+      "cached": "how much money should i have saved in an emergency fund",
+      "score": 0.0049,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how much money should i have saved in an emergency fund",
+      "cached": "how big should my emergency fund be",
+      "score": 0.0133,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the difference between a deductible and an out of pocket max",
+      "cached": "can you explain deductible versus out of pocket maximum",
+      "score": 0.9923,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "can you explain deductible versus out of pocket maximum",
+      "cached": "whats the difference between a deductible and an out of pocket max",
+      "score": 0.9927,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "How do I book a Global Entry interview?",
+      "cached": "whats the process for scheduling a global entry interview",
+      "score": 0.4227,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the process for scheduling a global entry interview",
+      "cached": "How do I book a Global Entry interview?",
+      "score": 0.9135,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i fix my squat form if my knees cave in",
+      "cached": "my knees collapse inward when i squat how do i correct that",
+      "score": 0.0505,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "my knees collapse inward when i squat how do i correct that",
+      "cached": "how do i fix my squat form if my knees cave in",
+      "score": 0.2486,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats progressive overload",
+      "cached": "could you explain what progressive overload means",
+      "score": 0.9599,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "could you explain what progressive overload means",
+      "cached": "whats progressive overload",
+      "score": 0.9798,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how long does doms usually last",
+      "cached": "how long does delayed onset muscle soreness normally last",
+      "score": 0.0003,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how long does delayed onset muscle soreness normally last",
+      "cached": "how long does doms usually last",
+      "score": 0.0003,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the difference between soluble and insoluble fiber",
+      "cached": "can you explain soluble versus insoluble fibre",
+      "score": 0.9917,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "can you explain soluble versus insoluble fibre",
+      "cached": "whats the difference between soluble and insoluble fiber",
+      "score": 0.9946,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "is brown rice healthier than white rice",
+      "cached": "nutritionally speaking is brown rice better for you than white rice",
+      "score": 0.9885,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "nutritionally speaking is brown rice better for you than white rice",
+      "cached": "is brown rice healthier than white rice",
+      "score": 0.9796,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how much sodium is too much in a day",
+      "cached": "whats the daily upper limit for sodium intake",
+      "score": 0.0003,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the daily upper limit for sodium intake",
+      "cached": "how much sodium is too much in a day",
+      "score": 0.0003,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "my dog keeps scratching his ears whats causing it",
+      "cached": "why does my dog constantly scratch at his ears",
+      "score": 0.9973,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "why does my dog constantly scratch at his ears",
+      "cached": "my dog keeps scratching his ears whats causing it",
+      "score": 0.9981,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i litter train a kitten",
+      "cached": "Whats the best way to teach a kitten to use the litter box?",
+      "score": 0.0015,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "Whats the best way to teach a kitten to use the litter box?",
+      "cached": "how do i litter train a kitten",
+      "score": 0.0023,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how long are dogs pregnant for",
+      "cached": "what is the gestation period of a dog",
+      "score": 0.8,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "what is the gestation period of a dog",
+      "cached": "how long are dogs pregnant for",
+      "score": 0.9537,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "why does my steering wheel shake when i brake",
+      "cached": "my steering wheel vibrates whenever i hit the brakes why is that",
+      "score": 0.9651,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "my steering wheel vibrates whenever i hit the brakes why is that",
+      "cached": "why does my steering wheel shake when i brake",
+      "score": 0.9821,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i check tire tread depth with a coin",
+      "cached": "whats the coin trick for checking tyre tread depth",
+      "score": 0.9932,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the coin trick for checking tyre tread depth",
+      "cached": "how do i check tire tread depth with a coin",
+      "score": 0.9937,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "what does the tpms light mean",
+      "cached": "what does the tire pressure monitoring system warning light mean",
+      "score": 0.0157,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "what does the tire pressure monitoring system warning light mean",
+      "cached": "what does the tpms light mean",
+      "score": 0.013,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i get better at sight reading music",
+      "cached": "any tips for improving my sight reading of sheet music",
+      "score": 0.9038,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "any tips for improving my sight reading of sheet music",
+      "cached": "how do i get better at sight reading music",
+      "score": 0.5724,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the difference between a major and a minor chord",
+      "cached": "How do major chords differ from minor chords?",
+      "score": 0.84,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "How do major chords differ from minor chords?",
+      "cached": "whats the difference between a major and a minor chord",
+      "score": 0.9708,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how many frets does a standard stratocaster have",
+      "cached": "on a standard strat how many frets are there",
+      "score": 0.9517,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "on a standard strat how many frets are there",
+      "cached": "how many frets does a standard stratocaster have",
+      "score": 0.9733,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the exposure triangle",
+      "cached": "can you explain the exposure triangle to me",
+      "score": 0.9677,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "can you explain the exposure triangle to me",
+      "cached": "whats the exposure triangle",
+      "score": 0.9734,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "why are my indoor photos blurry",
+      "cached": "my photos taken inside keep coming out blurry whats going on",
+      "score": 0.6955,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "my photos taken inside keep coming out blurry whats going on",
+      "cached": "why are my indoor photos blurry",
+      "score": 0.2965,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "what does en passant mean in chess",
+      "cached": "can you explain the en passant rule in chess",
+      "score": 0.9687,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "can you explain the en passant rule in chess",
+      "cached": "what does en passant mean in chess",
+      "score": 0.9677,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how does scoring work in pickleball",
+      "cached": "explain how you score points in pickleball",
+      "score": 0.9601,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "explain how you score points in pickleball",
+      "cached": "how does scoring work in pickleball",
+      "score": 0.9781,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "what counts as a double fault in tennis",
+      "cached": "In tennis, what is a double fault?",
+      "score": 0.9909,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "In tennis, what is a double fault?",
+      "cached": "what counts as a double fault in tennis",
+      "score": 0.9936,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i roll my rs in spanish",
+      "cached": "any tips for rolling the r sound in spanish",
+      "score": 0.991,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "any tips for rolling the r sound in spanish",
+      "cached": "how do i roll my rs in spanish",
+      "score": 0.9923,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how many hours of study to get conversational in italian",
+      "cached": "roughly how much study time until i can hold a conversation in italian",
+      "score": 0.9972,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "roughly how much study time until i can hold a conversation in italian",
+      "cached": "how many hours of study to get conversational in italian",
+      "score": 0.9976,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i get my toddler to sleep through the night",
+      "cached": "any advice for getting a toddler to sleep the whole night",
+      "score": 0.986,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "any advice for getting a toddler to sleep the whole night",
+      "cached": "how do i get my toddler to sleep through the night",
+      "score": 0.9815,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "which car seat should a 2 year old be in",
+      "cached": "what type of car seat is right for a 2 year old",
+      "score": 0.9741,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "what type of car seat is right for a 2 year old",
+      "cached": "which car seat should a 2 year old be in",
+      "score": 0.981,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i deal with toddler tantrums in public",
+      "cached": "My toddler has meltdowns in public, how should I handle them?",
+      "score": 0.9922,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "My toddler has meltdowns in public, how should I handle them?",
+      "cached": "how do i deal with toddler tantrums in public",
+      "score": 0.9916,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "why is the sky blue",
+      "cached": "can you explain why the sky appears blue",
+      "score": 0.9949,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "can you explain why the sky appears blue",
+      "cached": "why is the sky blue",
+      "score": 0.9957,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the difference between weather and climate",
+      "cached": "how does climate differ from weather?",
+      "score": 0.9806,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how does climate differ from weather?",
+      "cached": "whats the difference between weather and climate",
+      "score": 0.9744,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "what does the dew point actually tell you",
+      "cached": "what information does dew point give you",
+      "score": 0.9882,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "what information does dew point give you",
+      "cached": "what does the dew point actually tell you",
+      "score": 0.9882,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i see which files changed in my last commit",
+      "cached": "whats the command to list files changed in the most recent commit",
+      "score": 0.0253,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the command to list files changed in the most recent commit",
+      "cached": "how do i see which files changed in my last commit",
+      "score": 0.0138,
+      "served": false
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "how do i exit vim",
+      "cached": "help how do you quit vim",
+      "score": 0.9886,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "help how do you quit vim",
+      "cached": "how do i exit vim",
+      "score": 0.9607,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "whats the difference between == and === in js",
+      "cached": "in javascript can you explain == versus ===",
+      "score": 0.9132,
+      "served": true
+    },
+    {
+      "split": "validation",
+      "shouldMatch": true,
+      "query": "in javascript can you explain == versus ===",
+      "cached": "whats the difference between == and === in js",
+      "score": 0.9393,
+      "served": true
+    }
+  ]
+}

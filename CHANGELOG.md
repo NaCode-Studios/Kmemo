@@ -8,6 +8,19 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- The verifier's catch rate on the guard residual, measured. The README said the 67% / 88% figures were
+  guard-only and that what a `Verifier` stops afterwards was unknown; that gap is closed. Against a
+  named reference implementation — `sentence_transformers.CrossEncoder` over
+  `cross-encoder/quora-distilroberta-base` — a verifier stops **80%** of the residual on held-out and
+  **78%** on validation, taking the false-hit rate from 0.291 to 0.058 and from 0.333 to 0.074. It is
+  expensive in the other direction and unevenly so: paraphrases kept fall to 0.686 on validation and
+  0.452 on held-out, which is heavier on software questions than everyday ones. The table is in the
+  README with both columns, because a verifier is a hit-rate decision as much as a correctness one.
+  **The recorded file holds a verdict per lookup, never a rate.** The population is the residual, and the
+  residual moves when a guard improves — a stored percentage would go on describing the set it was taken
+  from. `VerifierCatchRateTest` intersects the verdicts with the residual it recomputes on the day it
+  runs, asserts the verdicts still describe the current corpus and cover every residual lookup, and
+  asserts **no floor at all**: a build that spends a model call per run is a build nobody keeps.
 - Response-aware guards: `ResponseAwareGuard`, `AnswerAnchorGuard` and `MatchGuards.responseAware()`.
   Every guard until now compared two prompts, which left one near miss structurally invisible — two
   honest paraphrases whose answers differ by something neither question contains. "What is the capital
