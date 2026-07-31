@@ -48,6 +48,27 @@ public interface CacheStore {
     /** Removes the entry [id]. Returns `true` if an entry was actually removed. */
     public suspend fun remove(id: String): Boolean
 
+    /**
+     * Removes every entry in [scope] carrying [tag], or across the whole store when [scope] is `null`.
+     *
+     * A TTL is a guess about when knowledge might go stale. This is how a caller acts on *knowing* that
+     * it just did: tag the entries that depend on a fact, and drop exactly those when the fact changes.
+     *
+     * **The default throws rather than reporting `0`.** A store that has not implemented this would
+     * otherwise silently invalidate nothing, and a caller would believe stale answers had been dropped
+     * when they had not. In a library whose whole argument is about not serving wrong answers quietly,
+     * failing loudly is the only honest default. Implementations that support tags must override it;
+     * the shared conformance suite covers the behaviour.
+     *
+     * @return how many entries were removed.
+     * @throws UnsupportedOperationException if this store does not index tags.
+     */
+    public suspend fun invalidateByTag(tag: String, scope: String? = null): Int =
+        throw UnsupportedOperationException(
+            "${this::class.simpleName} does not support tag invalidation. Entries written with tags are " +
+                "stored, but invalidateByTag cannot query them — use clear(scope) or scope versioning.",
+        )
+
     /** Removes every entry in [scope], or the whole store when [scope] is `null`. */
     public suspend fun clear(scope: String? = null)
 

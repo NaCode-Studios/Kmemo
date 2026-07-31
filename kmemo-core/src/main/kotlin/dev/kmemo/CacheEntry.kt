@@ -29,6 +29,17 @@ public class CacheEntry(
     public val createdAt: Instant,
     /** Free-form caller data, returned untouched on a hit (token counts, model id, trace id...). */
     public val metadata: Map<String, String> = emptyMap(),
+    /**
+     * Labels this entry can be invalidated by, in bulk, when the fact behind it changes.
+     *
+     * Distinct from [metadata], which is opaque payload the cache never reads. Tags are **indexed** by
+     * the store, which is what lets `invalidateByTag` be a query rather than a full scan — the reason
+     * this is a field on the entry and not a convention inside the metadata map.
+     *
+     * Keep them low-cardinality and about the *source of truth*, not about the request: `price-list`,
+     * `policy-2026`, `customer-42`. A tag per prompt is a tag that never gets used.
+     */
+    public val tags: Set<String> = emptySet(),
 ) {
     init {
         require(id.isNotBlank()) { "id must not be blank" }
@@ -51,7 +62,7 @@ public class CacheEntry(
      * Useful when refreshing a stale answer without paying to re-embed the prompt.
      */
     public fun withResponse(response: String): CacheEntry =
-        CacheEntry(id, scope, prompt, response, embedding, createdAt, metadata)
+        CacheEntry(id, scope, prompt, response, embedding, createdAt, metadata, tags)
 
     override fun equals(other: Any?): Boolean = this === other || (other is CacheEntry && other.id == id)
 
