@@ -168,10 +168,10 @@ class CorpusTest {
     }
 
     private companion object {
-        private const val TUNED_NEAR_MISS_FLOOR = 63
+        private const val TUNED_NEAR_MISS_FLOOR = 74
         private const val HELD_OUT_NEAR_MISS_FLOOR = 58
         private const val HELD_OUT_PARAPHRASE_FLOOR = 35
-        private const val VALIDATION_NEAR_MISS_FLOOR = 65
+        private const val VALIDATION_NEAR_MISS_FLOOR = 68
         private const val VALIDATION_PARAPHRASE_FLOOR = 43
     }
 }

@@ -194,4 +194,15 @@ public enum class EvictionCause {
 
     /** Dropped for being past its TTL. */
     EXPIRED,
+
+    /**
+     * Dropped because a new entry says the same thing.
+     *
+     * Unlike the other three this is not the store running out of room: the entry was still live and
+     * still correct. It was replaced because a cache that has answered one question in six phrasings
+     * stores six copies of one answer and pays to score all six on every later lookup. Only ever
+     * emitted when `SemanticCache(deduplicateWrites = …)` is set, and only for an entry the guards
+     * agreed was interchangeable with the one replacing it.
+     */
+    NEAR_DUPLICATE,
 }

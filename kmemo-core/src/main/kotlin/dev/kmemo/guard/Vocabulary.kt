@@ -292,6 +292,27 @@ public object Vocabulary {
     )
 
     /**
+     * Words that open a clause narrowing a question, read by [SubSpanGuard].
+     *
+     * `on Heroku`, `for a team of five`, `without Docker`, `after a restart` — each attaches a
+     * condition to the question in front of it, and an answer given without that condition is an answer
+     * to a different question.
+     *
+     * **Deliberately not here: the words that open a framing clause.** `I`, `we`, `my`, `because`,
+     * `since`, `so` and the rest introduce why someone is asking rather than what they are asking, and
+     * a guard that read `I am working on a REST client and need to…` as a narrowing condition would
+     * refuse a paraphrase every time somebody explained themselves.
+     *
+     * `in` and `at` are excluded for a different reason: they are far too common in ordinary phrasing —
+     * `in Python`, `at the end` — to mark anything, and a marker that fires everywhere marks nothing.
+     */
+    public val QUALIFIER_OPENERS: Set<String> = setOf(
+        "on", "for", "with", "without", "under", "over", "within", "beyond",
+        "after", "before", "during", "until", "per", "via", "using", "excluding", "including",
+        "unless", "assuming", "given",
+    )
+
+    /**
      * Cues that make argument order significant, read by [DirectionGuard]: comparisons and
      * conversions. "A vs B" and "B vs A" are different questions; "sort a list in Python" and "in
      * Python, sort a list" are not.

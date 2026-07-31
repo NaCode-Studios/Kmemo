@@ -762,6 +762,146 @@
       "shouldMatch": true,
       "category": "word-order",
       "note": "Language qualifier moved across the sentence with identical intent."
+    },
+    {
+      "a": "How do I deploy a Rails app?",
+      "b": "How do I deploy a Rails app on Heroku?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "The platform decides every step of the answer; without it the reply is generic."
+    },
+    {
+      "a": "What is the default connection pool size?",
+      "b": "What is the default connection pool size in HikariCP?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "A named implementation has its own default, and the unqualified question does not."
+    },
+    {
+      "a": "How do I set up continuous integration?",
+      "b": "How do I set up continuous integration without Docker?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "The exclusion removes the approach most answers would give."
+    },
+    {
+      "a": "How long does a password reset link stay valid?",
+      "b": "How long does a password reset link stay valid after a failed attempt?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "The added condition changes which timer applies."
+    },
+    {
+      "a": "What is the maximum upload size?",
+      "b": "What is the maximum upload size per file?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "Per file and in total are different limits."
+    },
+    {
+      "a": "How much RAM does the service need?",
+      "b": "How much RAM does the service need for a team of fifty?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "Sizing is a function of the load the qualifier supplies."
+    },
+    {
+      "a": "Can I run the migration while the app is live?",
+      "b": "Can I run the migration while the app is live with replication on?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "Replication changes the answer from yes to a qualified no."
+    },
+    {
+      "a": "What is the retention period for audit logs?",
+      "b": "What is the retention period for audit logs under HIPAA?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "A regulation sets its own period, overriding the product default."
+    },
+    {
+      "a": "How do I rotate the signing key?",
+      "b": "How do I rotate the signing key without downtime?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "The zero-downtime procedure is a different procedure, not a detail of the same one."
+    },
+    {
+      "a": "What does the health check return?",
+      "b": "What does the health check return during a rolling restart?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "The transient state has its own response, which is the point of asking."
+    },
+    {
+      "a": "How do I back up the database?",
+      "b": "How do I back up the database using logical replication?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "A named mechanism replaces the whole procedure."
+    },
+    {
+      "a": "Is the API rate limited?",
+      "b": "Is the API rate limited for unauthenticated callers?",
+      "shouldMatch": false,
+      "category": "added-qualifier",
+      "note": "The unauthenticated tier has limits the general answer does not mention."
+    },
+    {
+      "a": "How do I parse a CSV file in Python?",
+      "b": "I am writing a small report script and need to parse a CSV file in Python, how?",
+      "shouldMatch": true,
+      "category": "added-framing",
+      "note": "An added clause explaining why the question is being asked, not what is being asked."
+    },
+    {
+      "a": "What is a database index?",
+      "b": "I keep hearing about indexes at work, what is a database index?",
+      "shouldMatch": true,
+      "category": "added-framing",
+      "note": "Framing, and it narrows nothing."
+    },
+    {
+      "a": "How do I clear the npm cache?",
+      "b": "Quick one, how do I clear the npm cache?",
+      "shouldMatch": true,
+      "category": "added-framing",
+      "note": "A filler opener adds no condition."
+    },
+    {
+      "a": "What does a 404 mean?",
+      "b": "Sorry if this is basic, what does a 404 mean?",
+      "shouldMatch": true,
+      "category": "added-framing",
+      "note": "An apology is not a qualifier."
+    },
+    {
+      "a": "How do I compress a folder on Linux?",
+      "b": "I am on Ubuntu and I want to compress a folder on Linux, how do I do it?",
+      "shouldMatch": true,
+      "category": "added-framing",
+      "note": "The added clause repeats the platform the question already names."
+    },
+    {
+      "a": "How do I read an environment variable in Go?",
+      "b": "Because I am new to this, how do I read an environment variable in Go?",
+      "shouldMatch": true,
+      "category": "added-framing",
+      "note": "A reason for asking, spread across the sentence rather than attached to the question."
+    },
+    {
+      "a": "What is the difference between TCP and UDP?",
+      "b": "For my exam tomorrow, what is the difference between TCP and UDP?",
+      "shouldMatch": true,
+      "category": "added-framing",
+      "note": "The clause opens with a qualifier but conditions the asker, not the answer, and the answer is the same either way."
+    },
+    {
+      "a": "How do I install Postgres on macOS?",
+      "b": "How do I install Postgres on macOS, using Homebrew or otherwise?",
+      "shouldMatch": true,
+      "category": "added-framing",
+      "note": "An added clause that widens rather than narrows: it explicitly declines to constrain the answer."
     }
   ]
 }

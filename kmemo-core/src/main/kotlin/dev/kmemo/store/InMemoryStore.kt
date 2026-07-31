@@ -5,8 +5,11 @@ import dev.kmemo.CacheEvent
 import dev.kmemo.CacheListener
 import dev.kmemo.CacheStore
 import dev.kmemo.EvictionCause
+import dev.kmemo.Quantization
 import dev.kmemo.ScoredEntry
 import dev.kmemo.Vectors
+import dev.kmemo.internal.VectorCode
+import dev.kmemo.internal.VectorCodes
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Clock
@@ -47,6 +50,11 @@ public data class InMemoryStoreStats(
  * @param maxBytes optional cap on estimated resident bytes (embeddings dominate: `dimensions * 4`
  *   each), evicted least-recently-used just like `maxEntries`, so a cache in a memory-constrained
  *   service cannot grow without bound. `null` (the default) bounds by count only.
+ * @param quantization compresses vectors **for the scan only**, trading a little recall for a cheaper
+ *   pass over the scope. Survivors are rescored against the full-precision vectors, so every similarity
+ *   this store returns is exact and a quantization error can only ever cost a candidate, never change a
+ *   decision. [Quantization.NONE] by default: at ten thousand entries the exact scan is already well
+ *   under a millisecond, and a knob that quietly lowers recall should be reached for on evidence.
  * @param listener optional sink notified with a [CacheEvent.Eviction] whenever an entry is evicted
  *   (for capacity or memory) or dropped for being expired — the store owns eviction, so the store is
  *   what reports it. Called inline while the store's lock is held, so it must be fast and non-blocking
@@ -59,6 +67,7 @@ public class InMemoryStore(
     private val clock: Clock = Clock.systemUTC(),
     private val maxBytes: Long? = null,
     private val listener: CacheListener? = null,
+    private val quantization: Quantization = Quantization.NONE,
 ) : CacheStore {
 
     init {
@@ -73,6 +82,17 @@ public class InMemoryStore(
 
     /** Access-ordered, so the eldest key is always the least recently used one. */
     private val entries = LinkedHashMap<String, CacheEntry>(INITIAL_CAPACITY, LOAD_FACTOR, true)
+
+    /**
+     * Compressed vectors for the scan, by entry id. Empty when [quantization] is
+     * [Quantization.NONE].
+     *
+     * Kept in step with [entries] by routing **every** removal through [drop]. A second map is the
+     * cheap shape here; the price is that a removal which forgot it would leave a code behind for an
+     * id that no longer exists, and that code would go on being scanned and then fail to rescore. So
+     * there is one removal helper and nothing else touches this map.
+     */
+    private val codes = HashMap<String, VectorCode>(INITIAL_CAPACITY)
 
     private var evictions = 0L
     private var expirations = 0L
@@ -101,6 +121,7 @@ public class InMemoryStore(
                 }
             }
             val previous = entries.put(entry.id, entry)
+            VectorCodes.encode(entry.embedding, quantization)?.let { codes[entry.id] = it }
             if (previous != null) currentBytes -= bytesOf(previous)
             currentBytes += bytesOf(entry)
             evictOverflow()
@@ -122,7 +143,7 @@ public class InMemoryStore(
             }
 
             val expired = mutableListOf<String>()
-            val scored = mutableListOf<ScoredEntry>()
+            val live = mutableListOf<CacheEntry>()
             // Iteration does not count as access in a LinkedHashMap, so scanning cannot disturb
             // the LRU order.
             for ((id, entry) in entries) {
@@ -131,9 +152,12 @@ public class InMemoryStore(
                     continue
                 }
                 if (entry.scope != scope) continue
-                scored += ScoredEntry(entry, Vectors.dot(embedding, entry.embedding))
+                live += entry
             }
             dropAll(expired)
+
+            val exact = shortlist(embedding, live, limit)
+            val scored = exact.map { ScoredEntry(it, Vectors.dot(embedding, it.embedding)) }.toMutableList()
 
             // A primitive comparator, not sortByDescending { it.similarity }: the selector form boxes a
             // Double per element for the sort key, and this sort runs over every entry in the scope on
@@ -141,6 +165,29 @@ public class InMemoryStore(
             scored.sortWith { a, b -> b.similarity.compareTo(a.similarity) }
             if (scored.size > limit) scored.subList(0, limit).toList() else scored
         }
+    }
+
+    /**
+     * The entries worth scoring exactly.
+     *
+     * With [Quantization.NONE] that is all of them and this is a no-op. Otherwise the compressed codes
+     * rank every live entry cheaply and the best `limit * rescoreFactor` go through to the exact pass.
+     * Nothing here produces a similarity anyone sees: the approximate score orders the shortlist and is
+     * then discarded, and [search] recomputes every returned similarity from the full-precision
+     * vectors. That is what confines a quantization error to a missed candidate.
+     */
+    private fun shortlist(embedding: FloatArray, live: List<CacheEntry>, limit: Int): List<CacheEntry> {
+        val queryCode = VectorCodes.encode(embedding, quantization) ?: return live
+        val wanted = limit * quantization.rescoreFactor
+        if (live.size <= wanted) return live
+
+        val ranked = live.mapNotNull { entry ->
+            codes[entry.id]?.let { entry to it.score(queryCode) }
+        }
+        // An entry with no code is one written before the store was quantized, which cannot happen
+        // through the public API. If it somehow did, scoring it exactly is the safe answer.
+        if (ranked.size != live.size) return live
+        return ranked.sortedByDescending { it.second }.take(wanted).map { it.first }
     }
 
     override suspend fun touch(id: String) {
@@ -152,10 +199,21 @@ public class InMemoryStore(
     }
 
     override suspend fun remove(id: String): Boolean = mutex.withLock {
-        val removed = entries.remove(id)
+        val removed = drop(id)
         if (removed != null) currentBytes -= bytesOf(removed)
         forgetDimensionsIfEmpty()
         removed != null
+    }
+
+    /**
+     * The one way an entry leaves this store, so its compressed code leaves with it.
+     *
+     * Every other removal path calls this. A path that forgot would leave a code behind for an id that
+     * no longer exists, and the shortlist would go on ranking a ghost.
+     */
+    private fun drop(id: String): CacheEntry? {
+        codes.remove(id)
+        return entries.remove(id)
     }
 
     /**
@@ -168,7 +226,7 @@ public class InMemoryStore(
     override suspend fun invalidateByTag(tag: String, scope: String?): Int = mutex.withLock {
         val doomed = entries.values.filter { tag in it.tags && (scope == null || it.scope == scope) }
         for (entry in doomed) {
-            entries.remove(entry.id)
+            drop(entry.id)
             currentBytes -= bytesOf(entry)
         }
         forgetDimensionsIfEmpty()
@@ -179,12 +237,13 @@ public class InMemoryStore(
         mutex.withLock {
             if (scope == null) {
                 entries.clear()
+                codes.clear()
                 currentBytes = 0L
             } else {
-                entries.entries.removeAll { entry ->
-                    (entry.value.scope == scope).also { matched ->
-                        if (matched) currentBytes -= bytesOf(entry.value)
-                    }
+                val doomed = entries.values.filter { it.scope == scope }.map { it.id }
+                for (id in doomed) {
+                    val removed = drop(id) ?: continue
+                    currentBytes -= bytesOf(removed)
                 }
             }
             forgetDimensionsIfEmpty()
@@ -224,7 +283,7 @@ public class InMemoryStore(
 
     private fun dropAll(ids: List<String>) {
         for (id in ids) {
-            val removed = entries.remove(id)
+            val removed = drop(id)
             if (removed != null) {
                 expirations++
                 currentBytes -= bytesOf(removed)
@@ -276,7 +335,7 @@ public class InMemoryStore(
 
     private fun evictEldest(cause: EvictionCause) {
         val eldest = entries.keys.iterator().next()
-        val removed = entries.remove(eldest)
+        val removed = drop(eldest)
         if (removed != null) {
             currentBytes -= bytesOf(removed)
             emitEviction(removed, cause)

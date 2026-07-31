@@ -42,6 +42,7 @@ public object MatchGuards {
         SubstitutionGuard(stopwords = vocabulary.stopwords, units = vocabulary.units),
         ScopeGuard(vocabulary.scopeMarkers),
         DirectionGuard(vocabulary.directionalCues, vocabulary.stopwords),
+        SubSpanGuard(vocabulary.stopwords, vocabulary.qualifierOpeners),
         LexicalDivergenceGuard(stopwords = vocabulary.stopwords),
     )
 
@@ -93,6 +94,7 @@ public object MatchGuards {
         SubstitutionGuard(),
         ScopeGuard(),
         DirectionGuard(),
+        SubSpanGuard(),
         LexicalDivergenceGuard(minOverlap = 0.35, minTokens = 4),
         LengthRatioGuard(maxRatio = 4.0),
     )

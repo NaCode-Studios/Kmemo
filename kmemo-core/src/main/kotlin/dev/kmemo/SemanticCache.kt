@@ -3,10 +3,12 @@ package dev.kmemo
 import dev.kmemo.guard.GuardVerdict
 import dev.kmemo.guard.MatchGuard
 import dev.kmemo.guard.MatchGuards
-import dev.kmemo.guard.ResponseAwareGuard
+import dev.kmemo.internal.CandidateOrder
 import dev.kmemo.internal.ExactCache
+import dev.kmemo.internal.GuardChain
 import dev.kmemo.internal.KeyedMutex
 import dev.kmemo.internal.NegativeCache
+import dev.kmemo.internal.ShadowRun
 import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -110,6 +112,22 @@ import java.time.Duration as JavaDuration
  *   [CacheEvent.Shadow], and then **always** computes. Nothing is ever served from the cache, so a false
  *   hit cannot reach a user while you are still choosing a threshold; writes still happen, because a
  *   shadow cache that never fills would report a miss for everything and measure nothing.
+ * @param reranker reorders the candidates that cleared the threshold before the guards see them, or
+ *   `null` (the default) to try them nearest-first. It reorders and never rescores, and it runs *after*
+ *   the threshold filter, so it can change the order the cache tries candidates in but never which
+ *   candidates are eligible. [MmrReranker] is the one that ships; what it buys is fewer [Verifier] calls
+ *   on a cache whose nearest entries are near-duplicates of each other.
+ * @param deduplicateWrites when non-null, a similarity at or above which a new entry **replaces** the
+ *   existing entry it duplicates instead of joining it. A cache that has answered the same question in
+ *   six phrasings stores six copies of one answer, and every later lookup pays to score all six. Only an
+ *   entry that clears this similarity *and* passes every guard is replaced, so deduplication can never
+ *   merge two entries the cache would have refused to serve for each other. `null` (the default) keeps
+ *   every write. Costs one extra store search per write, on the write path rather than the read path.
+ * @param adaptiveThresholds when non-null, lets each scope's threshold follow its own traffic instead of
+ *   staying where it was configured. **Requires a [verifier]**, and the constructor throws without one:
+ *   adaptation lowers the threshold as well as raising it, and the only thing that makes lowering safe
+ *   is something above the threshold that can tell a right answer from a wrong one. Pass the same object
+ *   in [listeners] so it can see the outcomes it adapts on. See [AdaptiveThresholds].
  * @param cachePolicy vetoes writes of data that must never be persisted, consulted once per write on
  *   every write path including [warm]. `null` (the default) caches everything the cache decides to
  *   cache. A vetoed write is a policy decision, not a failure: the call still returns its response.
@@ -158,6 +176,9 @@ public class SemanticCache(
     private val exactCacheTtl: Duration? = null,
     private val thresholds: Map<String, Double> = emptyMap(),
     private val shadowThresholds: List<Double> = emptyList(),
+    private val reranker: CandidateReranker? = null,
+    private val deduplicateWrites: Double? = null,
+    private val adaptiveThresholds: AdaptiveThresholds? = null,
 ) {
 
     init {
@@ -181,7 +202,25 @@ public class SemanticCache(
         for (value in shadowThresholds) {
             require(value in -1.0..1.0) { "shadow threshold must be within [-1.0, 1.0], was $value" }
         }
+        require(deduplicateWrites == null || deduplicateWrites in -1.0..1.0) {
+            "deduplicateWrites must be within [-1.0, 1.0], was $deduplicateWrites"
+        }
+        // Not a guard rail that can be argued around: adaptation lowers the threshold when the traffic
+        // says it can be lowered, and the only thing that makes that safe is something above the
+        // threshold able to tell a right answer from a wrong one. Without a verifier this would be
+        // guessing with correctness, which is the one thing this cache is built not to do.
+        require(adaptiveThresholds == null || verifier != null) {
+            "adaptiveThresholds requires a verifier. It moves the threshold on how often the verifier " +
+                "refuses what it sees, and with no verifier there is no evidence and nothing catching " +
+                "what a lowered threshold lets through."
+        }
     }
+
+    private val guardChain = GuardChain(guards)
+
+    private val candidateOrder = CandidateOrder(reranker)
+
+    private val shadowRun = ShadowRun(shadowThresholds, guardChain)
 
     private val inFlight = KeyedMutex()
 
@@ -288,8 +327,7 @@ public class SemanticCache(
     public suspend fun explain(prompt: String, scope: String = DEFAULT_SCOPE): CacheExplanation {
         val embedding = embed(prompt, scope)
         val traces = store.search(scope, embedding, candidates).map { scored ->
-            val verdicts = LinkedHashMap<String, GuardVerdict>(guards.size)
-            for (guard in guards) verdicts[guard.name] = verdictOf(guard, prompt, scored.entry)
+            val verdicts = guardChain.verdicts(prompt, scored.entry)
             CandidateTrace(
                 prompt = scored.entry.prompt,
                 similarity = scored.similarity,
@@ -682,60 +720,8 @@ public class SemanticCache(
     }
 
 
-    /**
-     * The similarity floor for [scope]: its override when one is configured, otherwise the global
-     * [threshold].
-     *
-     * One global threshold is necessarily wrong for a service answering both regulated and casual
-     * questions, and the honest fix is per-scope rather than a single value tuned to the strictest
-     * caller and paid for by every other one.
-     */
-
-    /**
-     * Judges [prompt] at every configured shadow threshold **without serving anything**.
-     *
-     * One search, one guard pass per candidate, every threshold read off the same result: the guard
-     * verdicts are the expensive part and a candidate's verdict does not depend on the threshold, so
-     * computing them once and reusing them across thresholds is what makes a whole curve affordable on
-     * live traffic. Reuses the same candidate machinery [explain] does rather than growing a parallel
-     * path beside it.
-     *
-     * Moves no counter and touches no entry: a mode that changed the numbers you are measuring would
-     * defeat its own purpose.
-     */
-    private suspend fun shadow(prompt: String, scope: String, embedding: FloatArray): ShadowReport {
-        val found = store.search(scope, embedding, candidates)
-        if (found.isEmpty()) {
-            return ShadowReport(
-                scope, prompt,
-                shadowThresholds.map { ShadowDecision(it, false, MissReason.EMPTY_SCOPE, null, null, null) },
-            )
-        }
-        // Verdict per candidate, computed once. `null` means the candidate passed every guard.
-        val rejections = found.map { firstRejection(prompt, it.entry) }
-        val best = found.first()
-
-        val decisions = shadowThresholds.map { t ->
-            var refused: ShadowDecision? = null
-            for ((i, scored) in found.withIndex()) {
-                if (scored.similarity < t) break
-                val rejection = rejections[i]
-                if (rejection == null) {
-                    return@map ShadowDecision(t, true, null, scored.similarity, scored.entry.prompt, null)
-                }
-                if (refused == null) {
-                    refused = ShadowDecision(
-                        t, false, MissReason.REJECTED_BY_GUARD, scored.similarity,
-                        scored.entry.prompt, rejection.guardName,
-                    )
-                }
-            }
-            refused ?: ShadowDecision(
-                t, false, MissReason.BELOW_THRESHOLD, best.similarity, best.entry.prompt, null,
-            )
-        }
-        return ShadowReport(scope, prompt, decisions)
-    }
+    private suspend fun shadow(prompt: String, scope: String, embedding: FloatArray): ShadowReport =
+        shadowRun.report(prompt, scope, store.search(scope, embedding, candidates))
 
 
     /**
@@ -755,7 +741,17 @@ public class SemanticCache(
     private fun keyed(prompt: String, context: List<String>): String =
         if (context.isEmpty()) prompt else context.joinToString("\n") + "\n" + prompt
 
-    private fun thresholdFor(scope: String): Double = thresholds[scope] ?: threshold
+    /**
+     * The threshold in force for [scope]: what the traffic has justified, else the per-scope override,
+     * else the global value.
+     *
+     * An adaptive recommendation outranks a configured per-scope value on purpose. Configuring both is
+     * saying "start here, then learn"; the configured number is the starting point and the measurement
+     * is what replaces it. It cannot leave the floor and ceiling the caller set on
+     * [AdaptiveThresholds].
+     */
+    private fun thresholdFor(scope: String): Double =
+        adaptiveThresholds?.recommendationFor(scope) ?: thresholds[scope] ?: threshold
 
     private fun degraded(
         scope: String,
@@ -823,12 +819,8 @@ public class SemanticCache(
         // how a diagnostic turns into a wild goose chase.
         var refusal: Refusal? = null
 
-        for (scored in found) {
-            // Results are sorted by descending similarity, so the first one below the threshold
-            // means every remaining one is too.
-            if (scored.similarity < thresholdFor(scope)) break
-
-            val rejection = firstRejection(prompt, scored.entry)
+        for (scored in candidateOrder.considered(embedding, found, thresholdFor(scope))) {
+            val rejection = guardChain.firstRejection(prompt, scored.entry)
             if (rejection != null) {
                 if (refusal == null) {
                     refusal = Refusal(
@@ -953,28 +945,30 @@ public class SemanticCache(
         val guardName: String?,
     )
 
-    private class GuardRejection(val guardName: String, val reason: String)
-
-    private fun firstRejection(prompt: String, candidate: CacheEntry): GuardRejection? {
-        for (guard in guards) {
-            val verdict = verdictOf(guard, prompt, candidate)
-            if (verdict is GuardVerdict.Reject) return GuardRejection(guard.name, verdict.reason)
-        }
-        return null
-    }
-
     /**
-     * Asks one guard about one candidate, handing a [ResponseAwareGuard] the stored answer as well.
+     * The live entry [entry] makes redundant, or `null` when there is none.
      *
-     * The response is already in memory — it is the thing the cache would serve — so the extra
-     * argument costs nothing, and a guard that does not want it never sees it.
+     * Two conditions, and the second is the one that makes this safe. Similarity alone decides which
+     * entries are *candidates* for merging, exactly as it decides which are candidates for serving —
+     * and it is just as wrong on its own here. `Convert 100 USD to EUR` and `Convert 250 USD to EUR`
+     * embed at 0.99, so a similarity-only rule would delete one answer and leave the other to be served
+     * for both questions: the false hit this library exists to prevent, arriving through the write path
+     * instead of the read path. So the guards decide, the same guards, in both directions, and only a
+     * pair they would have served for each other is merged.
+     *
+     * The new entry wins because it is the fresher answer to the same question.
      */
-    private fun verdictOf(guard: MatchGuard, prompt: String, candidate: CacheEntry): GuardVerdict =
-        if (guard is ResponseAwareGuard) {
-            guard.evaluate(prompt, candidate.prompt, candidate.response)
-        } else {
-            guard.evaluate(prompt, candidate.prompt)
-        }
+    private suspend fun nearDuplicateOf(entry: CacheEntry): CacheEntry? {
+        val minimum = deduplicateWrites ?: return null
+        return store.search(entry.scope, entry.embedding, candidates)
+            .firstOrNull { scored ->
+                scored.entry.id != entry.id &&
+                    scored.similarity >= minimum &&
+                    guardChain.firstRejection(entry.prompt, scored.entry) == null &&
+                    guardChain.firstRejection(scored.entry.prompt, entry) == null
+            }
+            ?.entry
+    }
 
     /**
      * Runs the verifier fail-closed: returns a rejection detail, or `null` when the candidate passed
@@ -1063,7 +1057,13 @@ public class SemanticCache(
             if (observed) emit(CacheEvent.WriteVetoed(entry.scope, entry.prompt, verdict.reason))
             return
         }
+        val replaced = nearDuplicateOf(entry)
         store.put(entry)
+        // Removed after the write, not before: a crash between the two would otherwise lose an answer
+        // the cache already had, and the worst case of this order is one duplicate that lives on.
+        if (replaced != null && store.remove(replaced.id) && observed) {
+            emit(CacheEvent.Eviction(replaced.scope, replaced.prompt, replaced.id, EvictionCause.NEAR_DUPLICATE))
+        }
         writeCount.incrementAndGet()
         // The prompt now resolves to this entry, so the exact layer can answer a repeat of it.
         rememberExact(entry.scope, entry.prompt, entry, entry.embedding)

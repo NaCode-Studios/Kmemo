@@ -8,6 +8,45 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **Advanced matching (M18)**, four opt-in pieces around the match path and one new guard. Each trades
+  something, and each is off by default because the trade is the caller's to make.
+  - `CandidateReranker` and `MmrReranker` reorder the candidates that cleared the threshold, so each one
+    the cache tries adds something the last did not. On a cache that has been running a while the
+    nearest entries are rephrasings of each other and a `Verifier` costs a model call per candidate, so
+    five paid calls that all inspect one entry is four wasted. Reranking runs **after** the threshold
+    filter, never before: `search` returns entries best-first, and reordering ahead of the filter would
+    put a below-threshold entry in front of an above-threshold one and turn the cheap exit into a wrong
+    answer. A reranker that returns a different number of candidates is refused rather than trusted.
+  - `Quantization` on `InMemoryStore`: `INT8` or `BINARY` codes for the scan, with every survivor
+    rescored against the full-precision vectors. The discipline is the point — quantization decides
+    which candidates are *looked at*, never whether one is *served* — so the worst a bad approximation
+    can do is cost a candidate, a miss worth one API call, and it cannot move a similarity across the
+    threshold. Recall is measured against an exact scan at 64 and 1,536 dimensions: `INT8` recovers
+    everything at four times oversampling, `BINARY` needs twenty-four to reach 99% and that cost is
+    written down rather than hidden.
+  - `deduplicateWrites`: a new entry replaces the one it duplicates instead of joining it, so a question
+    answered in six phrasings stops being six copies every later lookup has to score. Similarity alone
+    decides nothing here — the write path can produce a false hit exactly as the read path can, so the
+    same guards run in both directions and only a pair they would have served for each other is merged.
+    Reported as `EvictionCause.NEAR_DUPLICATE`.
+  - `AdaptiveThresholds`: each scope's threshold follows its own traffic. **The constructor throws
+    without a `Verifier`**, and that is not a warning that can be argued around: adaptation lowers the
+    threshold as well as raising it, and the only thing that makes lowering safe is something above the
+    threshold that can tell a right answer from a wrong one. With a verifier in the loop the threshold
+    stops being a correctness knob and becomes a cost knob — how many candidates reach the verifier —
+    which is a quantity the cache can honestly observe about itself.
+  - `SubSpanGuard`, and it is in `standard()`. Every other guard looks for a word that *changed*; this
+    one is for the near miss where nothing changed and something was *added*. `How do I deploy a Rails
+    app` against the same question `on Heroku` has perfect word overlap, so no lexical guard sees it.
+    Three conditions before it fires, each one there because dropping it refused a real paraphrase: one
+    prompt's content words must contain the other's, the added words must all sit in one span, and that
+    span must open with a qualifier rather than a pronoun or a hedge. Measured at **zero** false
+    rejections across all three corpora and one new catch on the blind validation split, which moves
+    `standard()` from 0.333 to 0.324 there and `strict()` from 0.314 to 0.304.
+- The tuned corpus grows by twenty pairs covering the added-qualifier shape, twelve near misses and
+  eight paraphrases that look like them and are not. The tuned split is in-sample by definition and
+  `docs/CORPUS.md` says growing it is free; the blind splits are untouched, and the tuned near-miss
+  floor rises from 63 to 74 with the validation floor from 65 to 68.
 - The verifier's catch rate on the guard residual, measured. The README said the 67% / 88% figures were
   guard-only and that what a `Verifier` stops afterwards was unknown; that gap is closed. Against a
   named reference implementation — `sentence_transformers.CrossEncoder` over
@@ -122,6 +161,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **Binary compatibility is broken, source compatibility is not.** `GuardVocabulary` gains a
+  `qualifierOpeners` field, and `SemanticCache` and `InMemoryStore` gain constructor parameters; all of
+  them are defaulted, so nothing needs editing, but the constructor and `copy` signatures moved and a
+  jar compiled against `1.x` will not link. `STABILITY.md` puts that boundary at a minor version and
+  this is where the next release earns its number. Recompiling is the whole migration.
 - Docs (M21): the README documents **scope versioning** as the invalidation pattern that
   needs no new API — bump `pricing-v3.2` to `pricing-v3.3` and clear the old scope, which cuts over
   atomically. The issue asks for this to ship before any seam change, and it is the whole answer for

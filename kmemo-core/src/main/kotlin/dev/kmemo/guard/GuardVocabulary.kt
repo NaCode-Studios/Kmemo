@@ -20,6 +20,11 @@ package dev.kmemo.guard
  * @param scopeMarkers words describing the shape of the answer — format, length, depth (the scope guard).
  * @param directionalCues cues that make argument order significant — comparisons, conversions (the direction guard).
  * @param units unit and currency tokens mapped to a canonical [MeasurementUnit] (the unit & substitution guards).
+ * @param qualifierOpeners words that begin a clause narrowing a question rather than framing it (the
+ *   sub-span guard). **Empty by default, and empty is a working answer**: with no openers the guard
+ *   never fires, which is the safe direction for a language whose markers nobody has measured. Only the
+ *   English pack fills it, because it is the only one with a corpus behind it. Fill it from a
+ *   language's real traffic, not from a dictionary.
  */
 public data class GuardVocabulary(
     public val stopwords: Set<String>,
@@ -31,6 +36,7 @@ public data class GuardVocabulary(
     public val scopeMarkers: Set<String>,
     public val directionalCues: Set<String>,
     public val units: Map<String, MeasurementUnit>,
+    public val qualifierOpeners: Set<String> = emptySet(),
 ) {
     public companion object {
 
@@ -48,6 +54,7 @@ public data class GuardVocabulary(
             scopeMarkers = Vocabulary.SCOPE_MARKERS,
             directionalCues = Vocabulary.DIRECTIONAL_CUES,
             units = Vocabulary.UNITS,
+            qualifierOpeners = Vocabulary.QUALIFIER_OPENERS,
         )
     }
 }
