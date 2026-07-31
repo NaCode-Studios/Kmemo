@@ -14,6 +14,8 @@ All notable changes to this project are documented here. The format follows
   The attested set is derived from the build rather than listed in the workflow, so a module that starts
   publishing is covered without anyone remembering to add it, and the attestation runs *before* the
   publish step so a failure cannot leave released-but-unattested artifacts.
+- Every tag now gets a **GitHub Release**, with its body extracted from this file rather than written
+  separately, so the two cannot disagree. Releases were backfilled for `0.1.0` through `1.1.0`.
 
 ### Removed
 
@@ -24,11 +26,6 @@ All notable changes to this project are documented here. The format follows
   `GitHubPackages` repository is gone from all eleven modules and the release workflow publishes to
   Maven Central alone. Nothing changes for anyone depending on `io.github.nacode-studios` coordinates.
   Packages already pushed to GitHub Packages for `0.1.0` through `1.1.0` are left in place.
-
-### Added
-
-- Every tag now gets a **GitHub Release**, with its body extracted from this file rather than written
-  separately, so the two cannot disagree. Releases were backfilled for `0.1.0` through `1.1.0`.
 
 ## [1.1.0] - 2026-07-31
 
