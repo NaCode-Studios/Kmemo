@@ -63,12 +63,13 @@ public class PostgresStore(
         val expiresAt = ttl?.let { now().plus(it.inWholeMilliseconds, java.time.temporal.ChronoUnit.MILLIS) }
         connection.prepareStatement(
             """
-            INSERT INTO $table (id, scope, prompt, response, embedding, created_at, expires_at, metadata)
-            VALUES (?, ?, ?, ?, CAST(? AS vector), ?, ?, CAST(? AS jsonb))
+            INSERT INTO $table
+                (id, scope, prompt, response, embedding, created_at, expires_at, metadata, tags)
+            VALUES (?, ?, ?, ?, CAST(? AS vector), ?, ?, CAST(? AS jsonb), ?)
             ON CONFLICT (id) DO UPDATE SET
                 scope = EXCLUDED.scope, prompt = EXCLUDED.prompt, response = EXCLUDED.response,
                 embedding = EXCLUDED.embedding, created_at = EXCLUDED.created_at,
-                expires_at = EXCLUDED.expires_at, metadata = EXCLUDED.metadata
+                expires_at = EXCLUDED.expires_at, metadata = EXCLUDED.metadata, tags = EXCLUDED.tags
             """.trimIndent(),
         ).use { statement ->
             statement.setString(1, entry.id)
@@ -79,6 +80,7 @@ public class PostgresStore(
             statement.setObject(6, entry.createdAt.atOffset(ZoneOffset.UTC))
             statement.setObject(7, expiresAt)
             statement.setString(8, encodeMetadata(entry.metadata))
+            statement.setArray(9, connection.createArrayOf("text", entry.tags.toTypedArray()))
             statement.executeUpdate()
         }
     }
@@ -88,7 +90,7 @@ public class PostgresStore(
         return withConnection { connection ->
             connection.prepareStatement(
                 """
-                SELECT id, scope, prompt, response, embedding, created_at, metadata,
+                SELECT id, scope, prompt, response, embedding, created_at, metadata, tags,
                        embedding <=> CAST(? AS vector) AS distance
                 FROM $table
                 WHERE scope = ? AND (expires_at IS NULL OR expires_at > ?)
@@ -111,6 +113,7 @@ public class PostgresStore(
                                 embedding = decodeVector(rows.getString("embedding")),
                                 createdAt = rows.getObject("created_at", OffsetDateTime::class.java).toInstant(),
                                 metadata = decodeMetadata(rows.getString("metadata")),
+                                tags = decodeTags(rows.getArray("tags")),
                             )
                             // pgvector `<=>` is cosine distance; similarity is 1 - distance.
                             add(ScoredEntry(entry, 1.0 - rows.getDouble("distance")))
@@ -126,6 +129,26 @@ public class PostgresStore(
             statement.setString(1, id)
             statement.executeUpdate() > 0
         }
+    }
+
+    override suspend fun invalidateByTag(tag: String, scope: String?): Int = withConnection { connection ->
+        // A GIN index on tags makes this a query rather than a scan, which is the whole reason tags are
+        // a column and not a key inside the metadata json.
+        val sql = if (scope == null) {
+            "DELETE FROM $table WHERE tags @> ARRAY[?]::text[]"
+        } else {
+            "DELETE FROM $table WHERE tags @> ARRAY[?]::text[] AND scope = ?"
+        }
+        connection.prepareStatement(sql).use { statement ->
+            statement.setString(1, tag)
+            if (scope != null) statement.setString(2, scope)
+            statement.executeUpdate()
+        }
+    }
+
+    private fun decodeTags(array: java.sql.Array?): Set<String> {
+        val raw = array?.array as? Array<*> ?: return emptySet()
+        return raw.filterIsInstance<String>().toSet()
     }
 
     override suspend fun clear(scope: String?): Unit = withConnection { connection ->
@@ -187,10 +210,19 @@ public class PostgresStore(
                                 embedding vector NOT NULL,
                                 created_at timestamptz NOT NULL,
                                 expires_at timestamptz,
-                                metadata jsonb NOT NULL DEFAULT '{}'::jsonb
+                                metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+                                tags text[] NOT NULL DEFAULT '{}'
                             )
                             """.trimIndent(),
                         )
+                        // A table created by an earlier version has no tags column: CREATE TABLE IF NOT
+                        // EXISTS silently leaves it alone, so the migration has to be explicit. Both
+                        // statements are idempotent and safe against a live table.
+                        statement.execute(
+                            "ALTER TABLE $table ADD COLUMN IF NOT EXISTS tags text[] " +
+                                "NOT NULL DEFAULT '{}'",
+                        )
+                        statement.execute("CREATE INDEX IF NOT EXISTS ${table}_tags_idx ON $table USING GIN (tags)")
                         statement.execute("CREATE INDEX IF NOT EXISTS ${table}_scope_idx ON $table (scope)")
                         statement.execute(
                             "CREATE INDEX IF NOT EXISTS ${table}_expires_at_idx ON $table (expires_at)",

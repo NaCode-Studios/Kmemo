@@ -101,6 +101,7 @@ public class RedisStore(
             field(CREATED_AT) to entry.createdAt.toEpochMilli().toString().toByteArray(US_ASCII),
             field(EXPIRES_AT) to expiresAtMillis.toString().toByteArray(US_ASCII),
             field(METADATA) to encodeMetadata(entry.metadata),
+            field(TAGS) to entry.tags.joinToString(",").toByteArray(UTF_8),
             field(EMBEDDING) to encodeVector(entry.embedding),
         )
 
@@ -126,8 +127,9 @@ public class RedisStore(
             .add(query)
             .add("PARAMS").add(2L).add("BLOB").add(encodeVector(embedding))
             .add("SORTBY").add(SCORE)
-            .add("RETURN").add(7L)
-            .add(SCOPE).add(PROMPT).add(RESPONSE).add(CREATED_AT).add(EMBEDDING).add(METADATA).add(SCORE)
+            .add("RETURN").add(8L)
+            .add(SCOPE).add(PROMPT).add(RESPONSE).add(CREATED_AT).add(EMBEDDING).add(METADATA)
+            .add(TAGS).add(SCORE)
             .add("LIMIT").add(0L).add(limit.toLong())
             .add("DIALECT").add(2L)
 
@@ -136,6 +138,23 @@ public class RedisStore(
     }
 
     override suspend fun remove(id: String): Boolean = commands.del(keyFor(id)).await() > 0L
+
+    override suspend fun invalidateByTag(tag: String, scope: String?): Int {
+        if (indexDimensions == -1) return 0
+        val scopeFilter = if (scope == null) "" else " @$SCOPE:{${escapeTag(scope)}}"
+        val query = "(@$TAGS:{${escapeTag(tag)}}$scopeFilter)"
+        val args = CommandArgs(CODEC)
+            .add(indexName).add(query)
+            .add("NOCONTENT")
+            .add("LIMIT").add(0L).add(MAX_CLEAR.toLong())
+            .add("DIALECT").add(2L)
+        val reply = commands.dispatch(Ft.SEARCH, NestedMultiOutput(CODEC), args).await()
+        // With NOCONTENT the reply is [total, key1, key2, ...], the same shape matchingKeys parses.
+        val keys = reply.drop(1).filterIsInstance<ByteArray>()
+        if (keys.isEmpty()) return 0
+        commands.del(*keys.toTypedArray()).await()
+        return keys.size
+    }
 
     override suspend fun clear(scope: String?) {
         if (indexDimensions == -1) return
@@ -177,6 +196,22 @@ public class RedisStore(
         }
     }
 
+    /**
+     * Adds the `tags` field to an index created before this version.
+     *
+     * Entries written by that version carry no `tags` hash field, so they are simply never matched by a
+     * tag query — which is correct, they had no tags. They gain one as they are rewritten.
+     */
+    private suspend fun addTagsFieldIfMissing() {
+        val args = CommandArgs(CODEC).add(indexName).add("SCHEMA").add("ADD").add(TAGS).add("TAG")
+        try {
+            commands.dispatch(Ft.ALTER, StatusOutput(CODEC), args).await()
+        } catch (e: RedisCommandExecutionException) {
+            // Already present is the expected outcome on every start after the first.
+            if (!e.message.orEmpty().contains("already", ignoreCase = true)) throw e
+        }
+    }
+
     private suspend fun createIndex(dimensions: Int) {
         val args = CommandArgs(CODEC)
             .add(indexName)
@@ -184,6 +219,7 @@ public class RedisStore(
             .add("PREFIX").add(1L).add(keyPrefix)
             .add("SCHEMA")
             .add(SCOPE).add("TAG")
+            .add(TAGS).add("TAG")
             .add(EXPIRES_AT).add("NUMERIC")
             .add(EMBEDDING).add("VECTOR").add("FLAT").add(6L)
             .add("TYPE").add("FLOAT32")
@@ -193,7 +229,12 @@ public class RedisStore(
             commands.dispatch(Ft.CREATE, StatusOutput(CODEC), args).await()
         } catch (e: RedisCommandExecutionException) {
             val message = e.message.orEmpty()
-            if (message.contains("Index already exists", ignoreCase = true)) return
+            // An index built by an earlier version has no tags field, and FT.CREATE will not add one.
+            // FT.ALTER is idempotent enough: it fails when the field is already there, which is fine.
+            if (message.contains("Index already exists", ignoreCase = true)) {
+                addTagsFieldIfMissing()
+                return
+            }
             if (message.contains("unknown command", ignoreCase = true) || message.contains("FT.CREATE")) {
                 throw IllegalStateException(
                     "Redis does not have the RediSearch module (FT.CREATE failed). kmemo-store-redis " +
@@ -232,6 +273,8 @@ public class RedisStore(
                 embedding = decodeVector(fields.getValue(EMBEDDING)),
                 createdAt = Instant.ofEpochMilli(fields.string(CREATED_AT).toLong()),
                 metadata = decodeMetadata(fields[METADATA]),
+                tags = fields[TAGS]?.toString(UTF_8)?.split(",")?.filter { it.isNotBlank() }?.toSet()
+                    ?: emptySet(),
             )
             // RediSearch COSINE returns a distance in [0, 2]; similarity is 1 - distance.
             val similarity = 1.0 - fields.string(SCORE).toDouble()
@@ -300,6 +343,7 @@ public class RedisStore(
         companion object {
             val CREATE = Ft("CREATE")
             val SEARCH = Ft("SEARCH")
+            val ALTER = Ft("ALTER")
         }
     }
 
@@ -312,6 +356,7 @@ public class RedisStore(
         private const val CREATED_AT = "createdAt"
         private const val EXPIRES_AT = "expiresAt"
         private const val METADATA = "metadata"
+        private const val TAGS = "tags"
         private const val EMBEDDING = "embedding"
         private const val SCORE = "__score"
 

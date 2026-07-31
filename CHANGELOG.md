@@ -8,6 +8,17 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Tag invalidation (M21): `CacheEntry.tags`, `CacheStore.invalidateByTag(tag, scope)` and
+  `SemanticCache.invalidateByTag(…)`, plus `tags` on `put` and `getOrPut`. A TTL is a guess about when
+  knowledge might go stale; this is how a caller acts on knowing that it just did. Tags are **indexed**
+  by the store — a GIN index on Postgres, a RediSearch `TAG` field on Redis — which is why they are a
+  field on the entry rather than a convention inside `metadata`, and which makes invalidation a query
+  rather than a scan. The exact-match layer is purged alongside, so a retracted answer cannot survive
+  in it. Implemented in all four stores and covered by five new cases in the shared conformance suite,
+  written before the implementations as the milestone requires.
+  **The default throws rather than returning `0`.** A `CacheStore` that has not implemented tag
+  invalidation would otherwise silently invalidate nothing while its caller believed stale answers had
+  been dropped.
 - Shadow mode (M20): `SemanticCache(shadowThresholds = listOf(…))`. Every `getOrPut` runs the full
   lookup, reports what it *would* have decided at each threshold through `CacheEvent.Shadow`, and then
   always computes. Nothing is served, so a false hit cannot reach a user while a team is still choosing
@@ -55,11 +66,21 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- Docs (M21, first part): the README documents **scope versioning** as the invalidation pattern that
+- Docs (M21): the README documents **scope versioning** as the invalidation pattern that
   needs no new API — bump `pricing-v3.2` to `pricing-v3.3` and clear the old scope, which cuts over
   atomically. The issue asks for this to ship before any seam change, and it is the whole answer for
   many teams. Tag-based bulk invalidation is still ahead and touches `CacheStore`, the TCK and all four
   adapters.
+
+### Internal
+
+- Tag invalidation needs a **schema migration** on the two remote stores, and both are idempotent and
+  safe on a live deployment. `PostgresStore` creates its table with `CREATE TABLE IF NOT EXISTS`, which
+  never adds a column to an existing table, so it now also runs `ALTER TABLE … ADD COLUMN IF NOT EXISTS
+  tags` and creates a GIN index. `RedisStore` builds its index once with `FT.CREATE`, which does not add
+  a field to an index that already exists, so it runs `FT.ALTER` when it finds one. Entries written by
+  an earlier version carry no tags and are simply never matched by a tag query, which is correct; they
+  gain the field as they are rewritten.
 
 ### Removed
 

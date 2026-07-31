@@ -316,7 +316,8 @@ public class SemanticCache(
         response: String,
         scope: String = DEFAULT_SCOPE,
         metadata: Map<String, String> = emptyMap(),
-    ): String = put(prompt, response, scope, metadata, embed(prompt, scope))
+        tags: Set<String> = emptySet(),
+    ): String = put(prompt, response, scope, metadata, embed(prompt, scope), tags)
 
     /**
      * Returns the cached answer to [prompt], or calls [compute] and caches what it returns.
@@ -346,7 +347,7 @@ public class SemanticCache(
         scope: String = DEFAULT_SCOPE,
         metadata: Map<String, String> = emptyMap(),
         compute: suspend (String) -> String,
-    ): String = getOrPut(prompt, emptyList(), scope, metadata, compute)
+    ): String = getOrPut(prompt, emptyList(), emptySet(), scope, metadata, compute)
 
     /**
      * The conversation-aware [getOrPut]: keys the turn on [context] as well as [prompt].
@@ -358,12 +359,15 @@ public class SemanticCache(
     public suspend fun getOrPut(
         prompt: String,
         context: List<String>,
+        tags: Set<String> = emptySet(),
         scope: String = DEFAULT_SCOPE,
         metadata: Map<String, String> = emptyMap(),
         compute: suspend (String) -> String,
     ): String {
         val key = keyed(prompt, context)
-        if (shadowThresholds.isNotEmpty()) return shadowCompute(key, scope, metadata) { compute(prompt) }
+        if (shadowThresholds.isNotEmpty()) {
+            return shadowCompute(key, scope, metadata, tags) { compute(prompt) }
+        }
 
         val recalled = exactHit(key, scope, counted = true)
         if (recalled != null && recalled.fresh) return recalled.entry.response
@@ -388,7 +392,7 @@ public class SemanticCache(
         val result = lookup(key, scope, embedding, embedNanos = embedNanos)
         if (result is CacheLookup.Hit) return result.response
         if (!coalesceConcurrentMisses) {
-            return computeAndPut(key, scope, metadata, embedding) { compute(prompt) }
+            return computeAndPut(key, scope, metadata, embedding, tags) { compute(prompt) }
         }
 
         return inFlight.withKeyLock("$scope\u0000$key") {
@@ -401,7 +405,7 @@ public class SemanticCache(
             if (second is CacheLookup.Hit) {
                 second.response
             } else {
-                computeAndPut(key, scope, metadata, embedding) { compute(prompt) }
+                computeAndPut(key, scope, metadata, embedding, tags) { compute(prompt) }
             }
         }
     }
@@ -452,7 +456,7 @@ public class SemanticCache(
             responses += if (result is CacheLookup.Hit) {
                 result.response
             } else {
-                computeAndPut(prompt, scope, metadata, embedding, compute)
+                computeAndPut(prompt, scope, metadata, embedding, compute = compute)
             }
         }
         return responses
@@ -549,12 +553,13 @@ public class SemanticCache(
         prompt: String,
         scope: String,
         metadata: Map<String, String>,
+        tags: Set<String> = emptySet(),
         compute: suspend (String) -> String,
     ): String {
         val embedding = embed(prompt, scope)
         if (observed) emit(CacheEvent.Shadow(shadow(prompt, scope, embedding)))
         val response = compute(prompt)
-        enqueueOrPut(buildEntry(prompt, response, scope, metadata, embedding))
+        enqueueOrPut(buildEntry(prompt, response, scope, metadata, embedding, tags))
         return response
     }
 
@@ -563,10 +568,11 @@ public class SemanticCache(
         scope: String,
         metadata: Map<String, String>,
         embedding: FloatArray,
+        tags: Set<String> = emptySet(),
         compute: suspend (String) -> String,
     ): String {
         val response = compute(prompt)
-        enqueueOrPut(buildEntry(prompt, response, scope, metadata, embedding))
+        enqueueOrPut(buildEntry(prompt, response, scope, metadata, embedding, tags))
         return response
     }
 
@@ -582,6 +588,25 @@ public class SemanticCache(
     }
 
     /** Removes every entry in [scope], or the whole cache when [scope] is `null`. */
+    /**
+     * Drops every entry carrying [tag], optionally narrowed to [scope], and returns how many went.
+     *
+     * A TTL is a guess about when knowledge might go stale; this is how you act on knowing that it just
+     * did. Tag entries by the fact they depend on — a price list, a policy version — and drop exactly
+     * those when it changes, instead of clearing a whole scope and paying to refill it.
+     *
+     * The exact-match layer is cleared wholesale rather than by tag: it holds no tag index, and dropping
+     * everything is the safe direction. Its entries cost one lookup each to rebuild; keeping one that a
+     * caller has just invalidated would serve a wrong answer.
+     *
+     * @throws UnsupportedOperationException if the configured [CacheStore] does not index tags.
+     */
+    public suspend fun invalidateByTag(tag: String, scope: String? = null): Int {
+        val removed = store.invalidateByTag(tag, scope)
+        if (removed > 0) exactCache?.clear(scope)
+        return removed
+    }
+
     public suspend fun clear(scope: String? = null) {
         exactCache?.clear(scope)
         store.clear(scope)
@@ -984,8 +1009,9 @@ public class SemanticCache(
         scope: String,
         metadata: Map<String, String>,
         embedding: FloatArray,
+        tags: Set<String> = emptySet(),
     ): String {
-        val entry = buildEntry(prompt, response, scope, metadata, embedding)
+        val entry = buildEntry(prompt, response, scope, metadata, embedding, tags)
         putEntry(entry)
         return entry.id
     }
@@ -996,6 +1022,7 @@ public class SemanticCache(
         scope: String,
         metadata: Map<String, String>,
         embedding: FloatArray,
+        tags: Set<String> = emptySet(),
     ): CacheEntry = CacheEntry(
         id = UUID.randomUUID().toString(),
         scope = scope,
@@ -1004,6 +1031,7 @@ public class SemanticCache(
         embedding = embedding,
         createdAt = clock.instant(),
         metadata = metadata,
+        tags = tags,
     )
 
     /**

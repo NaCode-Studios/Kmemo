@@ -2,6 +2,16 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
+
+
+
+
+
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `invalidateByTag removes only the entries carrying the tag`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `invalidateByTag can be scoped, leaving other scopes alone`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `invalidateByTag on an unknown tag removes nothing and says so`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry keeps its tags through a round trip`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry with no tags is untouched by any tag invalidation`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry past its ttl is never returned by search`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry past its ttl is not counted by size`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `clear can target a single scope`()</ID>

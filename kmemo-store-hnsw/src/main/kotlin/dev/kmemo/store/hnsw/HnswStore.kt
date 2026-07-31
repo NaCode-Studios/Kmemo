@@ -97,6 +97,22 @@ public class HnswStore(
         entries.remove(id) != null
     }
 
+    /**
+     * Drops every entry carrying [tag], optionally narrowed to [scope].
+     *
+     * As with [remove], the graph nodes are left as stale waypoints and filtered on read; compaction
+     * reclaims them. Bulk invalidation is rare and rebuilding the graph on it would cost far more than
+     * the reads it saves.
+     */
+    override suspend fun invalidateByTag(tag: String, scope: String?): Int = mutex.withLock {
+        val doomed = entries.values.filter {
+            tag in it.entry.tags && (scope == null || it.entry.scope == scope)
+        }
+        for (held in doomed) entries.remove(held.entry.id)
+        if (entries.isEmpty()) dimensions = -1
+        doomed.size
+    }
+
     override suspend fun clear(scope: String?): Unit = mutex.withLock {
         if (scope == null) {
             entries.clear()

@@ -158,6 +158,23 @@ public class InMemoryStore(
         removed != null
     }
 
+    /**
+     * Drops every live entry carrying [tag], optionally narrowed to [scope].
+     *
+     * A scan, because this store is a scan: its search already walks the scope, so a tag index would
+     * cost memory on every write to speed up an operation that happens when a fact changes. The
+     * indexed stores are the ones where that trade goes the other way.
+     */
+    override suspend fun invalidateByTag(tag: String, scope: String?): Int = mutex.withLock {
+        val doomed = entries.values.filter { tag in it.tags && (scope == null || it.scope == scope) }
+        for (entry in doomed) {
+            entries.remove(entry.id)
+            currentBytes -= bytesOf(entry)
+        }
+        forgetDimensionsIfEmpty()
+        doomed.size
+    }
+
     override suspend fun clear(scope: String?) {
         mutex.withLock {
             if (scope == null) {

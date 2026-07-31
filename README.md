@@ -239,7 +239,21 @@ cache.clear("pricing-v3.2")
 
 It cuts over atomically: the new scope is empty and starts filling, and nothing can serve the old
 answers in the meantime. For a single entry proven wrong, `invalidate(id)` takes the id from the
-`CacheLookup.Hit` that reported it. Finer-grained bulk invalidation is not in `1.x` yet.
+`CacheLookup.Hit` that reported it.
+
+Where a whole scope is too coarse, tag entries by the fact they depend on and drop exactly those:
+
+```kotlin
+cache.put(prompt, answer, tags = setOf("price-list"))
+// the price list changed — every answer derived from it goes, nothing else does
+cache.invalidateByTag("price-list")
+```
+
+Tags are indexed by the store, so this is a query rather than a scan: a GIN index on Postgres, a
+RediSearch `TAG` field on Redis. Keep them about the source of truth (`price-list`, `policy-2026`), not
+about the request — a tag per prompt is a tag that never gets used. A `CacheStore` that does not index
+tags **throws** rather than reporting `0`, because a caller who believes stale answers were dropped when
+they were not is exactly the failure this library exists to avoid.
 
 ### The repeat that costs nothing
 

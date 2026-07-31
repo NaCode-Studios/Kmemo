@@ -10,6 +10,7 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration
@@ -289,6 +290,83 @@ public abstract class CacheStoreContract {
         assertEquals(100, store.size())
     }
 
+    // ---- tag invalidation ------------------------------------------------------------------------
+
+    /**
+     * Whether the store under test indexes tags.
+     *
+     * A store that returns `false` is expected to throw from [CacheStore.invalidateByTag], and the
+     * cases below assert exactly that instead of skipping. A contract that quietly skips the cases a
+     * store does not satisfy is not a contract.
+     */
+    protected open val supportsTagInvalidation: Boolean get() = true
+
+    @Test
+    public fun `invalidateByTag removes only the entries carrying the tag`() = runTest {
+        val store = createStore()
+        store.put(entry("a", tags = setOf("price-list")))
+        store.put(entry("b", tags = setOf("price-list", "policy")))
+        store.put(entry("c", tags = setOf("policy")))
+        store.put(entry("d"))
+
+        if (!supportsTagInvalidation) {
+            assertFailsWith<UnsupportedOperationException> { store.invalidateByTag("price-list") }
+            return@runTest
+        }
+
+        val removed = store.invalidateByTag("price-list")
+
+        assertEquals(2, removed)
+        assertEquals(2, store.size())
+        val ids = store.search("default", query, 10).map { it.entry.id }.toSet()
+        assertEquals(setOf("c", "d"), ids)
+    }
+
+    @Test
+    public fun `invalidateByTag can be scoped, leaving other scopes alone`() = runTest {
+        if (!supportsTagInvalidation) return@runTest
+        val store = createStore()
+        store.put(entry("a", scope = "one", tags = setOf("shared")))
+        store.put(entry("b", scope = "two", tags = setOf("shared")))
+
+        val removed = store.invalidateByTag("shared", scope = "one")
+
+        assertEquals(1, removed)
+        assertEquals(0, store.size("one"))
+        assertEquals(1, store.size("two"))
+    }
+
+    @Test
+    public fun `invalidateByTag on an unknown tag removes nothing and says so`() = runTest {
+        if (!supportsTagInvalidation) return@runTest
+        val store = createStore()
+        store.put(entry("a", tags = setOf("price-list")))
+
+        assertEquals(0, store.invalidateByTag("no-such-tag"))
+        assertEquals(1, store.size())
+    }
+
+    @Test
+    public fun `an entry keeps its tags through a round trip`() = runTest {
+        if (!supportsTagInvalidation) return@runTest
+        val store = createStore()
+        store.put(entry("a", tags = setOf("alpha", "beta")))
+
+        val found = store.search("default", query, 1).single().entry
+
+        assertEquals(setOf("alpha", "beta"), found.tags)
+    }
+
+    @Test
+    public fun `an entry with no tags is untouched by any tag invalidation`() = runTest {
+        if (!supportsTagInvalidation) return@runTest
+        val store = createStore()
+        store.put(entry("a"))
+
+        assertEquals(0, store.invalidateByTag("anything"))
+        assertEquals(1, store.size())
+    }
+
     // ---- helpers ---------------------------------------------------------------------------------
 
     private val query = floatArrayOf(1f, 0f)
@@ -300,6 +378,7 @@ public abstract class CacheStoreContract {
         vector: FloatArray = floatArrayOf(1f, 0f),
         response: String = "response for $id",
         createdAt: Instant = clock.instant(),
+        tags: Set<String> = emptySet(),
     ): CacheEntry = CacheEntry(
         id = id,
         scope = scope,
@@ -307,5 +386,6 @@ public abstract class CacheStoreContract {
         response = response,
         embedding = vector,
         createdAt = createdAt,
+        tags = tags,
     )
 }
