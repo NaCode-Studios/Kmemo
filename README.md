@@ -78,7 +78,7 @@ are published to Maven Central under `io.github.nacode-studios`.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:2.0.0")
+    implementation("io.github.nacode-studios:kmemo-core:2.1.0")
 }
 ```
 
@@ -397,6 +397,7 @@ build that spends a model call per run is a build nobody keeps.
 | `kmemo-micrometer` / `kmemo-slf4j` | A Micrometer `MeterBinder` and an SLF4J logging listener. |
 | `kmemo-spring-boot-starter` / `kmemo-spring-ai` | Auto-config for a `SemanticCache` bean, and a caching `Advisor` for Spring AI's `ChatClient`. |
 | `kmemo-langchain4j` / `kmemo-ktor` | A caching `ChatModel` wrapper, and a Ktor server plugin. |
+| `kmemo-guard-tck` | The conformance suite for a custom `MatchGuard`: the properties every guard must satisfy, the labelled corpora, and the confusion matrix the built-in guards are measured with. A test dependency. |
 | `kmemo-bom` | A `java-platform` BOM to pin one version. |
 
 A lookup is decided in stages, each cheaper than the one it protects:
@@ -562,8 +563,25 @@ than half the genuine paraphrases to do it. A named reference verifier is measur
 guards leave, stopping about four fifths of it at a real cost in hit rate. And a guard now reads the
 cached *answer*, not only the two prompts, which is the near miss no prompt-side check can see.
 
-**Next.** Nothing is scheduled. Tier 6 and Tier 7 are complete, and the 2027 plan is written in
-December against whatever the year's traffic and feedback have shown.
+**Shipped (`2.1.0`).** Tier 8: independent proof, and the path onto a production request.
+
+The guards are now measured on a corpus this project did not write. PAWS, built by Google Research in
+2019 to defeat exactly the lexical overlap a similarity threshold cannot see through, is a fourth split
+under the blind rule, fetched rather than vendored and gated in CI. It scores the guards far lower than
+the three internal splits do, and that number ships beside them with both halves of the explanation
+attached, because a lower figure from a harder source is worth more than another figure from the same
+source.
+
+The embedding model is part of the key. An entry records which embedder wrote it and a lookup refuses
+one written by a different model instead of scoring vectors from two spaces that do not share a
+meaning, which was the false hit arriving through the one door nothing guarded. A streamed answer keeps
+the chunks it arrived in, so a cache hit on a streaming path replays what the first caller saw rather
+than one lump, with the decision about replay timing made explicitly in the API. And `kmemo-guard-tck`
+puts the harness the eleven built-in guards are held to in a form a consumer can run, so a guard for a
+domain nobody here understands can arrive with a measured number attached rather than with a claim.
+
+**Next.** Nothing is scheduled. Tier 8 is complete, and the 2027 plan is written in December against
+whatever the year's traffic and feedback have shown.
 
 The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5) — one item per milestone, each with its exit
 criterion — and every tier is a [milestone](https://github.com/NaCode-Studios/Kmemo/milestones) in this repository. See

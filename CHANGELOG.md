@@ -6,6 +6,109 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-02
+
+Tier 8: independent proof, and the path onto a production request.
+
+### Added
+
+- **The external corpus split (M24).** The three corpora in `docs/CORPUS.md` are careful about
+  contamination and that discipline holds. It still cannot answer the objection that matters most to
+  somebody deciding whether to trust this cache: the same person wrote the pairs and the guards, so
+  they test the near misses that were *thought of* rather than the near misses that *exist*.
+  A fourth split answers it. **PAWS** (Paraphrase Adversaries from Word Scrambling), Wiki
+  `labeled_final`, **test** split — 8,000 pairs built by Google Research in 2019 to measure whether a
+  model can separate a paraphrase from a near-paraphrase when word overlap is deliberately high, which
+  is the one case a similarity threshold cannot handle and the case every guard here was built for, by
+  people who had never heard of this library.
+  **The number is much worse than the other three, and it ships beside them rather than in a drawer:**
+  647 of 4,464 near misses rejected (14%) against roughly 68% on the blind internal splits, and 2,807
+  of 3,536 paraphrases kept (79%) against 88%. Two things explain the gap and neither shrinks it. A
+  corpus built to defeat lexical overlap is harder than one written from realistic traffic, which is
+  what PAWS is for. And the register does not match: PAWS pairs are declarative Wikipedia sentences
+  where the guards read prompts, which shows in the breakdown — `substitution` alone rejects 498
+  paraphrases here against 2 on validation. A lower figure from a harder source is worth more than
+  another figure from the same source.
+  The data is **fetched, never vendored** (`tools/external-corpus/fetch.py`), so the licence stays with
+  the dataset, and the revision is pinned to a commit with its SHA-256 verified. `ExternalCorpusTest`
+  holds it to floors set *at* the measurement rather than under it, since nothing about it is
+  stochastic. Absent, it skips and says how to get it; CI passes `-PexternalCorpusRequired=true`, where
+  absent is a failure, because a floor nobody notices has stopped running is not a floor.
+- **The embedder's identity as part of the key (M25).** An entry stored a vector and the prompt that
+  produced it, and nothing about *what* produced the vector. Swap the embedding model for another with
+  the same dimension count — which most upgrades inside a provider's family are — and every entry
+  written by the old model was still searched, still scored and still served. The two models do not
+  share a space, so those similarities meant nothing, and a meaningless number near a threshold is
+  precisely the condition that produces a false hit. No error, nothing in the logs.
+  `Embedder.identity` is declared by the caller, `CacheEntry.embedder` records it, and a lookup refuses
+  an entry carrying a different one before the guards ever read it. New `MissReason.EMBEDDER_MISMATCH`,
+  new `CacheEvent.EmbedderMismatch` naming both identities, new `CacheStats.embedderMismatches`, and a
+  `kmemo.cache.embedder.mismatches` meter. The default is `Embedder.UNDECLARED`, and it is an identity
+  rather than a wildcard: a caller who declares nothing sits on both sides of the check and behaves
+  exactly as before. `PostgresStore` and `RedisStore` persist it; rows written earlier read as
+  `undeclared`, which is the record they actually have. `docs/MIGRATION.md` names the two ways through
+  an existing store — re-embed, or put the model in the scope.
+- **Streaming responses, cached and replayed (M26).** `getOrPutStreaming` already forwarded a stream
+  and cached its text, but a hit replayed that text as a single element, so the cache could sit on a
+  streaming path without ever streaming back. `CacheEntry.chunkLengths` records the boundaries an
+  answer arrived in and a hit replays those chunks. `StreamReplay` makes the timing decision explicit:
+  `AS_STREAMED` (the default) emits the recorded chunks with no delay, `WHOLE` is the `2.0` behaviour.
+  There is deliberately **no** option reproducing the original pacing — that would mean storing how
+  long one model call took on one network on one day and then sleeping through it to make a cache hit
+  look like the thing it replaced.
+  The two rules that make the path safe are unchanged and now have tests naming them: every decision
+  about whether to serve happens **before the first token is handed over**, since a token already read
+  cannot be taken back; and a stream that fails or is cancelled partway **writes nothing**, since a
+  truncated answer stored as a complete one is worse than no entry at all.
+- **`kmemo-guard-tck`, the guard compliance suite (M27).** `MatchGuard` has been public since `1.0`, so
+  a third party could always write a guard. What they could not do is find out whether it was any good,
+  and a guard nobody measured fails in two directions that look nothing alike from the inside: one that
+  abstains too rarely rejects real paraphrases and quietly turns a working cache into an expensive
+  proxy, and one that abstains too often does nothing while looking like it does something.
+  The module is **published**, which is the answer to the question the milestone posed about how it
+  should ship: a guard author adds one test dependency, subclasses `MatchGuardContract`, and gets back
+  the same confusion matrix this project reports for its own guards. Six properties, each documented
+  with what it exists to catch — deterministic, total, reflexive, a reason on every rejection, a stable
+  name, no false rejections on ordinary English. Symmetry is deliberately not among them: a directional
+  guard is legitimate, `subspan` is one, so disagreements are counted and reported rather than failed.
+  The three shipped corpora are general English, so a domain guard catches nothing in them and that is
+  the correct result — they are how an author shows the guard does *no harm*. Whether it does any good
+  is a number only the author's own corpus produces, and the suite takes one.
+  `RouteOfAdministrationGuard` in `examples/` is the worked case, living outside `kmemo-core`: same
+  drug, same dose, oral against intravenous, every word overlapping and the answers half an hour apart.
+  Nineteen lines of test to arrive with a number. The eleven built-in guards are put through the same
+  suite from the same artifact a stranger downloads.
+
+### Changed
+
+- **Every published module's POM description names the platforms that module actually supports.** The
+  POM Maven Central serves for `kmemo-core:2.0.0` reads "on Kotlin/JVM"; `2.0.0` is the release that
+  made the core multiplatform, so the sentence was false on the day it was published, beside a
+  `kotlin-tooling-metadata.json` from the same build listing iOS, Linux and Wasm. `checkPomPlatforms`
+  runs in `check` and keeps it corrected in both directions: a module publishing native targets may not
+  describe itself as JVM-only, and a JVM-only module must say so. A POM on Maven Central is immutable,
+  so `2.0.0` cannot be repaired and the correct text reaches the public here.
+- A `getOrPutStreaming` hit now emits the answer's original chunks rather than one element. Pass
+  `StreamReplay.WHOLE` for the previous behaviour.
+- **Binary compatibility.** `2.1.0` is **source compatible** with `2.0.0` and **not binary compatible**
+  with it, which [STABILITY.md](STABILITY.md) names as a minor-version boundary: code compiled against
+  `2.0.0` must be **recompiled**, and no source has to change. Four types gained a parameter with a
+  default, which moves their constructor and `copy` signatures: `CacheEntry` (`embedder`,
+  `chunkLengths`), `CacheStats` (`embedderMismatches`), `CacheLookup.Hit` (`chunkLengths`) and
+  `CandidateTrace` (`embedderMatches`). Measured with `git diff v2.0.0 v2.1.0 -- '*/api/*.api'`, which
+  reports thirteen removed lines, every one of them those signatures.
+- **Two exhaustive `when`s stop compiling.** `MissReason` gained a fifth value and `CacheEvent` an
+  eighth member, so a `when` over either with no `else` branch needs the new case before it builds.
+  `kmemo-micrometer` and `kmemo-slf4j` already handle it; upgrade them together.
+- **Twelve published modules**, up from eleven: `kmemo-guard-tck` joins the BOM and the aggregated API
+  site.
+
+### Fixed
+
+- The shipped `schema.sql` for `PostgresStore` had drifted from the schema the code creates: it was
+  missing the `tags` column and its GIN index, so a table provisioned by hand from that file could not
+  serve `invalidateByTag`. Both are there now, along with the two columns `2.1.0` adds.
+
 ### Internal
 
 - Three fixes the `2.0.0` release surfaced, none of which change what is published:
@@ -15,6 +118,9 @@ All notable changes to this project are documented here. The format follows
   is told to leave `kotlin-js-store` alone, because that lock file is generated from the yarn
   resolutions in `build.gradle.kts` and a patch written into it is undone by the next build. Its alerts
   are answered by adding a resolution, which is what `serialize-javascript` 7.0.5 and `diff` 8.0.3 are.
+- CI installs Python and runs `tools/external-corpus/fetch.py` before the build, then passes
+  `-PexternalCorpusRequired=true` to every Gradle invocation, which is the only place the external
+  split's floor is actually enforced.
 
 ## [2.0.0] - 2026-07-31
 
@@ -548,6 +654,7 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
   `dev.kmemo`), with the public API tracked by binary-compatibility-validator (`./gradlew apiCheck`).
 
 [Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v2.0.0...HEAD
+[2.1.0]: https://github.com/NaCode-Studios/Kmemo/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/NaCode-Studios/Kmemo/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/NaCode-Studios/Kmemo/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/NaCode-Studios/Kmemo/compare/v0.5.0...v1.0.0
