@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FunctionNaming:MatchGuardContract.kt$MatchGuardContract$@Test public fun `a fresh instance agrees with the one before it`()</ID>
+    <ID>FunctionNaming:MatchGuardContract.kt$MatchGuardContract$@Test public fun `every rejection carries a reason`()</ID>
+    <ID>FunctionNaming:MatchGuardContract.kt$MatchGuardContract$@Test public fun `report the confusion matrix`()</ID>
+    <ID>FunctionNaming:MatchGuardContract.kt$MatchGuardContract$@Test public fun `the guard accepts a prompt against itself`()</ID>
+    <ID>FunctionNaming:MatchGuardContract.kt$MatchGuardContract$@Test public fun `the guard catches what it claims to, on its own domain`()</ID>
+    <ID>FunctionNaming:MatchGuardContract.kt$MatchGuardContract$@Test public fun `the guard does not reject ordinary paraphrases`()</ID>
+    <ID>FunctionNaming:MatchGuardContract.kt$MatchGuardContract$@Test public fun `the guard is deterministic`()</ID>
+    <ID>FunctionNaming:MatchGuardContract.kt$MatchGuardContract$@Test public fun `the guard never throws, whatever it is handed`()</ID>
+    <ID>FunctionNaming:MatchGuardContract.kt$MatchGuardContract$@Test public fun `the name is present and stable`()</ID>
+  </CurrentIssues>
+</SmellBaseline>

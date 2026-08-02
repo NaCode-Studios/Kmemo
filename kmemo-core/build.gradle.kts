@@ -67,6 +67,10 @@ kotlin {
             // The shared store conformance suite; InMemoryStore is held to the same contract as
             // every adapter. It is a JUnit fixture, so it is a JVM test dependency by nature.
             implementation(project(":kmemo-store-tck"))
+            // The guard conformance suite, for the same reason: kmemo's own eleven guards are held to
+            // the artifact a third party downloads, not to a private copy of it. See
+            // StandardGuardComplianceTest.
+            implementation(project(":kmemo-guard-tck"))
         }
     }
 }
@@ -103,7 +107,8 @@ mavenPublishing {
     pom {
         name.set("Kmemo Core")
         description.set(
-            "Semantic cache for LLM calls on Kotlin/JVM, with guards against false cache hits.",
+            "Semantic cache for LLM calls on Kotlin Multiplatform — JVM, iOS, macOS, Linux, Windows, " +
+                "JS and Wasm — with guards against false cache hits.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

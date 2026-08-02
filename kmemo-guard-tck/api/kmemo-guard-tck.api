@@ -1,0 +1,74 @@
+public final class dev/kmemo/guard/tck/CorpusScore {
+	public fun <init> (Ljava/lang/String;IIIII)V
+	public final fun getCatchRate ()D
+	public final fun getCaught ()I
+	public final fun getCorpus ()Ljava/lang/String;
+	public final fun getDirectionDisagreements ()I
+	public final fun getFalseRejectionRate ()D
+	public final fun getFalseRejections ()I
+	public final fun getNearMisses ()I
+	public final fun getParaphrases ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/tck/GuardComplianceReport {
+	public static final field Companion Ldev/kmemo/guard/tck/GuardComplianceReport$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public final fun getGuard ()Ljava/lang/String;
+	public final fun getScores ()Ljava/util/List;
+	public final fun toJson ()Lkotlinx/serialization/json/JsonObject;
+	public final fun toJsonString ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/tck/GuardComplianceReport$Companion {
+	public final fun of (Ldev/kmemo/guard/MatchGuard;Ljava/util/List;)Ldev/kmemo/guard/tck/GuardComplianceReport;
+}
+
+public final class dev/kmemo/guard/tck/GuardCorpus {
+	public static final field Companion Ldev/kmemo/guard/tck/GuardCorpus$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public final fun getName ()Ljava/lang/String;
+	public final fun getNearMisses ()Ljava/util/List;
+	public final fun getPairs ()Ljava/util/List;
+	public final fun getParaphrases ()Ljava/util/List;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/tck/GuardCorpus$Companion {
+	public final fun fromJson (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/tck/GuardCorpus;
+	public final fun fromResource (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/tck/GuardCorpus;
+	public final fun heldOut ()Ldev/kmemo/guard/tck/GuardCorpus;
+	public final fun shipped ()Ljava/util/List;
+	public final fun tuned ()Ldev/kmemo/guard/tck/GuardCorpus;
+	public final fun validation ()Ldev/kmemo/guard/tck/GuardCorpus;
+}
+
+public final class dev/kmemo/guard/tck/GuardPair {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getA ()Ljava/lang/String;
+	public final fun getB ()Ljava/lang/String;
+	public final fun getCategory ()Ljava/lang/String;
+	public final fun getShouldMatch ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class dev/kmemo/guard/tck/MatchGuardContract {
+	public fun <init> ()V
+	public final fun a fresh instance agrees with the one before it ()V
+	protected abstract fun createGuard ()Ldev/kmemo/guard/MatchGuard;
+	protected fun domainCorpora ()Ljava/util/List;
+	public final fun every rejection carries a reason ()V
+	protected fun getMaxFalseRejectionRate ()D
+	protected fun getMinDomainCatchRate ()D
+	protected fun getReportPath ()Ljava/lang/String;
+	public final fun report the confusion matrix ()V
+	public final fun the guard accepts a prompt against itself ()V
+	public final fun the guard catches what it claims to, on its own domain ()V
+	public final fun the guard does not reject ordinary paraphrases ()V
+	public final fun the guard is deterministic ()V
+	public final fun the guard never throws, whatever it is handed ()V
+	public final fun the name is present and stable ()V
+}
+
