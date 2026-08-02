@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit
  * | `kmemo.cache.degraded` | counter | `operation` | calls that ran uncached after an embedder failure |
  * | `kmemo.cache.writes.vetoed` | counter | `reason` | writes refused by a [dev.kmemo.CachePolicy] |
  * | `kmemo.cache.shadow` | counter | `threshold`, `outcome` | shadow-mode decisions per threshold |
+ * | `kmemo.cache.embedder.mismatches` | counter | `expected`, `found` | candidates refused because another embedding model wrote them |
  * | `kmemo.cache.hit.ratio` | gauge | — | hits / lookups |
  * | `kmemo.cache.embed` | timer | — | [dev.kmemo.Embedder] latency per lookup |
  * | `kmemo.cache.search` | timer | — | [dev.kmemo.CacheStore] search latency per lookup |
@@ -99,6 +100,13 @@ public class KmemoMetrics @JvmOverloads constructor(
             // the hit ratio for something that never consulted the cache.
             is CacheEvent.WriteVetoed -> m.writeVeto(event.reason).increment()
             is CacheEvent.Degraded -> m.degraded(event.operation).increment()
+            // Not a lookup either: the Miss this accompanies already counted one, and counting it here
+            // too would report two lookups for one call and halve the hit ratio during a model swap.
+            // Tagged by both identities, because "which model wrote the store and which is asking now"
+            // is the whole diagnosis, and both are deployment-scoped rather than per-request — so the
+            // cardinality is bounded by how many models you have run, not by traffic.
+            is CacheEvent.EmbedderMismatch ->
+                m.embedderMismatch(event.expected, event.found).increment()
             // Shadow decisions are counted per threshold, tagged by the outcome, so a whole precision
             // and recall curve reads straight off one counter. Not a lookup: nothing was served.
             is CacheEvent.Shadow -> for (d in event.report.decisions) {
@@ -132,6 +140,7 @@ public class KmemoMetrics @JvmOverloads constructor(
         private val degradedOperations = ConcurrentHashMap<DegradedOperation, Counter>()
         private val writeVetoes = ConcurrentHashMap<String, Counter>()
         private val shadowOutcomes = ConcurrentHashMap<String, Counter>()
+        private val embedderMismatches = ConcurrentHashMap<String, Counter>()
 
         init {
             Gauge.builder("kmemo.cache.hit.ratio") { hitRatio() }
@@ -167,6 +176,21 @@ public class KmemoMetrics @JvmOverloads constructor(
                 .description("Entries removed by the store, split by cause.")
                 .register(registry)
         }
+
+        /**
+         * Not pre-registered, unlike the miss reasons and eviction causes above: the tag values are the
+         * embedder identities, which are not a fixed set and are not known until one is met. A series
+         * that appears at all is the alert.
+         */
+        fun embedderMismatch(expected: String, found: String): Counter =
+            embedderMismatches.getOrPut("$expected|$found") {
+                Counter.builder("kmemo.cache.embedder.mismatches")
+                    .tags(tags)
+                    .tag("expected", expected)
+                    .tag("found", found)
+                    .description("Candidates refused because a different embedding model wrote them.")
+                    .register(registry)
+            }
 
         fun degraded(operation: DegradedOperation): Counter = degradedOperations.getOrPut(operation) {
             Counter.builder("kmemo.cache.degraded")

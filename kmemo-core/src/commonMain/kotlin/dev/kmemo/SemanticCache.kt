@@ -16,6 +16,7 @@ import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -218,6 +219,16 @@ public class SemanticCache(
         }
     }
 
+    /**
+     * The identity this cache writes onto every entry and demands of every entry it serves.
+     *
+     * Read once, here, rather than on each lookup. [Embedder.identity] is documented as stable for the
+     * lifetime of the cache, and consulting it per lookup would let an implementation change the
+     * answer halfway through — turning the one check that exists to make a swap loud into a source of
+     * intermittent misses nobody could reproduce.
+     */
+    private val embedderIdentity: String = embedder.identity
+
     private val guardChain = GuardChain(guards)
 
     private val candidateOrder = CandidateOrder(reranker)
@@ -272,6 +283,7 @@ public class SemanticCache(
     private val degradedCount = AtomicLong(0)
     private val writeVetoCount = AtomicLong(0)
     private val exactHitCount = AtomicLong(0)
+    private val embedderMismatchCount = AtomicLong(0)
 
     // One counter per guard, fixed at construction so no entry is ever inserted concurrently — the
     // hot path only ever does an atomic increment on a key that already exists. Guards that share a
@@ -335,6 +347,10 @@ public class SemanticCache(
                 similarity = scored.similarity,
                 aboveThreshold = scored.similarity >= threshold,
                 guardVerdicts = verdicts,
+                // Every guard is still evaluated on a mismatched candidate, unlike in a real lookup.
+                // An explanation exists to show the whole picture, and "the guards would have passed
+                // this, but nothing about the score was real" is the picture.
+                embedderMatches = scored.entry.embedder == embedderIdentity,
             )
         }
         return CacheExplanation(prompt, scope, thresholdFor(scope), traces)
@@ -528,17 +544,38 @@ public class SemanticCache(
     }
 
     /**
-     * A [getOrPut] for **streaming** completions: caches the assembled text of a streamed answer and
-     * replays it on a hit, so a streaming caller never has to fall back to the blocking path.
+     * A [getOrPut] for **streaming** completions: forwards a streamed answer to the caller as it
+     * arrives, keeps it, and replays it chunk for chunk on a later hit.
      *
-     * On a hit the returned [Flow] emits the cached answer (as a single element — kmemo caches the
-     * text, not the original chunk boundaries). On a miss the flow from [compute] is passed straight
-     * through to the collector chunk by chunk *while* being accumulated, and the assembled text is
-     * written to the cache **only if the stream completes normally** — a stream that fails or is
-     * cancelled midway caches nothing, so a partial answer is never served later.
+     * Every chat interface in production streams, because a first token at 300 ms is the difference
+     * between a product that feels alive and one that does not. Without this a streaming team either
+     * cannot put a cache on that path at all, or has to buffer the whole response before showing any
+     * of it — which spends the latency they were streaming for and makes every miss slower than no
+     * cache.
      *
-     * The returned flow is cold: nothing is computed or streamed until it is collected, and the
-     * embedding + lookup are done once, up front. Concurrent-miss coalescing and write-behind do not
+     * **Two rules make it safe rather than merely useful, and neither is configurable.**
+     *
+     * The lookup, the guards and the verifier all run **before the first token is served**, never
+     * during. A token already handed to the caller cannot be taken back, so a guard that fired halfway
+     * through would have served a wrong answer to somebody who is already reading it. Everything that
+     * decides *whether* to serve happens while this function suspends; collection only starts once the
+     * decision is made.
+     *
+     * And a stream that fails partway is **not written**. The entry is stored only when the upstream
+     * flow completes normally, so a truncated answer never becomes a cache entry — which would be
+     * worse than no entry at all, because it would be served confidently to everyone who asked that
+     * question afterwards and would look exactly like a complete one. Cancellation counts as failure
+     * here for the same reason.
+     *
+     * **On a hit** the answer is replayed according to [replay], which defaults to the original chunk
+     * boundaries with no delay. See [StreamReplay], including why no option reproduces the original
+     * timing. An entry written by any other path has no boundaries and replays whole.
+     *
+     * **On a miss** the flow from [compute] is passed straight through, chunk by chunk, while being
+     * accumulated. Empty chunks are forwarded but not recorded: they carry nothing to replay.
+     *
+     * The returned flow is cold: nothing is computed or streamed until it is collected, though the
+     * embedding and the lookup are already done. Concurrent-miss coalescing and write-behind do not
      * apply to this path. If the embedder throws under [EmbedFailurePolicy.FALL_BACK_TO_COMPUTE], the
      * raw stream from [compute] is returned uncached.
      *
@@ -548,6 +585,22 @@ public class SemanticCache(
      */
     public suspend fun getOrPutStreaming(
         prompt: String,
+        scope: String = DEFAULT_SCOPE,
+        metadata: Map<String, String> = emptyMap(),
+        compute: suspend (String) -> Flow<String>,
+    ): Flow<String> = getOrPutStreaming(prompt, StreamReplay.AS_STREAMED, scope, metadata, compute)
+
+    /**
+     * The [getOrPutStreaming] that chooses how a hit is replayed.
+     *
+     * A separate overload rather than a parameter on the one above, and [replay] carries no default,
+     * for the same two reasons: inserting anything ahead of a trailing lambda rebinds it for every
+     * caller passing `scope` or `metadata` positionally, which is a source break `2.x` does not take;
+     * and a default here would make `getOrPutStreaming(prompt) { … }` ambiguous between the two.
+     */
+    public suspend fun getOrPutStreaming(
+        prompt: String,
+        replay: StreamReplay,
         scope: String = DEFAULT_SCOPE,
         metadata: Map<String, String> = emptyMap(),
         compute: suspend (String) -> Flow<String>,
@@ -566,19 +619,44 @@ public class SemanticCache(
         }
         val embedNanos = embedStart?.elapsedNow()?.inWholeNanoseconds ?: 0L
 
+        // Before the flow is even built, let alone collected. This is the "guards run before the first
+        // token" rule in one line: nothing downstream can revisit the decision made here.
         val result = lookup(prompt, scope, embedding, embedNanos = embedNanos)
-        if (result is CacheLookup.Hit) return flowOf(result.response)
+        if (result is CacheLookup.Hit) return replayed(result, replay)
 
         return flow {
             val assembled = StringBuilder()
+            val lengths = ArrayList<Int>()
             compute(prompt).collect { chunk ->
                 assembled.append(chunk)
+                // A zero-length chunk is a keep-alive, not content. Forwarded so the caller sees the
+                // provider's stream unaltered, unrecorded so replay does not emit nothing repeatedly.
+                if (chunk.isNotEmpty()) lengths += chunk.length
                 emit(chunk)
             }
             // Reached only when the upstream flow completed without throwing (and was not cancelled):
             // a partial stream must never be cached as if it were the whole answer.
-            put(prompt, assembled.toString(), scope, metadata, embedding)
+            put(prompt, assembled.toString(), scope, metadata, embedding, chunkLengths = lengths)
         }
+    }
+
+    /**
+     * The hit path of [getOrPutStreaming]: the stored answer, cut back into the chunks it arrived in.
+     *
+     * Falls back to a single element whenever there is nothing to cut by, which covers every entry
+     * written by [put], [getOrPut] or [warm], and every store that does not persist the boundaries.
+     * That is a graceful degradation on purpose: the text is always right, and the worst case is one
+     * chunk instead of many.
+     */
+    private fun replayed(hit: CacheLookup.Hit, replay: StreamReplay): Flow<String> {
+        if (replay == StreamReplay.WHOLE || hit.chunkLengths.isEmpty()) return flowOf(hit.response)
+        val chunks = ArrayList<String>(hit.chunkLengths.size)
+        var at = 0
+        for (length in hit.chunkLengths) {
+            chunks += hit.response.substring(at, at + length)
+            at += length
+        }
+        return chunks.asFlow()
     }
 
 
@@ -679,6 +757,7 @@ public class SemanticCache(
             degradedLookups = degradedCount.load(),
             writesVetoed = writeVetoCount.load(),
             exactHits = exactHitCount.load(),
+            embedderMismatches = embedderMismatchCount.load(),
         )
     }
 
@@ -821,7 +900,40 @@ public class SemanticCache(
         // how a diagnostic turns into a wild goose chase.
         var refusal: Refusal? = null
 
+        // One report per lookup, not one per candidate: after a model swap every candidate in the scope
+        // mismatches, and five identical events per lookup would bury the one fact they all carry.
+        var mismatchSeen = false
+
         for (scored in candidateOrder.considered(embedding, found, thresholdFor(scope))) {
+            // Ahead of the guards, and ahead of anything treating this similarity as information. Two
+            // embedding models do not share a vector space, so a score computed across them is not a
+            // weak signal, it is not a signal — and a guard verdict on such a pair would be a real
+            // answer to a question nobody asked. The loop continues rather than returning, so a store
+            // part-way through a re-embedding still serves the entries that have been rewritten.
+            if (scored.entry.embedder != embedderIdentity) {
+                if (!mismatchSeen) {
+                    mismatchSeen = true
+                    if (counted) embedderMismatchCount.addAndFetch(1)
+                    if (observed) {
+                        emit(
+                            CacheEvent.EmbedderMismatch(
+                                scope, prompt, embedderIdentity, scored.entry.embedder, scored.entry.id,
+                            ),
+                        )
+                    }
+                }
+                if (refusal == null) {
+                    refusal = Refusal(
+                        MissReason.EMBEDDER_MISMATCH,
+                        scored,
+                        "entry was written by embedder '${scored.entry.embedder}', " +
+                            "this cache runs '$embedderIdentity'",
+                        guardName = null,
+                    )
+                }
+                continue
+            }
+
             val rejection = guardChain.firstRejection(prompt, scored.entry)
             if (rejection != null) {
                 if (refusal == null) {
@@ -866,6 +978,10 @@ public class SemanticCache(
                     guardRejectionCount.addAndFetch(1)
                     refusal.guardName?.let { guardRejectionCountersByName[it]?.addAndFetch(1) }
                 }
+                // Already counted the moment it was met, and counted per lookup rather than per
+                // reported reason — a lookup that refused a stale entry and then served the next one
+                // still met one.
+                MissReason.EMBEDDER_MISMATCH -> Unit
                 else -> verifierRejectionCount.addAndFetch(1)
             }
         }
@@ -965,6 +1081,10 @@ public class SemanticCache(
         return store.search(entry.scope, entry.embedding, candidates)
             .firstOrNull { scored ->
                 scored.entry.id != entry.id &&
+                    // Same reason the read path checks it: across two embedders this similarity is not
+                    // a number about the prompts. Deduplicating on it would delete a live answer on the
+                    // strength of a coincidence.
+                    scored.entry.embedder == entry.embedder &&
                     scored.similarity >= minimum &&
                     guardChain.firstRejection(entry.prompt, scored.entry) == null &&
                     guardChain.firstRejection(scored.entry.prompt, entry) == null
@@ -1007,6 +1127,7 @@ public class SemanticCache(
             entryId = scored.entry.id,
             age = age,
             metadata = scored.entry.metadata,
+            chunkLengths = scored.entry.chunkLengths,
         )
     }
 
@@ -1020,8 +1141,9 @@ public class SemanticCache(
         metadata: Map<String, String>,
         embedding: FloatArray,
         tags: Set<String> = emptySet(),
+        chunkLengths: List<Int> = emptyList(),
     ): String {
-        val entry = buildEntry(prompt, response, scope, metadata, embedding, tags)
+        val entry = buildEntry(prompt, response, scope, metadata, embedding, tags, chunkLengths)
         putEntry(entry)
         return entry.id
     }
@@ -1033,6 +1155,7 @@ public class SemanticCache(
         metadata: Map<String, String>,
         embedding: FloatArray,
         tags: Set<String> = emptySet(),
+        chunkLengths: List<Int> = emptyList(),
     ): CacheEntry = CacheEntry(
         id = Ids.next(),
         scope = scope,
@@ -1042,6 +1165,8 @@ public class SemanticCache(
         createdAt = clock.now(),
         metadata = metadata,
         tags = tags,
+        embedder = embedderIdentity,
+        chunkLengths = chunkLengths,
     )
 
     /**
@@ -1115,6 +1240,7 @@ public class SemanticCache(
                 embedding = embeddings[i],
                 createdAt = now,
                 metadata = warm.metadata,
+                embedder = embedderIdentity,
             )
             // Warming writes through synchronously even under write-behind: a preloaded cache you are
             // about to serve from should be durable before warm() returns, not eventually.

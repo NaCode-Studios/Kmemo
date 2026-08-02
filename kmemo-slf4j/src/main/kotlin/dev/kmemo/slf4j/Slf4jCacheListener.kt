@@ -105,6 +105,15 @@ public class Slf4jCacheListener @JvmOverloads constructor(
                 .addKeyValue("thresholds", event.report.decisions.size)
                 .promptOf(event.report.prompt)
 
+            // Both identities are configuration, never user text, so they are logged in full even
+            // under redaction — and a swap that nobody meant to make is recognised from them alone.
+            is CacheEvent.EmbedderMismatch -> builder
+                .addKeyValue("event", "embedder_mismatch")
+                .addKeyValue("expected", event.expected)
+                .addKeyValue("found", event.found)
+                .addKeyValue("entryId", event.entryId)
+                .promptOf(event.prompt)
+
             is CacheEvent.Degraded -> builder
                 .addKeyValue("event", "degraded")
                 .addKeyValue("operation", event.operation)

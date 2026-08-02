@@ -26,6 +26,13 @@ public sealed interface CacheLookup {
         public val age: Duration,
         /** Metadata stored alongside the entry. */
         public val metadata: Map<String, String>,
+        /**
+         * The chunk lengths [response] was streamed in, or empty when it was never streamed.
+         *
+         * See [CacheEntry.chunkLengths]. [SemanticCache.getOrPutStreaming] uses this to replay the
+         * original boundaries; a caller driving its own transport can use it for the same purpose.
+         */
+        public val chunkLengths: List<Int> = emptyList(),
     ) : CacheLookup {
         override fun toString(): String =
             "Hit(similarity=$similarity, age=$age, matchedPrompt=$matchedPrompt)"
@@ -64,4 +71,17 @@ public enum class MissReason {
 
     /** A candidate cleared threshold and guards, but the configured [Verifier] rejected it. */
     REJECTED_BY_VERIFIER,
+
+    /**
+     * A candidate cleared the threshold but was written by a different [Embedder.identity], so its
+     * similarity was never a real number and the entry was refused unscored.
+     *
+     * This one is not a tuning signal, it is an incident. Every other reason describes a judgement the
+     * cache made; this one says the store holds vectors from a model that is no longer running, which
+     * happens when an embedding model is swapped for another and nothing invalidated what the old one
+     * wrote. Lowering the threshold cannot help and would make it worse. See `docs/MIGRATION.md` for
+     * the two ways out, re-embedding or a separate scope, and [CacheEvent.EmbedderMismatch] for the
+     * event that names both identities.
+     */
+    EMBEDDER_MISMATCH,
 }

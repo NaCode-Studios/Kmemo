@@ -2,6 +2,7 @@ package dev.kmemo.tck
 
 import dev.kmemo.CacheEntry
 import dev.kmemo.CacheStore
+import dev.kmemo.Embedder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -79,6 +80,59 @@ public abstract class CacheStoreContract {
 
         assertEquals(1, store.size())
         assertEquals("second", store.search("default", query, limit = 10).single().entry.response)
+    }
+
+    /**
+     * The embedder identity is not decoration on the entry, it is half of what makes the vector
+     * meaningful — so a store that drops it in transit turns the one check standing between a model
+     * swap and a wrong answer into a check that always passes. A backend that adds a column or a field
+     * for every other value and forgets this one fails here rather than in production.
+     */
+    @Test
+    public fun `search round-trips the embedder that wrote the entry`() = runTest {
+        val store = createStore()
+        store.put(entry("declared", embedder = "openai:text-embedding-3-small:1536"))
+
+        val found = store.search("default", query, limit = 10).single().entry
+
+        assertEquals("openai:text-embedding-3-small:1536", found.embedder)
+    }
+
+    /**
+     * The default is a value, not an absence, and it has to survive the round trip as that value.
+     * A backend that returned `null` or an empty string here would make every pre-2.1.0 entry
+     * unreadable rather than undeclared.
+     */
+    @Test
+    public fun `an entry written by an undeclared embedder comes back undeclared`() = runTest {
+        val store = createStore()
+        store.put(entry("plain"))
+
+        assertEquals(Embedder.UNDECLARED, store.search("default", query, limit = 10).single().entry.embedder)
+    }
+
+    /**
+     * A streamed answer is stored with the boundaries it arrived in, and a store that loses them
+     * turns every replay into one lump. Not a correctness failure — the text is still right — but it
+     * is the difference between a cache hit that looks like the model and one that visibly does not,
+     * which is the entire reason a streaming caller would reach for the cache.
+     */
+    @Test
+    public fun `search round-trips the chunk boundaries of a streamed answer`() = runTest {
+        val store = createStore()
+        store.put(entry("streamed", response = "abcdef", chunkLengths = listOf(2, 3, 1)))
+
+        val found = store.search("default", query, limit = 10).single().entry
+
+        assertEquals(listOf(2, 3, 1), found.chunkLengths)
+    }
+
+    @Test
+    public fun `an entry that was never streamed comes back with no boundaries`() = runTest {
+        val store = createStore()
+        store.put(entry("plain"))
+
+        assertTrue(store.search("default", query, limit = 10).single().entry.chunkLengths.isEmpty())
     }
 
     @Test
@@ -379,6 +433,8 @@ public abstract class CacheStoreContract {
         response: String = "response for $id",
         createdAt: Instant = clock.now(),
         tags: Set<String> = emptySet(),
+        embedder: String = Embedder.UNDECLARED,
+        chunkLengths: List<Int> = emptyList(),
     ): CacheEntry = CacheEntry(
         id = id,
         scope = scope,
@@ -387,5 +443,7 @@ public abstract class CacheStoreContract {
         embedding = vector,
         createdAt = createdAt,
         tags = tags,
+        embedder = embedder,
+        chunkLengths = chunkLengths,
     )
 }
