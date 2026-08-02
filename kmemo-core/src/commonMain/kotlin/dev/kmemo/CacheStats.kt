@@ -60,6 +60,21 @@ public data class CacheStats(
      * `exactCacheSize` is positive.
      */
     public val exactHits: Long = 0,
+    /**
+     * Lookups that met a candidate above the threshold written by a different [Embedder.identity].
+     *
+     * Counted per lookup rather than per candidate, and counted whatever the lookup went on to decide
+     * A lookup that refused a stale entry and then served the next one is still a lookup that met a
+     * stale entry. So this is not a slice of [misses] the way the three above it are; it is a census of
+     * an incident.
+     *
+     * The one counter here that is not a tuning signal. Any number above zero says the store holds
+     * vectors from a model that is no longer running, and it stays above zero until those entries are
+     * re-embedded or expire. Alert on it rather than graphing it: unlike [belowThreshold] and
+     * [guardRejections], there is no healthy level of this. Stays `0` for a cache whose embedder
+     * declares no identity.
+     */
+    public val embedderMismatches: Long = 0,
 ) {
     /** Fraction of lookups served from cache, in `[0.0, 1.0]`. `0.0` when nothing has been looked up. */
     public val hitRate: Double

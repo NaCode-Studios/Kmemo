@@ -16,8 +16,10 @@ is in effect, and `2.0` renews it for the `2.x` line. What `2.0` broke and how t
 - **Binary compatibility is a minor-version boundary, not a patch one.** A minor release may add a
   parameter with a default value, or a property to a result type. That changes a constructor, `copy` or
   `componentN` signature, so code compiled against the previous version must be **recompiled**, though no
-  source has to change. Patch releases never do this. Wherever it happens it is named under `### Notes`
+  source has to change. Patch releases never do this. Wherever it happens it is named under `### Changed`
   in the [CHANGELOG](CHANGELOG.md), listing the affected types, so a recompile is never a surprise.
+  (This said `### Notes` until `2.1.0`. Keep a Changelog does not define that heading and the library
+  audit rejects it, so the information moved under `### Changed` and nothing else about it changed.)
   Refusing this outright would mean a major bump for every new counter on `CacheStats`, which prices
   ordinary additive work at the cost of an ecosystem migration.
 - **Every public-API change is tracked, never silent.** The binary-compatibility-validator holds each

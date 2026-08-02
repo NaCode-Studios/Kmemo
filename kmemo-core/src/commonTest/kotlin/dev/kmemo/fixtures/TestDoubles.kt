@@ -38,6 +38,20 @@ class FixedEmbedder(private val vectors: Map<String, FloatArray>) : Embedder {
         vectors[text] ?: error("no vector configured for '$text'")
 }
 
+/**
+ * An [Embedder] that declares an [identity] while producing exactly the same vectors as any other.
+ *
+ * That combination is the whole point: the quiet model swap is the one where the dimensions still
+ * match and the numbers still look plausible, so a test that changed the vectors too would be proving
+ * something easier than the real case.
+ */
+class DeclaredEmbedder(
+    override val identity: String,
+    private val delegate: Embedder = HashingEmbedder(),
+) : Embedder {
+    override suspend fun embed(text: String): FloatArray = delegate.embed(text)
+}
+
 /** Counts calls, to prove [dev.kmemo.SemanticCache.getOrPut] embeds a prompt only once. */
 class CountingEmbedder(private val delegate: Embedder) : Embedder {
     var calls: Int = 0

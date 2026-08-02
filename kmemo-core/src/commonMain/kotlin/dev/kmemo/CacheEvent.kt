@@ -134,6 +134,33 @@ public sealed interface CacheEvent {
         override fun toString(): String = "CacheEvent.Shadow(scope=$scope, thresholds=${report.decisions.size})"
     }
 
+    /**
+     * A candidate was refused because it was written by a different [Embedder.identity].
+     *
+     * Emitted alongside the [Miss] it causes, and worth a separate type because a [Miss] cannot carry
+     * the two identities and those are the whole diagnosis. A dashboard that only counts misses sees a
+     * hit rate fall to zero with no cause attached; this names the model that wrote the store and the
+     * model asking it now, which is usually enough to recognise the deployment that did it.
+     *
+     * Expect one per lookup that meets a stale entry, not one per swap: the condition lasts until the
+     * old entries are re-embedded or expire. A stream that does not stop is the signal that neither is
+     * happening. See `docs/MIGRATION.md`.
+     */
+    public class EmbedderMismatch(
+        override val scope: String,
+        /** The query prompt that was looked up. */
+        public val prompt: String,
+        /** The identity of the [Embedder] this cache is running, from [Embedder.identity]. */
+        public val expected: String,
+        /** The identity recorded on the refused entry, from [CacheEntry.embedder]. */
+        public val found: String,
+        /** Id of the refused entry, for [SemanticCache.invalidate]. */
+        public val entryId: String,
+    ) : CacheEvent {
+        override fun toString(): String =
+            "CacheEvent.EmbedderMismatch(scope=$scope, expected=$expected, found=$found)"
+    }
+
     /** An entry left the store, either evicted for capacity/memory or dropped past its TTL. */
     public class Eviction(
         override val scope: String,

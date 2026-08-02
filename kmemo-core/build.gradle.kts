@@ -23,6 +23,19 @@ kotlin {
         testRuns.named("test") {
             executionTask.configure {
                 useJUnitPlatform()
+                // The external split (M24) is fetched, never committed: the licence stays with the
+                // dataset. The test finds it here, skips with a sentence when it is absent, and fails
+                // when `-PexternalCorpusRequired=true` says absence is not acceptable, which is what
+                // CI passes, because a floor nobody notices has stopped running is not a floor.
+                systemProperty(
+                    "kmemo.externalCorpus",
+                    rootProject.layout.buildDirectory
+                        .file("external-corpus/paws-wiki-test.json").get().asFile.path,
+                )
+                systemProperty(
+                    "kmemo.externalCorpus.required",
+                    providers.gradleProperty("externalCorpusRequired").getOrElse("false"),
+                )
                 testLogging {
                     events("passed", "skipped", "failed")
                     exceptionFormat = TestExceptionFormat.FULL
@@ -67,6 +80,10 @@ kotlin {
             // The shared store conformance suite; InMemoryStore is held to the same contract as
             // every adapter. It is a JUnit fixture, so it is a JVM test dependency by nature.
             implementation(project(":kmemo-store-tck"))
+            // The guard conformance suite, for the same reason: kmemo's own eleven guards are held to
+            // the artifact a third party downloads, not to a private copy of it. See
+            // StandardGuardComplianceTest.
+            implementation(project(":kmemo-guard-tck"))
         }
     }
 }
@@ -103,7 +120,8 @@ mavenPublishing {
     pom {
         name.set("Kmemo Core")
         description.set(
-            "Semantic cache for LLM calls on Kotlin/JVM, with guards against false cache hits.",
+            "Semantic cache for LLM calls on Kotlin Multiplatform, with guards against false cache " +
+                "hits. Targets JVM, iOS, macOS, Linux, Windows, JS and Wasm.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

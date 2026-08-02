@@ -1,0 +1,27 @@
+{
+  "about": "An example domain corpus for RouteOfAdministrationGuard, and nothing more. It is NOT one of kmemo's measured corpora: docs/CORPUS.md governs those three, they are blind by construction, and this file was written alongside the guard it grades. It exists to show what a guard author has to supply, which is the half of a compliance measurement kmemo cannot provide for anyone.",
+  "pairs": [
+    { "a": "what is the onset time for 4 mg ondansetron given orally", "b": "what is the onset time for 4 mg ondansetron given intravenously", "shouldMatch": false, "category": "route" },
+    { "a": "how long does 10 mg metoclopramide take to work intravenously", "b": "how long does 10 mg metoclopramide take to work intramuscularly", "shouldMatch": false, "category": "route" },
+    { "a": "what is the bioavailability of 1 g paracetamol taken by mouth", "b": "what is the bioavailability of 1 g paracetamol given intravenously", "shouldMatch": false, "category": "route" },
+    { "a": "peak plasma concentration of midazolam given intramuscularly", "b": "peak plasma concentration of midazolam given intravenously", "shouldMatch": false, "category": "route" },
+    { "a": "how quickly does adrenaline act when given subcutaneously", "b": "how quickly does adrenaline act when given intravenously", "shouldMatch": false, "category": "route" },
+    { "a": "what dose of diclofenac is used topically for knee pain", "b": "what dose of diclofenac is used orally for knee pain", "shouldMatch": false, "category": "route" },
+    { "a": "onset of paracetamol given rectally in a child", "b": "onset of paracetamol given orally in a child", "shouldMatch": false, "category": "route" },
+    { "a": "how fast does salbutamol work inhaled", "b": "how fast does salbutamol work intravenously", "shouldMatch": false, "category": "route" },
+    { "a": "duration of action of morphine given orally", "b": "duration of action of morphine given subcutaneously", "shouldMatch": false, "category": "route" },
+    { "a": "how long until dexamethasone works when taken by mouth", "b": "how long until dexamethasone works when given intramuscularly", "shouldMatch": false, "category": "route" },
+
+    { "a": "what is the onset time for 4 mg ondansetron given orally", "b": "how long does 4 mg ondansetron take to work by mouth", "shouldMatch": true, "category": "same-route" },
+    { "a": "how fast does salbutamol work inhaled", "b": "how quickly does nebulised salbutamol take effect", "shouldMatch": true, "category": "same-route" },
+    { "a": "peak plasma concentration of midazolam given intravenously", "b": "when does intravenous midazolam peak in plasma", "shouldMatch": true, "category": "same-route" },
+    { "a": "what dose of diclofenac is used topically for knee pain", "b": "what is the topical diclofenac dose for knee pain", "shouldMatch": true, "category": "same-route" },
+    { "a": "duration of action of morphine given subcutaneously", "b": "how long does subcutaneous morphine last", "shouldMatch": true, "category": "same-route" },
+
+    { "a": "what is the half life of ondansetron", "b": "how long is ondansetron's half life", "shouldMatch": true, "category": "no-route-named" },
+    { "a": "what are the common side effects of metoclopramide", "b": "which side effects does metoclopramide commonly cause", "shouldMatch": true, "category": "no-route-named" },
+    { "a": "how long does 4 mg ondansetron take to work orally", "b": "how long does ondansetron take to work", "shouldMatch": true, "category": "one-route-named" },
+    { "a": "is topical diclofenac safe in pregnancy", "b": "is diclofenac safe in pregnancy when applied to the skin", "shouldMatch": true, "category": "one-route-named" },
+    { "a": "can salbutamol be given intravenously in severe asthma", "b": "is intravenous salbutamol used for severe asthma", "shouldMatch": true, "category": "same-route" }
+  ]
+}

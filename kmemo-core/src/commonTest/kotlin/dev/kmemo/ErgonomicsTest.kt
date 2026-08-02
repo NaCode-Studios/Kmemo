@@ -50,7 +50,7 @@ class ErgonomicsTest {
     // --- streaming getOrPut -------------------------------------------------------------------
 
     @Test
-    fun `streaming getOrPut passes chunks through and replays the assembled text on a hit`() = runTest {
+    fun `streaming getOrPut passes chunks through and replays them on a hit`() = runTest {
         val cache = SemanticCache(HashingEmbedder())
 
         val streamed = cache.getOrPutStreaming("tell me a short story") {
@@ -58,11 +58,12 @@ class ErgonomicsTest {
         }.toList()
         assertEquals(listOf("once ", "upon ", "a time"), streamed)
 
-        // A second call hits and replays the assembled text as a single element.
+        // Since M26 the second call replays the chunks the first one produced, not one lump the size
+        // of the answer. `2.0` returned a single element here; StreamReplay.WHOLE still does.
         val replayed = cache.getOrPutStreaming("tell me a short story") {
             error("must not compute on a hit")
         }.toList()
-        assertEquals(listOf("once upon a time"), replayed)
+        assertEquals(listOf("once ", "upon ", "a time"), replayed)
     }
 
     @Test

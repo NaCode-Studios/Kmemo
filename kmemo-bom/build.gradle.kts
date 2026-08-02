@@ -17,6 +17,7 @@ dependencies {
         api(project(":kmemo-spring-ai"))
         api(project(":kmemo-langchain4j"))
         api(project(":kmemo-ktor"))
+        api(project(":kmemo-guard-tck"))
     }
 }
 
@@ -31,8 +32,8 @@ mavenPublishing {
     pom {
         name.set("Kmemo BOM")
         description.set(
-            "Bill of Materials for Kmemo, the semantic cache for LLM calls on Kotlin/JVM — pin one " +
-                "version and depend on every kmemo module without repeating it.",
+            "Bill of Materials for Kmemo, the Kotlin Multiplatform semantic cache for LLM calls. Pin " +
+                "one version and depend on every kmemo module without repeating it.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

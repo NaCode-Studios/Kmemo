@@ -45,8 +45,9 @@ mavenPublishing {
     pom {
         name.set("Kmemo Ktor plugin")
         description.set(
-            "A Ktor server plugin for Kmemo — the semantic cache for LLM calls on Kotlin/JVM — making a " +
-                "SemanticCache available to route handlers, with guards against false cache hits.",
+            "A JVM-only Ktor server plugin for Kmemo, the Kotlin Multiplatform semantic cache for LLM " +
+                "calls. Makes a SemanticCache available to route handlers, with guards against false " +
+                "cache hits.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

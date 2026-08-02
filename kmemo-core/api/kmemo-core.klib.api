@@ -44,6 +44,7 @@ final enum class dev.kmemo/EvictionCause : kotlin/Enum<dev.kmemo/EvictionCause> 
 
 final enum class dev.kmemo/MissReason : kotlin/Enum<dev.kmemo/MissReason> { // dev.kmemo/MissReason|null[0]
     enum entry BELOW_THRESHOLD // dev.kmemo/MissReason.BELOW_THRESHOLD|null[0]
+    enum entry EMBEDDER_MISMATCH // dev.kmemo/MissReason.EMBEDDER_MISMATCH|null[0]
     enum entry EMPTY_SCOPE // dev.kmemo/MissReason.EMPTY_SCOPE|null[0]
     enum entry REJECTED_BY_GUARD // dev.kmemo/MissReason.REJECTED_BY_GUARD|null[0]
     enum entry REJECTED_BY_VERIFIER // dev.kmemo/MissReason.REJECTED_BY_VERIFIER|null[0]
@@ -67,6 +68,17 @@ final enum class dev.kmemo/Quantization : kotlin/Enum<dev.kmemo/Quantization> { 
     final fun values(): kotlin/Array<dev.kmemo/Quantization> // dev.kmemo/Quantization.values|values#static(){}[0]
 }
 
+final enum class dev.kmemo/StreamReplay : kotlin/Enum<dev.kmemo/StreamReplay> { // dev.kmemo/StreamReplay|null[0]
+    enum entry AS_STREAMED // dev.kmemo/StreamReplay.AS_STREAMED|null[0]
+    enum entry WHOLE // dev.kmemo/StreamReplay.WHOLE|null[0]
+
+    final val entries // dev.kmemo/StreamReplay.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<dev.kmemo/StreamReplay> // dev.kmemo/StreamReplay.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): dev.kmemo/StreamReplay // dev.kmemo/StreamReplay.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<dev.kmemo/StreamReplay> // dev.kmemo/StreamReplay.values|values#static(){}[0]
+}
+
 abstract fun interface dev.kmemo/CacheListener { // dev.kmemo/CacheListener|null[0]
     abstract fun onEvent(dev.kmemo/CacheEvent) // dev.kmemo/CacheListener.onEvent|onEvent(dev.kmemo.CacheEvent){}[0]
 }
@@ -80,8 +92,16 @@ abstract fun interface dev.kmemo/CandidateReranker { // dev.kmemo/CandidateReran
 }
 
 abstract fun interface dev.kmemo/Embedder { // dev.kmemo/Embedder|null[0]
+    open val identity // dev.kmemo/Embedder.identity|{}identity[0]
+        open fun <get-identity>(): kotlin/String // dev.kmemo/Embedder.identity.<get-identity>|<get-identity>(){}[0]
+
     abstract suspend fun embed(kotlin/String): kotlin/FloatArray // dev.kmemo/Embedder.embed|embed(kotlin.String){}[0]
     open suspend fun embedAll(kotlin.collections/List<kotlin/String>): kotlin.collections/List<kotlin/FloatArray> // dev.kmemo/Embedder.embedAll|embedAll(kotlin.collections.List<kotlin.String>){}[0]
+
+    final object Companion { // dev.kmemo/Embedder.Companion|null[0]
+        final const val UNDECLARED // dev.kmemo/Embedder.Companion.UNDECLARED|{}UNDECLARED[0]
+            final fun <get-UNDECLARED>(): kotlin/String // dev.kmemo/Embedder.Companion.UNDECLARED.<get-UNDECLARED>|<get-UNDECLARED>(){}[0]
+    }
 }
 
 abstract fun interface dev.kmemo/Verifier { // dev.kmemo/Verifier|null[0]
@@ -155,6 +175,23 @@ sealed interface dev.kmemo/CacheEvent { // dev.kmemo/CacheEvent|null[0]
             final fun <get-scope>(): kotlin/String // dev.kmemo/CacheEvent.Degraded.scope.<get-scope>|<get-scope>(){}[0]
 
         final fun toString(): kotlin/String // dev.kmemo/CacheEvent.Degraded.toString|toString(){}[0]
+    }
+
+    final class EmbedderMismatch : dev.kmemo/CacheEvent { // dev.kmemo/CacheEvent.EmbedderMismatch|null[0]
+        constructor <init>(kotlin/String, kotlin/String, kotlin/String, kotlin/String, kotlin/String) // dev.kmemo/CacheEvent.EmbedderMismatch.<init>|<init>(kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.String){}[0]
+
+        final val entryId // dev.kmemo/CacheEvent.EmbedderMismatch.entryId|{}entryId[0]
+            final fun <get-entryId>(): kotlin/String // dev.kmemo/CacheEvent.EmbedderMismatch.entryId.<get-entryId>|<get-entryId>(){}[0]
+        final val expected // dev.kmemo/CacheEvent.EmbedderMismatch.expected|{}expected[0]
+            final fun <get-expected>(): kotlin/String // dev.kmemo/CacheEvent.EmbedderMismatch.expected.<get-expected>|<get-expected>(){}[0]
+        final val found // dev.kmemo/CacheEvent.EmbedderMismatch.found|{}found[0]
+            final fun <get-found>(): kotlin/String // dev.kmemo/CacheEvent.EmbedderMismatch.found.<get-found>|<get-found>(){}[0]
+        final val prompt // dev.kmemo/CacheEvent.EmbedderMismatch.prompt|{}prompt[0]
+            final fun <get-prompt>(): kotlin/String // dev.kmemo/CacheEvent.EmbedderMismatch.prompt.<get-prompt>|<get-prompt>(){}[0]
+        final val scope // dev.kmemo/CacheEvent.EmbedderMismatch.scope|{}scope[0]
+            final fun <get-scope>(): kotlin/String // dev.kmemo/CacheEvent.EmbedderMismatch.scope.<get-scope>|<get-scope>(){}[0]
+
+        final fun toString(): kotlin/String // dev.kmemo/CacheEvent.EmbedderMismatch.toString|toString(){}[0]
     }
 
     final class Eviction : dev.kmemo/CacheEvent { // dev.kmemo/CacheEvent.Eviction|null[0]
@@ -252,10 +289,12 @@ sealed interface dev.kmemo/CacheEvent { // dev.kmemo/CacheEvent|null[0]
 
 sealed interface dev.kmemo/CacheLookup { // dev.kmemo/CacheLookup|null[0]
     final class Hit : dev.kmemo/CacheLookup { // dev.kmemo/CacheLookup.Hit|null[0]
-        constructor <init>(kotlin/String, kotlin/String, kotlin/Double, kotlin/String, kotlin.time/Duration, kotlin.collections/Map<kotlin/String, kotlin/String>) // dev.kmemo/CacheLookup.Hit.<init>|<init>(kotlin.String;kotlin.String;kotlin.Double;kotlin.String;kotlin.time.Duration;kotlin.collections.Map<kotlin.String,kotlin.String>){}[0]
+        constructor <init>(kotlin/String, kotlin/String, kotlin/Double, kotlin/String, kotlin.time/Duration, kotlin.collections/Map<kotlin/String, kotlin/String>, kotlin.collections/List<kotlin/Int> = ...) // dev.kmemo/CacheLookup.Hit.<init>|<init>(kotlin.String;kotlin.String;kotlin.Double;kotlin.String;kotlin.time.Duration;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.collections.List<kotlin.Int>){}[0]
 
         final val age // dev.kmemo/CacheLookup.Hit.age|{}age[0]
             final fun <get-age>(): kotlin.time/Duration // dev.kmemo/CacheLookup.Hit.age.<get-age>|<get-age>(){}[0]
+        final val chunkLengths // dev.kmemo/CacheLookup.Hit.chunkLengths|{}chunkLengths[0]
+            final fun <get-chunkLengths>(): kotlin.collections/List<kotlin/Int> // dev.kmemo/CacheLookup.Hit.chunkLengths.<get-chunkLengths>|<get-chunkLengths>(){}[0]
         final val entryId // dev.kmemo/CacheLookup.Hit.entryId|{}entryId[0]
             final fun <get-entryId>(): kotlin/String // dev.kmemo/CacheLookup.Hit.entryId.<get-entryId>|<get-entryId>(){}[0]
         final val matchedPrompt // dev.kmemo/CacheLookup.Hit.matchedPrompt|{}matchedPrompt[0]
@@ -653,12 +692,16 @@ final class dev.kmemo/AdaptiveThresholds : dev.kmemo/CacheListener { // dev.kmem
 }
 
 final class dev.kmemo/CacheEntry { // dev.kmemo/CacheEntry|null[0]
-    constructor <init>(kotlin/String, kotlin/String, kotlin/String, kotlin/String, kotlin/FloatArray, kotlin.time/Instant, kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin.collections/Set<kotlin/String> = ...) // dev.kmemo/CacheEntry.<init>|<init>(kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.FloatArray;kotlin.time.Instant;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.collections.Set<kotlin.String>){}[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/String, kotlin/String, kotlin/FloatArray, kotlin.time/Instant, kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin.collections/Set<kotlin/String> = ..., kotlin/String = ..., kotlin.collections/List<kotlin/Int> = ...) // dev.kmemo/CacheEntry.<init>|<init>(kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.FloatArray;kotlin.time.Instant;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.collections.Set<kotlin.String>;kotlin.String;kotlin.collections.List<kotlin.Int>){}[0]
 
+    final val chunkLengths // dev.kmemo/CacheEntry.chunkLengths|{}chunkLengths[0]
+        final fun <get-chunkLengths>(): kotlin.collections/List<kotlin/Int> // dev.kmemo/CacheEntry.chunkLengths.<get-chunkLengths>|<get-chunkLengths>(){}[0]
     final val createdAt // dev.kmemo/CacheEntry.createdAt|{}createdAt[0]
         final fun <get-createdAt>(): kotlin.time/Instant // dev.kmemo/CacheEntry.createdAt.<get-createdAt>|<get-createdAt>(){}[0]
     final val dimensions // dev.kmemo/CacheEntry.dimensions|{}dimensions[0]
         final fun <get-dimensions>(): kotlin/Int // dev.kmemo/CacheEntry.dimensions.<get-dimensions>|<get-dimensions>(){}[0]
+    final val embedder // dev.kmemo/CacheEntry.embedder|{}embedder[0]
+        final fun <get-embedder>(): kotlin/String // dev.kmemo/CacheEntry.embedder.<get-embedder>|<get-embedder>(){}[0]
     final val embedding // dev.kmemo/CacheEntry.embedding|{}embedding[0]
         final fun <get-embedding>(): kotlin/FloatArray // dev.kmemo/CacheEntry.embedding.<get-embedding>|<get-embedding>(){}[0]
     final val id // dev.kmemo/CacheEntry.id|{}id[0]
@@ -712,12 +755,14 @@ final class dev.kmemo/CacheExplanation { // dev.kmemo/CacheExplanation|null[0]
 }
 
 final class dev.kmemo/CacheStats { // dev.kmemo/CacheStats|null[0]
-    constructor <init>(kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin.collections/Map<kotlin/String, kotlin/Long> = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ...) // dev.kmemo/CacheStats.<init>|<init>(kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,kotlin.Long>;kotlin.Long;kotlin.Long;kotlin.Long){}[0]
+    constructor <init>(kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin.collections/Map<kotlin/String, kotlin/Long> = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ...) // dev.kmemo/CacheStats.<init>|<init>(kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,kotlin.Long>;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long){}[0]
 
     final val belowThreshold // dev.kmemo/CacheStats.belowThreshold|{}belowThreshold[0]
         final fun <get-belowThreshold>(): kotlin/Long // dev.kmemo/CacheStats.belowThreshold.<get-belowThreshold>|<get-belowThreshold>(){}[0]
     final val degradedLookups // dev.kmemo/CacheStats.degradedLookups|{}degradedLookups[0]
         final fun <get-degradedLookups>(): kotlin/Long // dev.kmemo/CacheStats.degradedLookups.<get-degradedLookups>|<get-degradedLookups>(){}[0]
+    final val embedderMismatches // dev.kmemo/CacheStats.embedderMismatches|{}embedderMismatches[0]
+        final fun <get-embedderMismatches>(): kotlin/Long // dev.kmemo/CacheStats.embedderMismatches.<get-embedderMismatches>|<get-embedderMismatches>(){}[0]
     final val exactHits // dev.kmemo/CacheStats.exactHits|{}exactHits[0]
         final fun <get-exactHits>(): kotlin/Long // dev.kmemo/CacheStats.exactHits.<get-exactHits>|<get-exactHits>(){}[0]
     final val guardRejectionRate // dev.kmemo/CacheStats.guardRejectionRate|{}guardRejectionRate[0]
@@ -744,6 +789,7 @@ final class dev.kmemo/CacheStats { // dev.kmemo/CacheStats|null[0]
     final fun component1(): kotlin/Long // dev.kmemo/CacheStats.component1|component1(){}[0]
     final fun component10(): kotlin/Long // dev.kmemo/CacheStats.component10|component10(){}[0]
     final fun component11(): kotlin/Long // dev.kmemo/CacheStats.component11|component11(){}[0]
+    final fun component12(): kotlin/Long // dev.kmemo/CacheStats.component12|component12(){}[0]
     final fun component2(): kotlin/Long // dev.kmemo/CacheStats.component2|component2(){}[0]
     final fun component3(): kotlin/Long // dev.kmemo/CacheStats.component3|component3(){}[0]
     final fun component4(): kotlin/Long // dev.kmemo/CacheStats.component4|component4(){}[0]
@@ -752,7 +798,7 @@ final class dev.kmemo/CacheStats { // dev.kmemo/CacheStats|null[0]
     final fun component7(): kotlin/Long // dev.kmemo/CacheStats.component7|component7(){}[0]
     final fun component8(): kotlin.collections/Map<kotlin/String, kotlin/Long> // dev.kmemo/CacheStats.component8|component8(){}[0]
     final fun component9(): kotlin/Long // dev.kmemo/CacheStats.component9|component9(){}[0]
-    final fun copy(kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin.collections/Map<kotlin/String, kotlin/Long> = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ...): dev.kmemo/CacheStats // dev.kmemo/CacheStats.copy|copy(kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,kotlin.Long>;kotlin.Long;kotlin.Long;kotlin.Long){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin.collections/Map<kotlin/String, kotlin/Long> = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ...): dev.kmemo/CacheStats // dev.kmemo/CacheStats.copy|copy(kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,kotlin.Long>;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.kmemo/CacheStats.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.kmemo/CacheStats.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // dev.kmemo/CacheStats.toString|toString(){}[0]
@@ -770,10 +816,12 @@ final class dev.kmemo/CachingVerifier : dev.kmemo/Verifier { // dev.kmemo/Cachin
 }
 
 final class dev.kmemo/CandidateTrace { // dev.kmemo/CandidateTrace|null[0]
-    constructor <init>(kotlin/String, kotlin/Double, kotlin/Boolean, kotlin.collections/Map<kotlin/String, dev.kmemo.guard/GuardVerdict>) // dev.kmemo/CandidateTrace.<init>|<init>(kotlin.String;kotlin.Double;kotlin.Boolean;kotlin.collections.Map<kotlin.String,dev.kmemo.guard.GuardVerdict>){}[0]
+    constructor <init>(kotlin/String, kotlin/Double, kotlin/Boolean, kotlin.collections/Map<kotlin/String, dev.kmemo.guard/GuardVerdict>, kotlin/Boolean = ...) // dev.kmemo/CandidateTrace.<init>|<init>(kotlin.String;kotlin.Double;kotlin.Boolean;kotlin.collections.Map<kotlin.String,dev.kmemo.guard.GuardVerdict>;kotlin.Boolean){}[0]
 
     final val aboveThreshold // dev.kmemo/CandidateTrace.aboveThreshold|{}aboveThreshold[0]
         final fun <get-aboveThreshold>(): kotlin/Boolean // dev.kmemo/CandidateTrace.aboveThreshold.<get-aboveThreshold>|<get-aboveThreshold>(){}[0]
+    final val embedderMatches // dev.kmemo/CandidateTrace.embedderMatches|{}embedderMatches[0]
+        final fun <get-embedderMatches>(): kotlin/Boolean // dev.kmemo/CandidateTrace.embedderMatches.<get-embedderMatches>|<get-embedderMatches>(){}[0]
     final val guardVerdicts // dev.kmemo/CandidateTrace.guardVerdicts|{}guardVerdicts[0]
         final fun <get-guardVerdicts>(): kotlin.collections/Map<kotlin/String, dev.kmemo.guard/GuardVerdict> // dev.kmemo/CandidateTrace.guardVerdicts.<get-guardVerdicts>|<get-guardVerdicts>(){}[0]
     final val prompt // dev.kmemo/CandidateTrace.prompt|{}prompt[0]
@@ -855,6 +903,7 @@ final class dev.kmemo/SemanticCache { // dev.kmemo/SemanticCache|null[0]
     final suspend fun getOrPut(kotlin/String, kotlin.collections/List<kotlin/String>, kotlin.collections/Set<kotlin/String> = ..., kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin.coroutines/SuspendFunction1<kotlin/String, kotlin/String>): kotlin/String // dev.kmemo/SemanticCache.getOrPut|getOrPut(kotlin.String;kotlin.collections.List<kotlin.String>;kotlin.collections.Set<kotlin.String>;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.coroutines.SuspendFunction1<kotlin.String,kotlin.String>){}[0]
     final suspend fun getOrPut(kotlin/String, kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin.coroutines/SuspendFunction1<kotlin/String, kotlin/String>): kotlin/String // dev.kmemo/SemanticCache.getOrPut|getOrPut(kotlin.String;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.coroutines.SuspendFunction1<kotlin.String,kotlin.String>){}[0]
     final suspend fun getOrPutAll(kotlin.collections/List<kotlin/String>, kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin.coroutines/SuspendFunction1<kotlin/String, kotlin/String>): kotlin.collections/List<kotlin/String> // dev.kmemo/SemanticCache.getOrPutAll|getOrPutAll(kotlin.collections.List<kotlin.String>;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.coroutines.SuspendFunction1<kotlin.String,kotlin.String>){}[0]
+    final suspend fun getOrPutStreaming(kotlin/String, dev.kmemo/StreamReplay, kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin.coroutines/SuspendFunction1<kotlin/String, kotlinx.coroutines.flow/Flow<kotlin/String>>): kotlinx.coroutines.flow/Flow<kotlin/String> // dev.kmemo/SemanticCache.getOrPutStreaming|getOrPutStreaming(kotlin.String;dev.kmemo.StreamReplay;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.coroutines.SuspendFunction1<kotlin.String,kotlinx.coroutines.flow.Flow<kotlin.String>>){}[0]
     final suspend fun getOrPutStreaming(kotlin/String, kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin.coroutines/SuspendFunction1<kotlin/String, kotlinx.coroutines.flow/Flow<kotlin/String>>): kotlinx.coroutines.flow/Flow<kotlin/String> // dev.kmemo/SemanticCache.getOrPutStreaming|getOrPutStreaming(kotlin.String;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.coroutines.SuspendFunction1<kotlin.String,kotlinx.coroutines.flow.Flow<kotlin.String>>){}[0]
     final suspend fun invalidate(kotlin/String): kotlin/Boolean // dev.kmemo/SemanticCache.invalidate|invalidate(kotlin.String){}[0]
     final suspend fun invalidateByTag(kotlin/String, kotlin/String? = ...): kotlin/Int // dev.kmemo/SemanticCache.invalidateByTag|invalidateByTag(kotlin.String;kotlin.String?){}[0]

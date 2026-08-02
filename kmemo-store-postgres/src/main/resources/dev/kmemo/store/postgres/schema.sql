@@ -16,11 +16,16 @@ CREATE TABLE IF NOT EXISTS kmemo_cache (
     embedding   vector NOT NULL,          -- dimension-unconstrained; one model per store in practice
     created_at  timestamptz NOT NULL,
     expires_at  timestamptz,              -- NULL means the entry never expires
-    metadata    jsonb NOT NULL DEFAULT '{}'::jsonb
+    metadata    jsonb NOT NULL DEFAULT '{}'::jsonb,
+    tags        text[] NOT NULL DEFAULT '{}',
+    embedder    text NOT NULL DEFAULT 'undeclared',  -- Embedder.identity that produced `embedding`
+    chunk_lengths integer[] NOT NULL DEFAULT '{}'    -- chunks `response` streamed in; empty if never streamed
 );
 
 CREATE INDEX IF NOT EXISTS kmemo_cache_scope_idx      ON kmemo_cache (scope);
 CREATE INDEX IF NOT EXISTS kmemo_cache_expires_at_idx ON kmemo_cache (expires_at);
+-- What makes invalidateByTag a query rather than a full scan.
+CREATE INDEX IF NOT EXISTS kmemo_cache_tags_idx       ON kmemo_cache USING GIN (tags);
 
 -- Optional: once your embedding dimension is fixed, an approximate index makes search scale past an
 -- exact scan. Pick the dimension and (for HNSW) the operator class for your distance metric:

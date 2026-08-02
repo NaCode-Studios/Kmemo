@@ -2,22 +2,19 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-
-
-
-
-
-    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `invalidateByTag removes only the entries carrying the tag`()</ID>
-    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `invalidateByTag can be scoped, leaving other scopes alone`()</ID>
-    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `invalidateByTag on an unknown tag removes nothing and says so`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry keeps its tags through a round trip`()</ID>
-    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry with no tags is untouched by any tag invalidation`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry past its ttl is never returned by search`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry past its ttl is not counted by size`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry that was never streamed comes back with no boundaries`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry with no tags is untouched by any tag invalidation`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `an entry written by an undeclared embedder comes back undeclared`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `clear can target a single scope`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `clear with no scope empties the whole store`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `concurrent reads and writes leave a consistent store`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `concurrent writers all land`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `invalidateByTag can be scoped, leaving other scopes alone`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `invalidateByTag on an unknown tag removes nothing and says so`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `invalidateByTag removes only the entries carrying the tag`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `put replaces the entry with the same id rather than duplicating it`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `put stores an entry that search then finds`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `remove deletes only its target`()</ID>
@@ -27,6 +24,8 @@
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `search on a scope with no entries is empty`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `search only returns entries in the requested scope`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `search returns the closest entries first`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `search round-trips the chunk boundaries of a streamed answer`()</ID>
+    <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `search round-trips the embedder that wrote the entry`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `search similarities are non-increasing`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `size counts one scope and the whole store`()</ID>
     <ID>FunctionNaming:CacheStoreContract.kt$CacheStoreContract$@Test public fun `touch on a present entry is safe and keeps it findable`()</ID>

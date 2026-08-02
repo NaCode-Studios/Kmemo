@@ -2,6 +2,7 @@ package dev.kmemo.store.postgres
 
 import dev.kmemo.CacheEntry
 import dev.kmemo.CacheStore
+import dev.kmemo.Embedder
 import dev.kmemo.ScoredEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -29,7 +30,11 @@ import kotlin.time.toKotlinInstant
  *
  * **Schema.** One table (created on first use, or provision it yourself from the shipped `schema.sql`):
  * `id` primary key, `scope`, `prompt`, `response`, `embedding vector`, `created_at`, `expires_at`
- * (nullable — `null` never expires), `metadata jsonb`. The `embedding` column is left
+ * (nullable, where `null` never expires), `metadata jsonb`, `tags text[]`, `embedder text` and
+ * `chunk_lengths integer[]`. A table created by an earlier version gains the last three by
+ * `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` on the next start, and rows already in it read as
+ * [dev.kmemo.Embedder.UNDECLARED] with no chunk boundaries, which is the honest record of a row
+ * nothing captured an embedder for and nothing ever streamed. The `embedding` column is left
  * dimension-unconstrained so mixed embedding sizes are a storage error at query time, not a schema
  * wall. The search is an exact scan by default (correct, and matching the conformance suite); add an
  * HNSW/IVFFlat index on `embedding` once your dimension is fixed to scale it.
@@ -66,12 +71,14 @@ public class PostgresStore(
         connection.prepareStatement(
             """
             INSERT INTO $table
-                (id, scope, prompt, response, embedding, created_at, expires_at, metadata, tags)
-            VALUES (?, ?, ?, ?, CAST(? AS vector), ?, ?, CAST(? AS jsonb), ?)
+                (id, scope, prompt, response, embedding, created_at, expires_at, metadata, tags,
+                 embedder, chunk_lengths)
+            VALUES (?, ?, ?, ?, CAST(? AS vector), ?, ?, CAST(? AS jsonb), ?, ?, ?)
             ON CONFLICT (id) DO UPDATE SET
                 scope = EXCLUDED.scope, prompt = EXCLUDED.prompt, response = EXCLUDED.response,
                 embedding = EXCLUDED.embedding, created_at = EXCLUDED.created_at,
-                expires_at = EXCLUDED.expires_at, metadata = EXCLUDED.metadata, tags = EXCLUDED.tags
+                expires_at = EXCLUDED.expires_at, metadata = EXCLUDED.metadata, tags = EXCLUDED.tags,
+                embedder = EXCLUDED.embedder, chunk_lengths = EXCLUDED.chunk_lengths
             """.trimIndent(),
         ).use { statement ->
             statement.setString(1, entry.id)
@@ -83,6 +90,11 @@ public class PostgresStore(
             statement.setObject(7, expiresAt)
             statement.setString(8, encodeMetadata(entry.metadata))
             statement.setArray(9, connection.createArrayOf("text", entry.tags.toTypedArray()))
+            statement.setString(10, entry.embedder)
+            statement.setArray(
+                11,
+                connection.createArrayOf("integer", entry.chunkLengths.toTypedArray()),
+            )
             statement.executeUpdate()
         }
     }
@@ -92,7 +104,8 @@ public class PostgresStore(
         return withConnection { connection ->
             connection.prepareStatement(
                 """
-                SELECT id, scope, prompt, response, embedding, created_at, metadata, tags,
+                SELECT id, scope, prompt, response, embedding, created_at, metadata, tags, embedder,
+                       chunk_lengths,
                        embedding <=> CAST(? AS vector) AS distance
                 FROM $table
                 WHERE scope = ? AND (expires_at IS NULL OR expires_at > ?)
@@ -117,6 +130,8 @@ public class PostgresStore(
                                     .toInstant().toKotlinInstant(),
                                 metadata = decodeMetadata(rows.getString("metadata")),
                                 tags = decodeTags(rows.getArray("tags")),
+                                embedder = rows.getString("embedder") ?: Embedder.UNDECLARED,
+                                chunkLengths = decodeChunkLengths(rows.getArray("chunk_lengths")),
                             )
                             // pgvector `<=>` is cosine distance; similarity is 1 - distance.
                             add(ScoredEntry(entry, 1.0 - rows.getDouble("distance")))
@@ -147,6 +162,12 @@ public class PostgresStore(
             if (scope != null) statement.setString(2, scope)
             statement.executeUpdate()
         }
+    }
+
+    /** The streamed chunk boundaries, or none for a row written before 2.1.0 or never streamed. */
+    private fun decodeChunkLengths(array: java.sql.Array?): List<Int> {
+        val raw = array?.array as? Array<*> ?: return emptyList()
+        return raw.filterIsInstance<Int>()
     }
 
     private fun decodeTags(array: java.sql.Array?): Set<String> {
@@ -214,7 +235,9 @@ public class PostgresStore(
                                 created_at timestamptz NOT NULL,
                                 expires_at timestamptz,
                                 metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
-                                tags text[] NOT NULL DEFAULT '{}'
+                                tags text[] NOT NULL DEFAULT '{}',
+                                embedder text NOT NULL DEFAULT '${Embedder.UNDECLARED}',
+                                chunk_lengths integer[] NOT NULL DEFAULT '{}'
                             )
                             """.trimIndent(),
                         )
@@ -223,6 +246,21 @@ public class PostgresStore(
                         // statements are idempotent and safe against a live table.
                         statement.execute(
                             "ALTER TABLE $table ADD COLUMN IF NOT EXISTS tags text[] " +
+                                "NOT NULL DEFAULT '{}'",
+                        )
+                        // Same for the embedder column, and the default is what makes the migration
+                        // correct as well as safe: rows written before 2.1.0 record nothing about what
+                        // produced their vectors, and `undeclared` says exactly that rather than
+                        // claiming them for whichever model happens to be running now.
+                        statement.execute(
+                            "ALTER TABLE $table ADD COLUMN IF NOT EXISTS embedder text " +
+                                "NOT NULL DEFAULT '${Embedder.UNDECLARED}'",
+                        )
+                        // An empty array is the right default here for the same reason: a row
+                        // written before 2.1.0 recorded no chunk boundaries because nothing was
+                        // streaming, and an answer with no boundaries replays whole.
+                        statement.execute(
+                            "ALTER TABLE $table ADD COLUMN IF NOT EXISTS chunk_lengths integer[] " +
                                 "NOT NULL DEFAULT '{}'",
                         )
                         statement.execute("CREATE INDEX IF NOT EXISTS ${table}_tags_idx ON $table USING GIN (tags)")

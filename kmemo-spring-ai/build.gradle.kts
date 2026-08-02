@@ -44,8 +44,8 @@ mavenPublishing {
     pom {
         name.set("Kmemo Spring AI advisor")
         description.set(
-            "A caching Advisor for Spring AI's ChatClient, backed by Kmemo — the semantic cache for LLM " +
-                "calls on Kotlin/JVM, with guards against false cache hits.",
+            "A JVM-only caching Advisor for Spring AI's ChatClient, backed by Kmemo, the Kotlin " +
+                "Multiplatform semantic cache for LLM calls, with guards against false cache hits.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

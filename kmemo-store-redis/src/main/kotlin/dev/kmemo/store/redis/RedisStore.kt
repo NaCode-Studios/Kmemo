@@ -2,6 +2,7 @@ package dev.kmemo.store.redis
 
 import dev.kmemo.CacheEntry
 import dev.kmemo.CacheStore
+import dev.kmemo.Embedder
 import dev.kmemo.ScoredEntry
 import io.lettuce.core.RedisClient
 import io.lettuce.core.RedisCommandExecutionException
@@ -102,6 +103,12 @@ public class RedisStore(
             field(EXPIRES_AT) to expiresAtMillis.toString().toByteArray(US_ASCII),
             field(METADATA) to encodeMetadata(entry.metadata),
             field(TAGS) to entry.tags.joinToString(",").toByteArray(UTF_8),
+            // Stored, never indexed. Nothing queries by embedder: the cache compares it after the
+            // search, on entries it already has in hand, and an index on a field with one value per
+            // deployment would cost writes and buy nothing.
+            field(EMBEDDER) to entry.embedder.toByteArray(UTF_8),
+            // Empty for every entry that was never streamed, which is most of them.
+            field(CHUNKS) to entry.chunkLengths.joinToString(",").toByteArray(US_ASCII),
             field(EMBEDDING) to encodeVector(entry.embedding),
         )
 
@@ -127,9 +134,9 @@ public class RedisStore(
             .add(query)
             .add("PARAMS").add(2L).add("BLOB").add(encodeVector(embedding))
             .add("SORTBY").add(SCORE)
-            .add("RETURN").add(8L)
+            .add("RETURN").add(10L)
             .add(SCOPE).add(PROMPT).add(RESPONSE).add(CREATED_AT).add(EMBEDDING).add(METADATA)
-            .add(TAGS).add(SCORE)
+            .add(TAGS).add(EMBEDDER).add(CHUNKS).add(SCORE)
             .add("LIMIT").add(0L).add(limit.toLong())
             .add("DIALECT").add(2L)
 
@@ -275,6 +282,11 @@ public class RedisStore(
                 metadata = decodeMetadata(fields[METADATA]),
                 tags = fields[TAGS]?.toString(UTF_8)?.split(",")?.filter { it.isNotBlank() }?.toSet()
                     ?: emptySet(),
+                // An entry written before 2.1.0 carries no embedder field, and `undeclared` is the
+                // honest reading of it: nothing recorded what produced that vector.
+                embedder = fields[EMBEDDER]?.toString(UTF_8)?.takeIf { it.isNotEmpty() }
+                    ?: Embedder.UNDECLARED,
+                chunkLengths = decodeChunkLengths(fields[CHUNKS]),
             )
             // RediSearch COSINE returns a distance in [0, 2]; similarity is 1 - distance.
             val similarity = 1.0 - fields.string(SCORE).toDouble()
@@ -320,6 +332,19 @@ public class RedisStore(
         return json.decodeFromString(METADATA_SERIALIZER, String(bytes, UTF_8))
     }
 
+    /**
+     * Reads the streamed chunk boundaries, or none.
+     *
+     * "None" covers three cases that all mean the same thing to a replay: an entry written before
+     * `2.1.0`, an entry that was never streamed, and a field that survived as an empty string. Each
+     * gives back an answer replayed whole, which is correct rather than degraded.
+     */
+    private fun decodeChunkLengths(bytes: ByteArray?): List<Int> {
+        val text = bytes?.toString(US_ASCII).orEmpty()
+        if (text.isEmpty()) return emptyList()
+        return text.split(",").mapNotNull { it.toIntOrNull() }
+    }
+
     private fun Map<String, ByteArray>.string(name: String): String = String(getValue(name), UTF_8)
 
     /** Escapes RediSearch tag special characters so an arbitrary scope string is a single tag value. */
@@ -357,6 +382,8 @@ public class RedisStore(
         private const val EXPIRES_AT = "expiresAt"
         private const val METADATA = "metadata"
         private const val TAGS = "tags"
+        private const val EMBEDDER = "embedder"
+        private const val CHUNKS = "chunkLengths"
         private const val EMBEDDING = "embedding"
         private const val SCORE = "__score"
 

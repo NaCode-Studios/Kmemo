@@ -41,11 +41,14 @@ public class CacheExplanation(
      * pass it; the verifier still gets the last word." Every other outcome matches a real lookup exactly.
      */
     public val decision: MissReason?
-        get() = when {
-            candidates.isEmpty() -> MissReason.EMPTY_SCOPE
-            candidates.any { it.wouldServe } -> null
-            candidates.none { it.aboveThreshold } -> MissReason.BELOW_THRESHOLD
-            else -> MissReason.REJECTED_BY_GUARD
+        get() {
+            if (candidates.isEmpty()) return MissReason.EMPTY_SCOPE
+            if (candidates.any { it.wouldServe }) return null
+            // The nearest candidate that cleared the threshold is the one a lookup would have refused
+            // first, and a lookup reports the first refusal, so its own reason is the answer, not
+            // whichever reason happens to appear anywhere in the list.
+            val refused = candidates.firstOrNull { it.aboveThreshold } ?: return MissReason.BELOW_THRESHOLD
+            return if (refused.embedderMatches) MissReason.REJECTED_BY_GUARD else MissReason.EMBEDDER_MISMATCH
         }
 
     override fun toString(): String =
@@ -72,20 +75,31 @@ public class CandidateTrace(
      * evaluated in the same direction a lookup uses them — query against this cached prompt.
      */
     public val guardVerdicts: Map<String, GuardVerdict>,
+    /**
+     * Whether this entry was written by the [Embedder.identity] the cache is running now.
+     *
+     * `false` makes [similarity] a number about two different vector spaces, so read it as noise
+     * rather than as a near miss: a lookup refuses such a candidate unscored and reports
+     * [MissReason.EMBEDDER_MISMATCH]. The guard verdicts beside it were still computed, because they
+     * read the prompts as text and the text is real even when the score is not.
+     */
+    public val embedderMatches: Boolean = true,
 ) {
     /** The guards that rejected this candidate, in guard order. Empty when every guard abstained. */
     public val rejectingGuards: List<String>
         get() = guardVerdicts.entries.filter { it.value is GuardVerdict.Reject }.map { it.key }
 
     /**
-     * True when this candidate cleared the threshold and no guard rejected it.
+     * True when this candidate cleared the threshold, was written by the embedder now running, and no
+     * guard rejected it.
      *
      * A configured [Verifier] could still refuse it at lookup time; [wouldServe] describes the
      * threshold-and-guard layer, which is where explanations live.
      */
     public val wouldServe: Boolean
-        get() = aboveThreshold && rejectingGuards.isEmpty()
+        get() = aboveThreshold && embedderMatches && rejectingGuards.isEmpty()
 
     override fun toString(): String =
-        "CandidateTrace(similarity=$similarity, aboveThreshold=$aboveThreshold, rejectingGuards=$rejectingGuards)"
+        "CandidateTrace(similarity=$similarity, aboveThreshold=$aboveThreshold, " +
+            "embedderMatches=$embedderMatches, rejectingGuards=$rejectingGuards)"
 }

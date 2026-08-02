@@ -45,20 +45,22 @@ source; Kmemo ships none and depends on no provider SDK.
 > **See it end to end.** [`examples/`](examples) is a runnable demo (no API key needed) that shows a
 > guard catching a live near miss, with a `docker-compose` for the Redis store.
 
-> **Status — `2.0`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
+> **Status: `2.1`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
 > Windows, JS and WasmJS. The Redis, Postgres and HNSW stores, the framework integrations, the threshold
 > calibrator, the optional verifier and the observability stream are JVM-side and unchanged. Everything
-> here is measured against a labelled corpus with blind splits. The public API is stable under SemVer;
-> `2.0` breaks compatibility with `1.x` in two named places, both listed in
-> [docs/MIGRATION.md](docs/MIGRATION.md), and the policy is in [STABILITY.md](STABILITY.md).
+> here is measured against labelled corpora with blind splits, one of which this project did not write.
+> The public API is stable under SemVer; `2.1` is source compatible with `2.0` and needs a recompile,
+> and every hop is listed in [docs/MIGRATION.md](docs/MIGRATION.md) with the policy in
+> [STABILITY.md](STABILITY.md).
 
 ## Why Kmemo
 
 - Eleven lexical checks catch near misses a threshold cannot: swapped numbers, units, entities, time
   references, negation, flipped antonyms, reversed comparisons, a different answer being asked for, and a
   clause one prompt adds that narrows the question.
-  They run against a labelled corpus on every build, and the numbers are reported honestly. See
-  [Correctness, measured](#correctness-measured).
+  They run against four labelled corpora on every build, and the numbers are reported honestly,
+  including the one from a corpus written by somebody else, years earlier, which is much the worst of
+  them. See [Correctness, measured](#correctness-measured).
 - The costs are asymmetric. A wrong rejection costs one API call; a wrong acceptance costs a wrong
   answer. The defaults follow that, and the guards abstain rather than guess.
 - `ThresholdCalibrator` measures the right threshold for *your* embedding model. A value from a blog
@@ -76,7 +78,7 @@ are published to Maven Central under `io.github.nacode-studios`.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:2.0.0")
+    implementation("io.github.nacode-studios:kmemo-core:2.1.0")
 }
 ```
 
@@ -398,6 +400,7 @@ build that spends a model call per run is a build nobody keeps.
 | `kmemo-micrometer` / `kmemo-slf4j` | A Micrometer `MeterBinder` and an SLF4J logging listener. |
 | `kmemo-spring-boot-starter` / `kmemo-spring-ai` | Auto-config for a `SemanticCache` bean, and a caching `Advisor` for Spring AI's `ChatClient`. |
 | `kmemo-langchain4j` / `kmemo-ktor` | A caching `ChatModel` wrapper, and a Ktor server plugin. |
+| `kmemo-guard-tck` | The conformance suite for a custom `MatchGuard`: the properties every guard must satisfy, the labelled corpora, and the confusion matrix the built-in guards are measured with. A test dependency. |
 | `kmemo-bom` | A `java-platform` BOM to pin one version. |
 
 A lookup is decided in stages, each cheaper than the one it protects:
@@ -495,19 +498,43 @@ axis before you serve a single cached answer.
 
 ### Correctness, measured
 
-The guards are judged against three labelled corpora with blind splits that no guard was tuned against,
-run as a CI regression gate on every build. **These figures are guard-only**: `CorpusTest` runs
+The guards are judged against four labelled corpora, three of them blind splits no guard was tuned
+against, run as a CI regression gate on every build. **These figures are guard-only**: `CorpusTest` runs
 `MatchGuards.standard()` with no `Verifier` in the loop, so they describe the free lexical layer rather
-than the cache as a whole. On the validation split, near misses are rejected 68% of the time and
-paraphrases are kept 88%; on the held-out split, 71% and 88%. Neither is 100%. The near misses that get
-through are what the optional `Verifier` is for; its catch rate on them is measured
-[above](#verifying-what-lexical-guards-cannot-see) against a named reference model, and is deliberately
-not folded into these numbers, which describe the free layer alone. How the blind splits grow without
-getting contaminated is written up in
-[docs/CORPUS.md](docs/CORPUS.md); reproduce the numbers with:
+than the cache as a whole.
+
+| Split | Written by | Near misses rejected | Paraphrases kept |
+| --- | --- | --- | --- |
+| tuned | this project, with the guards in view | in-sample, not evidence | in-sample, not evidence |
+| held-out | this project, after the guards existed | 71% | 88% |
+| validation | this project, blind | 68% | 88% |
+| **external**, PAWS-Wiki `test` | **Google Research, 2019** | **14%** (647/4,464) | **79%** (2,807/3,536) |
+
+None of them is 100%. The near misses that get through are what the optional `Verifier` is for; its
+catch rate on them is measured [above](#verifying-what-lexical-guards-cannot-see) against a named
+reference model, and is deliberately not folded into these numbers, which describe the free layer alone.
+
+**The external row is much worse than the others, and it is here for that reason.** The first three
+share a weakness no process can remove: the same person wrote the pairs and the guards, so they test
+the near misses that were *thought of* rather than the ones that *exist*. PAWS is
+[Paraphrase Adversaries from Word Scrambling](https://github.com/google-research-datasets/paws), built
+in 2019 to see whether a model can separate a paraphrase from a near-paraphrase when word overlap is
+deliberately high, which is the exact case a similarity threshold cannot handle, by people who had never
+heard of this library. Two things explain the gap and neither shrinks it: a corpus built to defeat lexical
+overlap is harder than one written from realistic traffic, and its pairs are declarative Wikipedia
+sentences where the guards read prompts. A lower figure from a harder source is worth more than another
+figure from the same source, so both ship. [docs/CORPUS.md](docs/CORPUS.md) has the full argument and
+the per-guard breakdown; the external split is fetched rather than committed, so the licence stays with
+the dataset.
+
+Reproduce them with:
 
 ```bash
 ./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*'
+```
+
+```bash
+python tools/external-corpus/fetch.py && ./gradlew :kmemo-core:jvmTest --tests '*ExternalCorpusTest*'
 ```
 
 ## Roadmap
@@ -539,8 +566,25 @@ than half the genuine paraphrases to do it. A named reference verifier is measur
 guards leave, stopping about four fifths of it at a real cost in hit rate. And a guard now reads the
 cached *answer*, not only the two prompts, which is the near miss no prompt-side check can see.
 
-**Next.** Nothing is scheduled. Tier 6 and Tier 7 are complete, and the 2027 plan is written in
-December against whatever the year's traffic and feedback have shown.
+**Shipped (`2.1.0`).** Tier 8: independent proof, and the path onto a production request.
+
+The guards are now measured on a corpus this project did not write. PAWS, built by Google Research in
+2019 to defeat exactly the lexical overlap a similarity threshold cannot see through, is a fourth split
+under the blind rule, fetched rather than vendored and gated in CI. It scores the guards far lower than
+the three internal splits do, and that number ships beside them with both halves of the explanation
+attached, because a lower figure from a harder source is worth more than another figure from the same
+source.
+
+The embedding model is part of the key. An entry records which embedder wrote it and a lookup refuses
+one written by a different model instead of scoring vectors from two spaces that do not share a
+meaning, which was the false hit arriving through the one door nothing guarded. A streamed answer keeps
+the chunks it arrived in, so a cache hit on a streaming path replays what the first caller saw rather
+than one lump, with the decision about replay timing made explicitly in the API. And `kmemo-guard-tck`
+puts the harness the eleven built-in guards are held to in a form a consumer can run, so a guard for a
+domain nobody here understands can arrive with a measured number attached rather than with a claim.
+
+**Next.** Nothing is scheduled. Tier 8 is complete, and the 2027 plan is written in December against
+whatever the year's traffic and feedback have shown.
 
 The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5), one item per milestone with its exit
 criterion, and every tier is a [milestone](https://github.com/NaCode-Studios/Kmemo/milestones) in this repository. See

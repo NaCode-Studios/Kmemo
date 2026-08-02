@@ -52,8 +52,9 @@ mavenPublishing {
     pom {
         name.set("Kmemo Postgres store")
         description.set(
-            "Postgres (pgvector) CacheStore for Kmemo, the semantic cache for LLM calls on Kotlin/JVM — " +
-                "a durable, one-dependency semantic cache over JDBC with pgvector nearest-neighbour search.",
+            "A JVM-only Postgres (pgvector) CacheStore for Kmemo, the Kotlin Multiplatform semantic " +
+                "cache for LLM calls. A durable, one-dependency semantic cache over JDBC with pgvector " +
+                "nearest-neighbour search.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

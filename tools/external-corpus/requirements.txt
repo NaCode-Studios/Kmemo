@@ -1,0 +1,3 @@
+# Pinned to what the recorded floor was actually measured with. pyarrow is the only real dependency:
+# the source file is parquet, and the alternative is 80 paginated API calls for the same 8,000 rows.
+pyarrow==25.0.0
