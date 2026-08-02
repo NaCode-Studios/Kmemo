@@ -47,7 +47,7 @@ mavenPublishing {
         name.set("Kmemo SLF4J logging")
         description.set(
             "A JVM-only SLF4J CacheListener for Kmemo, the Kotlin Multiplatform semantic cache for LLM " +
-                "calls — a structured log line per hit, miss, write and eviction, with prompt redaction " +
+                "calls. One structured log line per hit, miss, write and eviction, with prompt redaction " +
                 "on by default.",
         )
         inceptionYear.set("2026")

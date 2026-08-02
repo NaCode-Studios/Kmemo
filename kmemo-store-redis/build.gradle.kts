@@ -50,7 +50,7 @@ mavenPublishing {
         name.set("Kmemo Redis store")
         description.set(
             "A JVM-only Redis (RediSearch) CacheStore for Kmemo, the Kotlin Multiplatform semantic cache " +
-                "for LLM calls — cross-process vector search via FT.SEARCH KNN, on a Lettuce coroutine " +
+                "for LLM calls. Cross-process vector search via FT.SEARCH KNN, on a Lettuce coroutine " +
                 "client.",
         )
         inceptionYear.set("2026")

@@ -47,7 +47,7 @@ mavenPublishing {
         name.set("Kmemo HNSW store")
         description.set(
             "A JVM-only in-process approximate-nearest-neighbour CacheStore for Kmemo, the Kotlin " +
-                "Multiplatform semantic cache for LLM calls — a pure-Kotlin HNSW index that scales the " +
+                "Multiplatform semantic cache for LLM calls. A pure-Kotlin HNSW index that scales the " +
                 "default store past an exact scan, with no extra dependency.",
         )
         inceptionYear.set("2026")

@@ -84,7 +84,7 @@ public abstract class CacheStoreContract {
 
     /**
      * The embedder identity is not decoration on the entry, it is half of what makes the vector
-     * meaningful — so a store that drops it in transit turns the one check standing between a model
+     * meaningful, so a store that drops it in transit turns the one check standing between a model
      * swap and a wrong answer into a check that always passes. A backend that adds a column or a field
      * for every other value and forgets this one fails here rather than in production.
      */
@@ -113,8 +113,8 @@ public abstract class CacheStoreContract {
 
     /**
      * A streamed answer is stored with the boundaries it arrived in, and a store that loses them
-     * turns every replay into one lump. Not a correctness failure — the text is still right — but it
-     * is the difference between a cache hit that looks like the model and one that visibly does not,
+     * turns every replay into one lump. Not a correctness failure, since the text is still right, but
+     * it is the difference between a cache hit that looks like the model and one that visibly does not,
      * which is the entire reason a streaming caller would reach for the cache.
      */
     @Test

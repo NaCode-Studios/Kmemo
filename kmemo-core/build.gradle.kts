@@ -25,7 +25,7 @@ kotlin {
                 useJUnitPlatform()
                 // The external split (M24) is fetched, never committed: the licence stays with the
                 // dataset. The test finds it here, skips with a sentence when it is absent, and fails
-                // when `-PexternalCorpusRequired=true` says absence is not acceptable — which is what
+                // when `-PexternalCorpusRequired=true` says absence is not acceptable, which is what
                 // CI passes, because a floor nobody notices has stopped running is not a floor.
                 systemProperty(
                     "kmemo.externalCorpus",
@@ -120,8 +120,8 @@ mavenPublishing {
     pom {
         name.set("Kmemo Core")
         description.set(
-            "Semantic cache for LLM calls on Kotlin Multiplatform — JVM, iOS, macOS, Linux, Windows, " +
-                "JS and Wasm — with guards against false cache hits.",
+            "Semantic cache for LLM calls on Kotlin Multiplatform, with guards against false cache " +
+                "hits. Targets JVM, iOS, macOS, Linux, Windows, JS and Wasm.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

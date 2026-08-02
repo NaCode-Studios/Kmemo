@@ -3,7 +3,7 @@ package dev.kmemo.guard
 import dev.kmemo.guard.tck.MatchGuardContract
 
 /**
- * M27 — the eleven guards in [MatchGuards.standard], put through the suite kmemo publishes for other
+ * M27: the eleven guards in [MatchGuards.standard], put through the suite kmemo publishes for other
  * people's guards.
  *
  * This is what makes the claim on `kmemo-guard-tck` literal rather than aspirational. "The harness the
@@ -12,18 +12,18 @@ import dev.kmemo.guard.tck.MatchGuardContract
  *
  * It is deliberately **not** a second copy of [CorpusTest]. That test owns the numbers: it gates the
  * chain's catch and paraphrase floors on all three splits and fails CI when one moves down. This one
- * owns the structural properties — determinism, totality, reflexivity, a reason on every rejection, a
- * stable name — which no corpus can check and which nobody notices are missing until a guard takes a
- * request down or answers differently on the second run.
+ * owns the structural properties: determinism, totality, reflexivity, a reason on every rejection and
+ * a stable name. No corpus can check any of them, and nobody notices they are missing until a guard
+ * takes a request down or answers differently on the second run.
  */
 abstract class StandardGuardContract : MatchGuardContract() {
 
     /**
      * Not asserted per guard, on purpose.
      *
-     * Some of the eleven do reject the occasional paraphrase — `standard()` keeps 88% of them on the
-     * validation split, not 100% — and that trade is argued and gated at the *chain* level in
-     * [CorpusTest], where the floors live. A per-guard ceiling here would be a second, weaker copy of
+     * Some of the eleven do reject the occasional paraphrase, since `standard()` keeps 88% of them on
+     * the validation split rather than 100%, and that trade is argued and gated at the *chain* level
+     * in [CorpusTest], where the floors live. A per-guard ceiling here would be a second, weaker copy of
      * those floors, and two gates on one number is how the weaker one ends up being the one that moves.
      */
     override val maxFalseRejectionRate: Double = 1.0

@@ -16,7 +16,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * M26 — a cache that can sit on a streaming path.
+ * M26: a cache that can sit on a streaming path.
  *
  * The three properties the milestone turns on, and they are properties rather than features: a
  * streamed miss yields the same tokens to the caller and to the store, a later lookup replays them
@@ -82,7 +82,7 @@ class StreamingTest {
         val cache = SemanticCache(HashingEmbedder(), store)
 
         // `take` cancels the upstream once it has what it wants, which is the ordinary way a caller
-        // walks away from a stream — a user closing a tab, a request timing out.
+        // walks away from a stream: a user closing a tab, a request timing out.
         val partial = cache.getOrPutStreaming(prompt) { tokens.asFlow() }.take(2).toList()
 
         assertEquals(tokens.take(2), partial)

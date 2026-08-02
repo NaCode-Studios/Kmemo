@@ -47,14 +47,14 @@ subprojects {
     }
 
     // The POM description is the sentence Maven Central and klibs.io show a stranger before they see
-    // anything else, and nothing in the build read it until 2.1.0 — which is how `kmemo-core:2.0.0`
+    // anything else, and nothing in the build read it until 2.1.0. That is how `kmemo-core:2.0.0`
     // shipped "on Kotlin/JVM" on the release that made the core multiplatform, beside a
     // `kotlin-tooling-metadata.json` from the same build listing iOS, Linux and Wasm. A claim nothing
     // verifies goes stale exactly that way, so the claim is verified here.
     plugins.withId("com.vanniktech.maven.publish") {
         val check = tasks.register<PomPlatformCheck>("checkPomPlatforms")
         // The targets are declared by the module's own `kotlin { }` block, which has not run when the
-        // publish plugin is applied — so the values are read once evaluation is finished.
+        // publish plugin is applied, so the values are read once evaluation is finished.
         afterEvaluate {
             check.configure {
                 module.set(project.name)
@@ -136,8 +136,15 @@ abstract class PomPlatformCheck : DefaultTask() {
     }
 
     private companion object {
-        /** Phrases that assert the JVM is the whole story. A bare "JVM" in a platform list is not one. */
-        private val JVM_ONLY_CLAIMS = listOf("Kotlin/JVM", "JVM-only", "JVM only", "on the JVM")
+        /**
+         * Phrases that assert the JVM is the whole story.
+         *
+         * Deliberately three and not four. "on the JVM" was here until it refused
+         * "Targets JVM, iOS, macOS, ...": a platform list opens the same way a JVM-only claim does, and
+         * a check that fails a correct description teaches people to reword around it rather than to
+         * trust it. These three cannot appear in an honest multiplatform sentence.
+         */
+        private val JVM_ONLY_CLAIMS = listOf("Kotlin/JVM", "JVM-only", "JVM only")
     }
 }
 

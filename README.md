@@ -45,7 +45,7 @@ source; Kmemo ships none and depends on no provider SDK.
 > **See it end to end.** [`examples/`](examples) is a runnable demo (no API key needed) that shows a
 > guard catching a live near miss, with a `docker-compose` for the Redis store.
 
-> **Status — `2.1`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
+> **Status: `2.1`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
 > Windows, JS and WasmJS. The Redis, Postgres and HNSW stores, the framework integrations, the threshold
 > calibrator, the optional verifier and the observability stream are JVM-side and unchanged. Everything
 > here is measured against labelled corpora with blind splits, one of which this project did not write.
@@ -58,7 +58,7 @@ source; Kmemo ships none and depends on no provider SDK.
 - Eleven lexical checks catch near misses a threshold cannot: swapped numbers, units, entities, time
   references, negation, flipped antonyms, reversed comparisons, a different answer being asked for, and a
   clause one prompt adds that narrows the question.
-  They run against four labelled corpora on every build, and the numbers are reported honestly —
+  They run against four labelled corpora on every build, and the numbers are reported honestly,
   including the one from a corpus written by somebody else, years earlier, which is much the worst of
   them. See [Correctness, measured](#correctness-measured).
 - The costs are asymmetric. A wrong rejection costs one API call; a wrong acceptance costs a wrong
@@ -68,7 +68,7 @@ source; Kmemo ships none and depends on no provider SDK.
 - `Embedder` and `CacheStore` are one-method seams. Bring OpenAI, Cohere, Voyage or a local ONNX
   model; start in memory and move to a vector database without touching the match logic.
 - Every operation is a `suspend` function, and `kmemo-core` declares `kotlinx-coroutines-core` as its
-  only dependency — on every platform it targets, not just the JVM.
+  only dependency, on every platform it targets rather than only the JVM.
 
 ## Installation
 
@@ -154,8 +154,9 @@ the one guard that reads that answer and refuses it when it names the word the q
 It is opt-in because of how it is measured rather than how it performs. It refuses 14 of the 116
 near-miss lookups `standard()` still serves on the blind corpora and **none** of the 164 paraphrase
 lookups, moving the false-hit rate from 0.291 to 0.238 held-out and 0.324 to 0.299 on validation. But
-those answers were written for the measurement — no corpus of real paired answers exists to harvest —
-so the number is a regression check rather than the blind measurement every other guard is held to, and
+those answers were written for the measurement, because no corpus of real paired answers exists to
+harvest. That makes the number a regression check rather than the blind measurement every other guard is
+held to, and
 mixing the two under one default would quietly downgrade the evidence behind all of them.
 [docs/CORPUS.md](docs/CORPUS.md) has the provenance rules.
 
@@ -208,7 +209,7 @@ pass-through is otherwise the one failure mode with no telemetry pointing at it.
 
 ### Calibrating on your own traffic before serving anything
 
-`ThresholdCalibrator` measures the right threshold, but it needs a labelled set — so the honest answer
+`ThresholdCalibrator` measures the right threshold, but it needs a labelled set, so the honest answer
 to "what threshold should I use?" is "measure it, on data you first have to build", and that first step
 is what stops teams putting a cache in front of production traffic.
 
@@ -243,7 +244,7 @@ different exchange. Pass the prior turns and they become part of the question:
 cache.getOrPut("what about the second one", context = history) { llm.complete(it) }
 ```
 
-`compute` still receives the bare prompt — the context is the cache's business, not the model's. It is
+`compute` still receives the bare prompt. The context is the cache's business, not the model's. It is
 folded into the embedded text rather than into the scope, so two conversations that differ only in
 phrasing can still match and the guards still read the whole thing.
 
@@ -266,13 +267,13 @@ Where a whole scope is too coarse, tag entries by the fact they depend on and dr
 
 ```kotlin
 cache.put(prompt, answer, tags = setOf("price-list"))
-// the price list changed — every answer derived from it goes, nothing else does
+// the price list changed: every answer derived from it goes, and nothing else does
 cache.invalidateByTag("price-list")
 ```
 
 Tags are indexed by the store, so this is a query rather than a scan: a GIN index on Postgres, a
 RediSearch `TAG` field on Redis. Keep them about the source of truth (`price-list`, `policy-2026`), not
-about the request — a tag per prompt is a tag that never gets used. A `CacheStore` that does not index
+about the request. A tag per prompt is a tag that never gets used. A `CacheStore` that does not index
 tags **throws** rather than reporting `0`, because a caller who believes stale answers were dropped when
 they were not is exactly the failure this library exists to avoid.
 
@@ -285,7 +286,7 @@ without embedding it or searching for it:
 ```kotlin
 val cache = semanticCache(embedder) {
     exactCacheSize = 10_000
-    exactCacheTtl = 5.minutes      // no longer than your store's TTL — see below
+    exactCacheTtl = 5.minutes      // no longer than your store's TTL, see below
 }
 ```
 
@@ -295,7 +296,7 @@ traffic it caught; if it stays near zero, set the size back to `0` and reclaim t
 
 The one trade, stated plainly: answering without asking the store means not consulting the thing that
 owns expiry and eviction, so `exactCacheTtl` must not outlast your store's TTL. Past that TTL nothing
-stale is served — the remembered *embedding* is still reused, so the lookup goes through the ordinary
+stale is served. The remembered *embedding* is still reused, so the lookup goes through the ordinary
 threshold-guards-verifier path with the network call already paid.
 
 ### Working the candidate set harder
@@ -318,33 +319,35 @@ val cache = semanticCache(embedder) {
 
 **`MmrReranker`** reorders the candidates that cleared the threshold so each one the cache tries adds
 something the last did not. On a cache that has been running a while the nearest entries are often
-rephrasings of each other, and a `Verifier` costs a model call per candidate — five paid calls that all
+rephrasings of each other, and a `Verifier` costs a model call per candidate. Five paid calls that all
 inspect what is effectively one entry is four wasted. It reorders and never rescores, and it runs
 *after* the threshold filter, so it cannot make anything servable that the threshold refused.
 
 **`Quantization`** compresses vectors for the scan only. Survivors are rescored against the
 full-precision vectors, so every similarity that reaches a threshold, a guard or a verifier is exact,
-and the worst a bad approximation can do is fail to surface a candidate — a miss, costing one API call.
+and the worst a bad approximation can do is fail to surface a candidate, which is a miss costing one
+API call.
 `INT8` recovers everything an exact scan finds at four times oversampling; `BINARY` is a thirty-second
 of the memory traffic and needs six times that shortlist to reach 99%. Measured at 64 and 1,536
 dimensions in `M18MatchingTest`.
 
 **`deduplicateWrites`** replaces an existing entry when a new one says the same thing, instead of
 storing both. Only an entry that clears the similarity *and* passes every guard in both directions is
-replaced — the write path can produce a false hit exactly as the read path can, and the same guards
+replaced. The write path can produce a false hit exactly as the read path can, and the same guards
 stop it. Reported as an eviction with cause `NEAR_DUPLICATE`.
 
 **`AdaptiveThresholds`** lets each scope's threshold follow its own traffic, and **throws at
 construction without a verifier**. It moves the threshold down as well as up, and the only thing that
 makes lowering safe is something above the threshold that can tell a right answer from a wrong one.
-With a verifier in the loop the threshold stops being a correctness knob and becomes a cost knob — it
+With a verifier in the loop the threshold stops being a correctness knob and becomes a cost knob: it
 decides how many candidates reach the verifier, and that is a quantity the cache can honestly observe
 about itself. Pass it as a listener too, or only as a listener, to watch what it *would* do first.
 
 ### What must never be cached
 
 The cache stores prompts and responses verbatim. `CachePolicy` is the seam that vetoes a write for data
-that must not be persisted at all — consulted once per write, on every write path including `warm`:
+that must not be persisted at all. It is consulted once per write, on every write path including
+`warm`:
 
 ```kotlin
 val cache = semanticCache(embedder) {
@@ -363,13 +366,13 @@ the store TCK has enforced on every store since M4.
 ### Verifying what lexical guards cannot see
 
 About a third of near misses get past the guards on the blind splits: 25 of 86 on held-out, 33 of 102 on
-validation. That residual is what an optional `Verifier` exists for — typically a cheap model call, it
+validation. That residual is what an optional `Verifier` exists for. Typically a cheap model call, it
 runs only on candidates that already cleared the threshold and every guard, and it fails closed: a
 timeout or an error rejects rather than serving something unconfirmed. Cases like `deworm a puppy` vs
 `an adult dog` or `boiling point of ethanol` vs `methanol` turn on world knowledge no lexical check has.
 
 **How much of that residual a verifier actually stops is measured**, against a named reference
-implementation — `sentence_transformers.CrossEncoder` over `cross-encoder/quora-distilroberta-base`,
+implementation, `sentence_transformers.CrossEncoder` over `cross-encoder/quora-distilroberta-base`,
 serving at a duplicate probability of 0.5:
 
 | Corpus | Residual the guards serve | The verifier stops | False-hit rate | Paraphrases kept |
@@ -382,7 +385,7 @@ expensive in the other direction, and this reference model is expensive unevenly
 validation's paraphrases and 45% of held-out's, which is heavier on software questions than on everyday
 ones. **Your verifier is not this one.** What the table says is how much of the residual is reachable at
 all by a model that reads the two prompts, and that a verifier is a hit-rate decision as much as a
-correctness one — which is why it is a seam and not a default. Reproduce it with
+correctness one, which is why it is a seam and not a default. Reproduce it with
 [tools/verifier-catch-rate](tools/verifier-catch-rate); it is deliberately not a CI gate, because a
 build that spends a model call per run is a build nobody keeps.
 
@@ -436,14 +439,14 @@ paraphrases. `strict()` buys a little more margin and pays for it in recall, whi
 rather than hidden.
 
 **Against GPTCache the result is a trade, not a win, and the table says so.** Its ONNX cross-encoder
-serves *fewer* near misses than `standard()` on both splits — it is a stricter filter, not a weaker
+serves *fewer* near misses than `standard()` on both splits. It is a stricter filter, not a weaker
 one. It buys that by refusing more than half the genuine paraphrases it is shown, where `standard()`
 keeps 88%, so the cache does roughly half the work. Kmemo's decision quality is higher by F1 on both
 splits and its hit rate is close to double; GPTCache's false-hit rate is lower. Which of those you
 should want depends on what a wrong answer costs you, and the arithmetic is below.
 
 Two things about that row. GPTCache's *default* evaluator is `SearchDistanceEvaluation`, which scores
-the vector distance the retrieval step already produced — that is the threshold-only row under another
+the vector distance the retrieval step already produced. That is the threshold-only row under another
 name, and re-running it through GPTCache would measure the embedding model rather than the cache. And
 retrieval is factored out of the whole table: every configuration is handed the same candidate pair and
 asked only whether to serve it, which controls for the embedder more tightly than matching embedders
@@ -456,7 +459,7 @@ Reproduce the Kmemo rows with:
 ```
 
 The GPTCache row is measured out of band, because GPTCache is a Python package that downloads a model
-on first use and CI is a JVM build — see [tools/gptcache-comparison](tools/gptcache-comparison). The
+on first use and CI is a JVM build. See [tools/gptcache-comparison](tools/gptcache-comparison). The
 recorded numbers carry the SHA-256 of the corpus files they were taken against, and the build fails if
 a corpus changes without the harness being re-run.
 
@@ -482,12 +485,12 @@ a day** at a false-hit rate of 1.0; `standard()` serves about **650**, and `resp
 
 The GPTCache row cannot be read off the false-hit rate alone, which is exactly why the saving sits in
 the formula next to it. Facing the same 2,000 near-miss lookups, its evaluator serves about **220** of
-them — a third of `standard()`. But it also refuses half the genuine paraphrases, so the hit rate that
+them, a third of `standard()`. But it also refuses half the genuine paraphrases, so the hit rate that
 produced the $80 falls with it, to about **$41 a day**. Roughly $39 a day of extra model calls, and a
 transformer inference on every candidate, to avoid around 440 wrong answers. Whether that is worth it
 is the same question as before, now with numbers in it.
 
-Whether that trade is acceptable is not something a library can decide for you — it depends entirely on
+Whether that trade is acceptable is not something a library can decide for you. It depends entirely on
 what a wrong answer costs in your domain, which is the one input no benchmark can supply. What the
 library can do is make sure you are looking at a measured number instead of an assumed one, and
 [shadow mode](#calibrating-on-your-own-traffic-before-serving-anything) puts *your* traffic on that
@@ -505,7 +508,7 @@ than the cache as a whole.
 | tuned | this project, with the guards in view | in-sample, not evidence | in-sample, not evidence |
 | held-out | this project, after the guards existed | 71% | 88% |
 | validation | this project, blind | 68% | 88% |
-| **external** — PAWS-Wiki `test` | **Google Research, 2019** | **14%** (647/4,464) | **79%** (2,807/3,536) |
+| **external**, PAWS-Wiki `test` | **Google Research, 2019** | **14%** (647/4,464) | **79%** (2,807/3,536) |
 
 None of them is 100%. The near misses that get through are what the optional `Verifier` is for; its
 catch rate on them is measured [above](#verifying-what-lexical-guards-cannot-see) against a named
@@ -516,8 +519,8 @@ share a weakness no process can remove: the same person wrote the pairs and the 
 the near misses that were *thought of* rather than the ones that *exist*. PAWS is
 [Paraphrase Adversaries from Word Scrambling](https://github.com/google-research-datasets/paws), built
 in 2019 to see whether a model can separate a paraphrase from a near-paraphrase when word overlap is
-deliberately high — the exact case a similarity threshold cannot handle — by people who had never heard
-of this library. Two things explain the gap and neither shrinks it: a corpus built to defeat lexical
+deliberately high, which is the exact case a similarity threshold cannot handle, by people who had never
+heard of this library. Two things explain the gap and neither shrinks it: a corpus built to defeat lexical
 overlap is harder than one written from realistic traffic, and its pairs are declarative Wikipedia
 sentences where the guards read prompts. A lower figure from a harder source is worth more than another
 figure from the same source, so both ship. [docs/CORPUS.md](docs/CORPUS.md) has the full argument and
@@ -583,8 +586,8 @@ domain nobody here understands can arrive with a measured number attached rather
 **Next.** Nothing is scheduled. Tier 8 is complete, and the 2027 plan is written in December against
 whatever the year's traffic and feedback have shown.
 
-The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5) — one item per milestone, each with its exit
-criterion — and every tier is a [milestone](https://github.com/NaCode-Studios/Kmemo/milestones) in this repository. See
+The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5), one item per milestone with its exit
+criterion, and every tier is a [milestone](https://github.com/NaCode-Studios/Kmemo/milestones) in this repository. See
 [STABILITY.md](STABILITY.md) for the versioning and stability policy, and
 [docs/MIGRATION.md](docs/MIGRATION.md) to move from `1.x` to `2.0`.
 

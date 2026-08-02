@@ -32,7 +32,7 @@ public class CorpusScore(
     /**
      * Pairs where the guard's verdict depends on which prompt arrived first.
      *
-     * Reported, never asserted. A directional guard is legitimate — kmemo's own `subspan` is one,
+     * Reported, never asserted. A directional guard is legitimate, and kmemo's own `subspan` is one,
      * because "the same question plus a narrowing clause" is a relationship with a direction. But an
      * author who did not *mean* to be directional has no other way to find out, and in a cache the
      * consequence is a verdict that changes depending on which of two prompts a user happened to ask
@@ -115,7 +115,7 @@ public class GuardComplianceReport(
          * Whether the guard refuses this pair **in either direction**.
          *
          * Either prompt could be the one already in the cache when the other arrives, so a guard that
-         * fires one way round protects the pair — and costs the hit — just the same. Measuring one
+         * fires one way round protects the pair, and costs the hit, just the same. Measuring one
          * direction would report half of what the guard actually does.
          */
         internal fun rejects(guard: MatchGuard, pair: GuardPair): Boolean =

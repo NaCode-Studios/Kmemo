@@ -15,11 +15,11 @@ is in effect, and `2.0` renews it for the `2.x` line. What `2.0` broke and how t
   least one minor version before removal.
 - **Binary compatibility is a minor-version boundary, not a patch one.** A minor release may add a
   parameter with a default value, or a property to a result type. That changes a constructor, `copy` or
-  `componentN` signature, so code compiled against the previous version must be **recompiled** — but no
+  `componentN` signature, so code compiled against the previous version must be **recompiled**, though no
   source has to change. Patch releases never do this. Wherever it happens it is named under `### Changed`
   in the [CHANGELOG](CHANGELOG.md), listing the affected types, so a recompile is never a surprise.
-  (This said `### Notes` until `2.1.0`, which is a heading Keep a Changelog does not define and the
-  library audit rejects. The information did not move, only the heading it sits under.)
+  (This said `### Notes` until `2.1.0`. Keep a Changelog does not define that heading and the library
+  audit rejects it, so the information moved under `### Changed` and nothing else about it changed.)
   Refusing this outright would mean a major bump for every new counter on `CacheStats`, which prices
   ordinary additive work at the cost of an ecosystem migration.
 - **Every public-API change is tracked, never silent.** The binary-compatibility-validator holds each
@@ -34,7 +34,7 @@ is in effect, and `2.0` renews it for the `2.x` line. What `2.0` broke and how t
 ## Releases
 
 Releases are **tag-driven**: pushing a `vX.Y.Z` tag publishes that immutable version to Maven Central,
-which is the only registry kmemo publishes to. There is **no SNAPSHOT stream** — the tagged artifacts are
+which is the only registry kmemo publishes to. There is **no SNAPSHOT stream**: the tagged artifacts are
 the supported ones, the same convention used across NaCode Studios' libraries.
 
 Since `2.0` the release workflow runs on macOS, because the iOS and macOS artifacts cannot be compiled
@@ -66,7 +66,7 @@ replaces. That is a deliberate design choice, not an oversight.
 
 **From Java**, the same API is reachable through the standard Kotlin↔Java coroutine bridges:
 
-- `kotlinx.coroutines.future.FutureKt` — call a `suspend` function as a `CompletableFuture`.
+- `kotlinx.coroutines.future.FutureKt`, to call a `suspend` function as a `CompletableFuture`.
 - `runBlocking` for a synchronous call at a boundary that has no async context.
 
 A dedicated `kmemo-jdk` facade (a `CompletableFuture`-returning mirror of the API) is **deferred, not
@@ -75,8 +75,8 @@ are the supported path, and the position is documented rather than left implicit
 
 ## The defaults, and why
 
-kmemo's defaults err toward **missing rather than serving a wrong answer** — the asymmetry the whole
-library turns on (a wrong rejection costs one API call; a wrong acceptance costs a wrong answer). Each
+kmemo's defaults err toward **missing rather than serving a wrong answer**, the asymmetry the whole
+library turns on: a wrong rejection costs one API call, a wrong acceptance costs a wrong answer. Each
 is a starting point to calibrate against your own model and traffic, not a universal constant.
 
 | Default | Value | Why |

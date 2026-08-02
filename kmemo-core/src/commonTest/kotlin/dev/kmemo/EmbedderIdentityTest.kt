@@ -10,7 +10,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * M25 — the embedder is part of the key.
+ * M25: the embedder is part of the key.
  *
  * Every test here shares one store between two caches whose embedders produce **identical vectors**
  * and differ only in what they declare. That is deliberate: the failure this guards against is the
@@ -73,8 +73,8 @@ class EmbedderIdentityTest {
 
     /**
      * The compatibility promise the whole design turns on. A caller who declares nothing is not
-     * opting out of the check — `undeclared` is an identity like any other — they are simply on both
-     * sides of it, which is where every existing deployment already is.
+     * opting out of the check, since `undeclared` is an identity like any other. They are simply on
+     * both sides of it, which is where every existing deployment already is.
      */
     @Test
     fun `two undeclared embedders share a store exactly as they always did`() = runTest {

@@ -103,7 +103,7 @@ public class KmemoMetrics @JvmOverloads constructor(
             // Not a lookup either: the Miss this accompanies already counted one, and counting it here
             // too would report two lookups for one call and halve the hit ratio during a model swap.
             // Tagged by both identities, because "which model wrote the store and which is asking now"
-            // is the whole diagnosis, and both are deployment-scoped rather than per-request — so the
+            // is the whole diagnosis, and both are deployment-scoped rather than per-request, so the
             // cardinality is bounded by how many models you have run, not by traffic.
             is CacheEvent.EmbedderMismatch ->
                 m.embedderMismatch(event.expected, event.found).increment()

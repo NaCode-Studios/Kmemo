@@ -65,7 +65,7 @@ mavenPublishing {
         name.set("Kmemo Guard TCK")
         description.set(
             "A JVM-only conformance suite for custom MatchGuards in Kmemo, the Kotlin Multiplatform " +
-                "semantic cache for LLM calls — the properties every guard must satisfy, plus the " +
+                "semantic cache for LLM calls. The properties every guard must satisfy, plus the " +
                 "labelled corpora and the confusion matrix the built-in guards are measured with.",
         )
         inceptionYear.set("2026")

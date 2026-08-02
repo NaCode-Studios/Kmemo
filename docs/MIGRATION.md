@@ -12,8 +12,8 @@ deploy it, because it decides what happens to the entries already in your store.
 ## Recompile
 
 `2.1` is source compatible with `2.0` and not binary compatible with it. `CacheEntry` and `CacheStats`
-each gained a parameter with a default, which moves a constructor signature even where no source moves —
-the case [STABILITY.md](../STABILITY.md) names as a minor-version boundary. Rebuild; edit nothing.
+each gained a parameter with a default, which moves a constructor signature even where no source moves.
+[STABILITY.md](../STABILITY.md) names that as a minor-version boundary. Rebuild; edit nothing.
 
 ## Declaring an identity is opt-in, and undeclared is an identity
 
@@ -33,13 +33,13 @@ val embedder = object : Embedder {
 From then on a lookup refuses any entry written under a different identity, reporting
 `MissReason.EMBEDDER_MISMATCH` and emitting `CacheEvent.EmbedderMismatch`, rather than scoring a vector
 from one model against a vector from another. Two models do not share a space, so that score was never a
-similarity — and the dimension check already in the code only catches the version of this mistake where
-the sizes differ, which is the version nobody makes.
+similarity. The dimension check already in the code only catches the version of this mistake where the
+sizes differ, which is the version nobody makes.
 
 ## The two ways out of a store written under a different identity
 
 This is the part to plan. The moment a cache declares an identity, everything already in its store
-carries a different one — `undeclared` at the very least — and is refused. That is correct, because
+carries a different one, `undeclared` at the very least, and is refused. That is correct, because
 nothing recorded what produced those vectors, but it means a cold cache unless you pick one of these.
 
 **Re-embed.** Read the entries out, embed each prompt with the new model, write them back. The cache
@@ -51,7 +51,7 @@ entry, once, and it is the right answer when the answers are still good and only
 cache.warm(existing.map { WarmEntry(prompt = it.prompt, response = it.response, scope = it.scope) })
 ```
 
-**A separate scope.** Put the model in the scope string — `"gpt-4o|embed=3-small|v3"` — and a new model
+**A separate scope.** Put the model in the scope string, `"gpt-4o|embed=3-small|v3"`, and a new model
 is a new partition that fills on its own while the old one ages out untouched. Nothing is re-embedded
 and nothing is refused, because the two never meet. This is the cheaper answer and the one to reach for
 when the responses would have to be recomputed anyway.
@@ -71,8 +71,8 @@ no `else` branch, stops compiling until it handles the new case.
 ## Stores persist the identity, and old rows read as undeclared
 
 `PostgresStore` adds an `embedder` column and `RedisStore` an `embedder` hash field, both on next start
-and both idempotent. Rows and hashes written before `2.1` have neither, and are read as `undeclared` —
-the honest record, since nothing captured what embedded them. A custom `CacheStore` must round-trip
+and both idempotent. Rows and hashes written before `2.1` have neither, and are read as `undeclared`.
+That is the honest record, since nothing captured what embedded them. A custom `CacheStore` must round-trip
 `CacheEntry.embedder` to stay conformant; the shared TCK covers it.
 
 # Migrating from 1.x to 2.0

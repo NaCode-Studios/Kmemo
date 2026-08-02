@@ -30,7 +30,7 @@ public fun interface Embedder {
      * Which model wrote these vectors, declared by you.
      *
      * An entry records the identity of the embedder that produced it, and a lookup through a
-     * *different* identity refuses that entry instead of scoring it — see
+     * *different* identity refuses that entry instead of scoring it. See
      * [MissReason.EMBEDDER_MISMATCH]. Two embedding models do not share a vector space, so a
      * similarity computed across them is a number with no meaning, and a meaningless number near a
      * threshold is exactly the condition that produces a false hit. Nothing throws and nothing appears
@@ -41,8 +41,8 @@ public fun interface Embedder {
      * kmemo does not try to *infer* this. There is no way to read a model's name out of its output,
      * and a library that guessed would be wrong quietly. So you declare it, and what you declare is
      * opaque to kmemo: it is compared for equality and never parsed. Include everything that changes
-     * the space — the provider, the model, the dimension count if the model is configurable, and your
-     * own revision marker if you fine-tune:
+     * the space: the provider, the model, the dimension count if the model is configurable, and your
+     * own revision marker if you fine-tune.
      *
      * ```kotlin
      * val embedder = object : Embedder {
@@ -54,7 +54,7 @@ public fun interface Embedder {
      * The default is [UNDECLARED], and it is an identity like any other rather than a wildcard. A
      * cache that declares nothing writes and reads `undeclared` entries and behaves exactly as it did
      * before this existed. Declaring one on a store that already holds entries means those entries no
-     * longer match, which is the honest outcome — nobody can say what wrote them — and
+     * longer match. That is the honest outcome, since nobody can say what wrote them, and
      * `docs/MIGRATION.md` names the two ways through it.
      *
      * Must be **stable for the lifetime of the cache**, for the same reason the vectors must be: it is

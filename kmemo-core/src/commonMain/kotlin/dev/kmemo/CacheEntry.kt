@@ -56,7 +56,7 @@ public class CacheEntry(
      * Length, in characters, of each chunk [response] arrived in, when it arrived as a stream.
      *
      * Empty for every entry written by [SemanticCache.put], [SemanticCache.getOrPut] or
-     * [SemanticCache.warm] — nobody streamed those, and an empty list says so rather than inventing a
+     * [SemanticCache.warm]. Nobody streamed those, and an empty list says so rather than inventing a
      * single boundary that happens to be the whole text.
      * [SemanticCache.getOrPutStreaming] fills it, which is what lets a later hit replay the same
      * chunks the first caller saw instead of one lump the size of the answer.

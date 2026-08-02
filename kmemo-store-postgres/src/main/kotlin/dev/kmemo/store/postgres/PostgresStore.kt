@@ -30,11 +30,11 @@ import kotlin.time.toKotlinInstant
  *
  * **Schema.** One table (created on first use, or provision it yourself from the shipped `schema.sql`):
  * `id` primary key, `scope`, `prompt`, `response`, `embedding vector`, `created_at`, `expires_at`
- * (nullable — `null` never expires), `metadata jsonb`, `tags text[]`, `embedder text` and
+ * (nullable, where `null` never expires), `metadata jsonb`, `tags text[]`, `embedder text` and
  * `chunk_lengths integer[]`. A table created by an earlier version gains the last three by
  * `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` on the next start, and rows already in it read as
- * [dev.kmemo.Embedder.UNDECLARED] with no chunk boundaries — the honest record of a row nothing
- * captured an embedder for and nothing ever streamed. The `embedding` column is left
+ * [dev.kmemo.Embedder.UNDECLARED] with no chunk boundaries, which is the honest record of a row
+ * nothing captured an embedder for and nothing ever streamed. The `embedding` column is left
  * dimension-unconstrained so mixed embedding sizes are a storage error at query time, not a schema
  * wall. The search is an exact scan by default (correct, and matching the conformance suite); add an
  * HNSW/IVFFlat index on `embedding` once your dimension is fixed to scale it.

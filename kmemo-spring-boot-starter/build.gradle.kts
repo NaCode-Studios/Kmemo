@@ -51,8 +51,8 @@ mavenPublishing {
         name.set("Kmemo Spring Boot starter")
         description.set(
             "JVM-only Spring Boot auto-configuration for Kmemo, the Kotlin Multiplatform semantic cache " +
-                "for LLM calls — a SemanticCache bean from your Embedder, configured under the 'kmemo' " +
-                "properties prefix.",
+                "for LLM calls. Gives you a SemanticCache bean from your Embedder, configured under the " +
+                "'kmemo' properties prefix.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

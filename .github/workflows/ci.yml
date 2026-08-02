@@ -47,8 +47,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      # The external split is fetched rather than committed, so the licence stays with the dataset —
-      # see tools/external-corpus/README.md. This job is the one place its floor is actually enforced,
+      # The external split is fetched rather than committed, so the licence stays with the dataset.
+      # See tools/external-corpus/README.md. This job is the one place its floor is actually enforced,
       # which is why every gradle call below passes -PexternalCorpusRequired=true: without the flag a
       # missing file skips the test, and a floor nobody notices has stopped running is not a floor.
       - name: Fetch the external corpus split

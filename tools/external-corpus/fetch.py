@@ -114,7 +114,7 @@ def main() -> int:
     OUT.write_text(text, encoding="utf-8")
 
     near = sum(1 for p in pairs if not p["shouldMatch"])
-    print(f"  wrote {OUT} — {len(pairs):,} pairs, {near:,} near misses, {len(pairs) - near:,} paraphrases")
+    print(f"  wrote {OUT}: {len(pairs):,} pairs, {near:,} near misses, {len(pairs) - near:,} paraphrases")
     print(f"  converted sha256 {hashlib.sha256(text.encode('utf-8')).hexdigest()}")
     return 0
 

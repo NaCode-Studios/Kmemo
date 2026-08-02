@@ -64,7 +64,7 @@ public data class CacheStats(
      * Lookups that met a candidate above the threshold written by a different [Embedder.identity].
      *
      * Counted per lookup rather than per candidate, and counted whatever the lookup went on to decide
-     * — a lookup that refused a stale entry and then served the next one is still a lookup that met a
+     * A lookup that refused a stale entry and then served the next one is still a lookup that met a
      * stale entry. So this is not a slice of [misses] the way the three above it are; it is a census of
      * an incident.
      *

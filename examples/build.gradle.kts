@@ -23,7 +23,7 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
     // The guard conformance suite. One dependency is the whole cost of measuring a custom guard, which
-    // is the question M27 set out to answer — and this module is here to prove the answer from outside
+    // is the question M27 set out to answer, and this module is here to prove the answer from outside
     // kmemo-core, the way a third party would.
     testImplementation(project(":kmemo-guard-tck"))
 }

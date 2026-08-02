@@ -18,7 +18,7 @@ import dev.kmemo.guard.tck.MatchGuardContract
  * ```
  *
  * The output has two halves and they answer different questions. Against kmemo's three shipped
- * corpora the guard must catch nothing and cost nothing — that is the *does no harm* number, and the
+ * corpora the guard must catch nothing and cost nothing. That is the *does no harm* number, and the
  * suite asserts it. Against `route-corpus.json`, which ships beside this test because only a domain
  * author can write it, the guard must catch what it claims to.
  */

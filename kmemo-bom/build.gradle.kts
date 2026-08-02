@@ -32,7 +32,7 @@ mavenPublishing {
     pom {
         name.set("Kmemo BOM")
         description.set(
-            "Bill of Materials for Kmemo, the Kotlin Multiplatform semantic cache for LLM calls — pin " +
+            "Bill of Materials for Kmemo, the Kotlin Multiplatform semantic cache for LLM calls. Pin " +
                 "one version and depend on every kmemo module without repeating it.",
         )
         inceptionYear.set("2026")

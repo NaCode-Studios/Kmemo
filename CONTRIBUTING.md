@@ -12,7 +12,7 @@ Thanks for your interest in contributing.
 - Keep changes focused and covered by tests.
 - Follow the existing style (`.editorconfig`: 4-space indentation, 120-column lines, no wildcard
   imports). The build runs with `allWarningsAsErrors`, so a warning fails CI.
-- If you change the public API, run `./gradlew apiDump` and commit the updated `*.api` and `*.klib.api` files — CI
+- If you change the public API, run `./gradlew apiDump` and commit the updated `*.api` and `*.klib.api` files. CI
   runs `apiCheck` and will fail on an untracked API change.
 - Add an entry under `[Unreleased]` in `CHANGELOG.md`.
 

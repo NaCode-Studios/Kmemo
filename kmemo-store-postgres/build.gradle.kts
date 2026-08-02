@@ -53,7 +53,7 @@ mavenPublishing {
         name.set("Kmemo Postgres store")
         description.set(
             "A JVM-only Postgres (pgvector) CacheStore for Kmemo, the Kotlin Multiplatform semantic " +
-                "cache for LLM calls — a durable, one-dependency semantic cache over JDBC with pgvector " +
+                "cache for LLM calls. A durable, one-dependency semantic cache over JDBC with pgvector " +
                 "nearest-neighbour search.",
         )
         inceptionYear.set("2026")

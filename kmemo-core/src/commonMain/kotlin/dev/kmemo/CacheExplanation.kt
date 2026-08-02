@@ -45,7 +45,7 @@ public class CacheExplanation(
             if (candidates.isEmpty()) return MissReason.EMPTY_SCOPE
             if (candidates.any { it.wouldServe }) return null
             // The nearest candidate that cleared the threshold is the one a lookup would have refused
-            // first, and a lookup reports the first refusal — so its own reason is the answer, not
+            // first, and a lookup reports the first refusal, so its own reason is the answer, not
             // whichever reason happens to appear anywhere in the list.
             val refused = candidates.firstOrNull { it.aboveThreshold } ?: return MissReason.BELOW_THRESHOLD
             return if (refused.embedderMatches) MissReason.REJECTED_BY_GUARD else MissReason.EMBEDDER_MISMATCH

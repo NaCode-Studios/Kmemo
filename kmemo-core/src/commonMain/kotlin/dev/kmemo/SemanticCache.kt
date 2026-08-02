@@ -224,7 +224,7 @@ public class SemanticCache(
      *
      * Read once, here, rather than on each lookup. [Embedder.identity] is documented as stable for the
      * lifetime of the cache, and consulting it per lookup would let an implementation change the
-     * answer halfway through — turning the one check that exists to make a swap loud into a source of
+     * answer halfway through, turning the one check that exists to make a swap loud into a source of
      * intermittent misses nobody could reproduce.
      */
     private val embedderIdentity: String = embedder.identity
@@ -550,7 +550,7 @@ public class SemanticCache(
      * Every chat interface in production streams, because a first token at 300 ms is the difference
      * between a product that feels alive and one that does not. Without this a streaming team either
      * cannot put a cache on that path at all, or has to buffer the whole response before showing any
-     * of it — which spends the latency they were streaming for and makes every miss slower than no
+     * of it, which spends the latency they were streaming for and makes every miss slower than no
      * cache.
      *
      * **Two rules make it safe rather than merely useful, and neither is configurable.**
@@ -562,9 +562,9 @@ public class SemanticCache(
      * decision is made.
      *
      * And a stream that fails partway is **not written**. The entry is stored only when the upstream
-     * flow completes normally, so a truncated answer never becomes a cache entry — which would be
-     * worse than no entry at all, because it would be served confidently to everyone who asked that
-     * question afterwards and would look exactly like a complete one. Cancellation counts as failure
+     * flow completes normally, so a truncated answer never becomes a cache entry. That would be worse
+     * than no entry at all, because it would be served confidently to everyone who asked that question
+     * afterwards and would look exactly like a complete one. Cancellation counts as failure
      * here for the same reason.
      *
      * **On a hit** the answer is replayed according to [replay], which defaults to the original chunk
@@ -907,7 +907,7 @@ public class SemanticCache(
         for (scored in candidateOrder.considered(embedding, found, thresholdFor(scope))) {
             // Ahead of the guards, and ahead of anything treating this similarity as information. Two
             // embedding models do not share a vector space, so a score computed across them is not a
-            // weak signal, it is not a signal — and a guard verdict on such a pair would be a real
+            // weak signal, it is not a signal, and a guard verdict on such a pair would be a real
             // answer to a question nobody asked. The loop continues rather than returning, so a store
             // part-way through a re-embedding still serves the entries that have been rewritten.
             if (scored.entry.embedder != embedderIdentity) {
@@ -979,7 +979,7 @@ public class SemanticCache(
                     refusal.guardName?.let { guardRejectionCountersByName[it]?.addAndFetch(1) }
                 }
                 // Already counted the moment it was met, and counted per lookup rather than per
-                // reported reason — a lookup that refused a stale entry and then served the next one
+                // reported reason. A lookup that refused a stale entry and then served the next one
                 // still met one.
                 MissReason.EMBEDDER_MISMATCH -> Unit
                 else -> verifierRejectionCount.addAndFetch(1)

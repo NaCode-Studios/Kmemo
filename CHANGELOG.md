@@ -17,7 +17,7 @@ Tier 8: independent proof, and the path onto a production request.
   somebody deciding whether to trust this cache: the same person wrote the pairs and the guards, so
   they test the near misses that were *thought of* rather than the near misses that *exist*.
   A fourth split answers it. **PAWS** (Paraphrase Adversaries from Word Scrambling), Wiki
-  `labeled_final`, **test** split — 8,000 pairs built by Google Research in 2019 to measure whether a
+  `labeled_final`, **test** split. 8,000 pairs built by Google Research in 2019 to measure whether a
   model can separate a paraphrase from a near-paraphrase when word overlap is deliberately high, which
   is the one case a similarity threshold cannot handle and the case every guard here was built for, by
   people who had never heard of this library.
@@ -26,7 +26,7 @@ Tier 8: independent proof, and the path onto a production request.
   of 3,536 paraphrases kept (79%) against 88%. Two things explain the gap and neither shrinks it. A
   corpus built to defeat lexical overlap is harder than one written from realistic traffic, which is
   what PAWS is for. And the register does not match: PAWS pairs are declarative Wikipedia sentences
-  where the guards read prompts, which shows in the breakdown — `substitution` alone rejects 498
+  where the guards read prompts, which shows in the breakdown: `substitution` alone rejects 498
   paraphrases here against 2 on validation. A lower figure from a harder source is worth more than
   another figure from the same source.
   The data is **fetched, never vendored** (`tools/external-corpus/fetch.py`), so the licence stays with
@@ -36,7 +36,7 @@ Tier 8: independent proof, and the path onto a production request.
   absent is a failure, because a floor nobody notices has stopped running is not a floor.
 - **The embedder's identity as part of the key (M25).** An entry stored a vector and the prompt that
   produced it, and nothing about *what* produced the vector. Swap the embedding model for another with
-  the same dimension count — which most upgrades inside a provider's family are — and every entry
+  the same dimension count, which most upgrades inside a provider's family are, and every entry
   written by the old model was still searched, still scored and still served. The two models do not
   share a space, so those similarities meant nothing, and a meaningless number near a threshold is
   precisely the condition that produces a false hit. No error, nothing in the logs.
@@ -47,13 +47,13 @@ Tier 8: independent proof, and the path onto a production request.
   rather than a wildcard: a caller who declares nothing sits on both sides of the check and behaves
   exactly as before. `PostgresStore` and `RedisStore` persist it; rows written earlier read as
   `undeclared`, which is the record they actually have. `docs/MIGRATION.md` names the two ways through
-  an existing store — re-embed, or put the model in the scope.
+  an existing store: re-embed, or put the model in the scope.
 - **Streaming responses, cached and replayed (M26).** `getOrPutStreaming` already forwarded a stream
   and cached its text, but a hit replayed that text as a single element, so the cache could sit on a
   streaming path without ever streaming back. `CacheEntry.chunkLengths` records the boundaries an
   answer arrived in and a hit replays those chunks. `StreamReplay` makes the timing decision explicit:
   `AS_STREAMED` (the default) emits the recorded chunks with no delay, `WHOLE` is the `2.0` behaviour.
-  There is deliberately **no** option reproducing the original pacing — that would mean storing how
+  There is deliberately **no** option reproducing the original pacing. That would mean storing how
   long one model call took on one network on one day and then sleeping through it to make a cache hit
   look like the thing it replaced.
   The two rules that make the path safe are unchanged and now have tests naming them: every decision
@@ -68,11 +68,11 @@ Tier 8: independent proof, and the path onto a production request.
   The module is **published**, which is the answer to the question the milestone posed about how it
   should ship: a guard author adds one test dependency, subclasses `MatchGuardContract`, and gets back
   the same confusion matrix this project reports for its own guards. Six properties, each documented
-  with what it exists to catch — deterministic, total, reflexive, a reason on every rejection, a stable
+  with what it exists to catch: deterministic, total, reflexive, a reason on every rejection, a stable
   name, no false rejections on ordinary English. Symmetry is deliberately not among them: a directional
   guard is legitimate, `subspan` is one, so disagreements are counted and reported rather than failed.
   The three shipped corpora are general English, so a domain guard catches nothing in them and that is
-  the correct result — they are how an author shows the guard does *no harm*. Whether it does any good
+  the correct result, because they are how an author shows the guard does *no harm*. Whether it does any good
   is a number only the author's own corpus produces, and the suite takes one.
   `RouteOfAdministrationGuard` in `examples/` is the worked case, living outside `kmemo-core`: same
   drug, same dose, oral against intravenous, every word overlapping and the answers half an hour apart.

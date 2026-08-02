@@ -27,7 +27,7 @@ public class GuardPair(
 /**
  * A labelled set of prompt pairs a guard can be measured against.
  *
- * Build one from your own domain — that is the point, and it is the half of the measurement this
+ * Build one from your own domain. That is the point, and it is the half of the measurement this
  * library cannot do for you. The three corpora shipped here are general English; a guard about
  * dosages, jurisdictions or settlement dates will find nothing in them, which is the *right* result
  * and is exactly what makes them useful: they are how you show your guard does no harm outside its

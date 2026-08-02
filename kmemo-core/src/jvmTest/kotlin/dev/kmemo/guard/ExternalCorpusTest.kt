@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
- * M24 — the guards measured on pairs this repository did not write.
+ * M24: the guards measured on pairs this repository did not write.
  *
  * `docs/CORPUS.md` is careful about how the three internal splits grow and about which one a guard may
  * be fitted to, and that discipline holds. What it cannot answer is the objection that matters most to
@@ -22,14 +22,14 @@ import kotlin.test.fail
  *
  * This split answers it. PAWS was built by Google Research in 2019, four years before kmemo, to
  * measure whether a model can tell a paraphrase from a near-paraphrase when word overlap is
- * deliberately high — which is the one case a similarity threshold cannot separate and the case every
+ * deliberately high, which is the one case a similarity threshold cannot separate and the case every
  * guard here was built for. Nobody involved had heard of this library.
  *
  * It sits under the validation split's rule and one stricter clause: **no guard may ever be tuned
  * against it, and no failure from it may be read while editing one.** The moment a pair from here
  * guides a fix, the only fully independent number this project has stops being independent.
  *
- * The data is fetched rather than vendored, so the licence stays with the dataset — see
+ * The data is fetched rather than vendored, so the licence stays with the dataset. See
  * `tools/external-corpus/README.md`. Absent, this test says so and skips; in CI, where
  * `-PexternalCorpusRequired=true` is set, absent is a failure. A floor nobody notices has stopped
  * running is not a floor.
@@ -56,7 +56,7 @@ class ExternalCorpusTest {
         )
     }
 
-    /** Not an assertion — the report the README quotes beside the three internal ones. */
+    /** Not an assertion: the report the README quotes beside the three internal ones. */
     @Test
     fun `print the external corpus report`() {
         val pairs = externalPairs() ?: return
@@ -70,7 +70,7 @@ class ExternalCorpusTest {
         println(
             String.format(
                 Locale.ROOT,
-                "external  corpus: %d pairs — near misses rejected %d/%d (%.0f%%), " +
+                "external  corpus: %d pairs, near misses rejected %d/%d (%.0f%%), " +
                     "paraphrases kept %d/%d (%.0f%%)",
                 pairs.size,
                 caught, nearMisses.size, 100.0 * caught / nearMisses.size,
@@ -101,7 +101,7 @@ class ExternalCorpusTest {
      *
      * The two branches are the whole point. A developer who has never run the fetch script gets a
      * skip and a sentence telling them how; CI gets a failure, because a floor that silently stops
-     * being enforced is worse than no floor — it reads as a passing gate.
+     * being enforced is worse than no floor, because it reads as a passing gate.
      */
     private fun externalPairs(): List<CorpusPair>? {
         val path = System.getProperty(PATH_PROPERTY)
@@ -113,7 +113,7 @@ class ExternalCorpusTest {
             if (required) {
                 fail(
                     "the external corpus is required here and is not at $where. Run " +
-                        "tools/external-corpus/fetch.py — see its README. A floor nobody notices has " +
+                        "tools/external-corpus/fetch.py, and see its README. A floor nobody notices has " +
                         "stopped running is not a floor.",
                 )
             }
@@ -146,8 +146,8 @@ class ExternalCorpusTest {
 
         // Measured against the pinned revision on the day this shipped: 647 of 4,464 near misses
         // rejected, 2,807 of 3,536 paraphrases kept. Set **at** the measurement rather than under it,
-        // because nothing here is stochastic — the guards are pure and the dataset is pinned to a
-        // commit — so any movement at all is a real change somebody should have to look at.
+        // because nothing here is stochastic. The guards are pure and the dataset is pinned to a
+        // commit, so any movement at all is a real change somebody should have to look at.
         //
         // These only ever move up. See docs/CORPUS.md: lowering a floor is erasing the regression it
         // exists to catch.
