@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Internal
+
+- The release workflow now publishes rather than uploading. Every module called
+  `publishToMavenCentral()` with no arguments, and the plugin's default is
+  `automaticRelease = false`, so the job uploaded the bundle to the Central Portal as `USER_MANAGED`
+  and finished green while the version waited in a queue for somebody to press a button. `2.1.0` sat
+  there until it was released by hand. `automaticRelease = true` also turns on deployment validation,
+  which the plugin performs only when the release is automatic, so the build now waits for the
+  deployment to reach `PUBLISHED` or `FAILED` instead of ending at "uploaded". A release job that goes
+  green for something that has not happened is the same failure this project spends its corpus
+  discipline on.
+
 ## [2.1.0] - 2026-08-02
 
 Tier 8: independent proof, and the path onto a production request.

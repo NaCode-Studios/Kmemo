@@ -93,7 +93,13 @@ kotlin {
 // tests carry the quality bar until Kover catches up.)
 
 mavenPublishing {
-    publishToMavenCentral()
+    // `automaticRelease = true`, and it is not a preference. Without it the plugin uploads the bundle
+    // to the Central Portal as USER_MANAGED and stops, so the release job goes green while the version
+    // sits in a queue waiting for somebody to press a button, and nothing anywhere reports the
+    // difference. That is what happened to 2.1.0. It also turns on deployment validation, which the
+    // plugin only performs when the release is automatic: the build then waits for the deployment to
+    // reach PUBLISHED or FAILED instead of finishing at "uploaded".
+    publishToMavenCentral(automaticRelease = true)
 
     // Maven Central requires a javadoc jar, and the Dokka Javadoc plugin refuses to run on a
     // multiplatform project — it says so outright rather than producing something wrong, which is the
