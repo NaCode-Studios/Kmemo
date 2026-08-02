@@ -121,6 +121,12 @@ Tier 8: independent proof, and the path onto a production request.
 - CI installs Python and runs `tools/external-corpus/fetch.py` before the build, then passes
   `-PexternalCorpusRequired=true` to every Gradle invocation, which is the only place the external
   split's floor is actually enforced.
+- The em dashes are gone from the prose. The house register allowed them freely and that was the wrong
+  call for a portfolio repository: a run of them is one of the more reliable tells of generated text,
+  and these files are read by people looking for exactly that. Each one was rewritten rather than
+  swapped for a comma. The pass covered `README.md`, `STABILITY.md`, `CONTRIBUTING.md`, `docs/` and,
+  in this release, the new KDoc and all twelve POM descriptions. The one that stays is the README's
+  `Status` label, where the dash is punctuation in a heading rather than a pause in a sentence.
 
 ## [2.0.0] - 2026-07-31
 
@@ -653,7 +659,7 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
 - Published to Maven Central and GitHub Packages under `io.github.nacode-studios` (package
   `dev.kmemo`), with the public API tracked by binary-compatibility-validator (`./gradlew apiCheck`).
 
-[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v2.1.0...HEAD
 [2.1.0]: https://github.com/NaCode-Studios/Kmemo/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/NaCode-Studios/Kmemo/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/NaCode-Studios/Kmemo/compare/v1.0.0...v1.1.0
