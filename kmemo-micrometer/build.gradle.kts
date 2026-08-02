@@ -44,9 +44,9 @@ mavenPublishing {
     pom {
         name.set("Kmemo Micrometer metrics")
         description.set(
-            "Micrometer MeterBinder for Kmemo, the semantic cache for LLM calls on Kotlin/JVM — hit rate, " +
-                "per-reason and per-guard miss counters, and embed/search/verify latency, in the registry " +
-                "your app already runs.",
+            "A JVM-only Micrometer MeterBinder for Kmemo, the Kotlin Multiplatform semantic cache for " +
+                "LLM calls — hit rate, per-reason and per-guard miss counters, and embed/search/verify " +
+                "latency, in the registry your app already runs.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

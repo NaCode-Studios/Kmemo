@@ -49,8 +49,9 @@ mavenPublishing {
     pom {
         name.set("Kmemo Redis store")
         description.set(
-            "Redis (RediSearch) CacheStore for Kmemo, the semantic cache for LLM calls on Kotlin/JVM — " +
-                "cross-process vector search via FT.SEARCH KNN, on a Lettuce coroutine client.",
+            "A JVM-only Redis (RediSearch) CacheStore for Kmemo, the Kotlin Multiplatform semantic cache " +
+                "for LLM calls — cross-process vector search via FT.SEARCH KNN, on a Lettuce coroutine " +
+                "client.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

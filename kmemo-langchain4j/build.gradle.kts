@@ -44,8 +44,8 @@ mavenPublishing {
     pom {
         name.set("Kmemo LangChain4j integration")
         description.set(
-            "A caching ChatModel wrapper for LangChain4j, backed by Kmemo — the semantic cache for LLM " +
-                "calls on Kotlin/JVM, with guards against false cache hits.",
+            "A JVM-only caching ChatModel wrapper for LangChain4j, backed by Kmemo — the Kotlin " +
+                "Multiplatform semantic cache for LLM calls, with guards against false cache hits.",
         )
         inceptionYear.set("2026")
         url.set("https://github.com/NaCode-Studios/Kmemo")

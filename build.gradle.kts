@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
 plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false
@@ -42,6 +45,100 @@ subprojects {
         tasks.named("check") { dependsOn(tasks.named("detekt")) }
     }
     }
+
+    // The POM description is the sentence Maven Central and klibs.io show a stranger before they see
+    // anything else, and nothing in the build read it until 2.1.0 — which is how `kmemo-core:2.0.0`
+    // shipped "on Kotlin/JVM" on the release that made the core multiplatform, beside a
+    // `kotlin-tooling-metadata.json` from the same build listing iOS, Linux and Wasm. A claim nothing
+    // verifies goes stale exactly that way, so the claim is verified here.
+    plugins.withId("com.vanniktech.maven.publish") {
+        val check = tasks.register<PomPlatformCheck>("checkPomPlatforms")
+        // The targets are declared by the module's own `kotlin { }` block, which has not run when the
+        // publish plugin is applied — so the values are read once evaluation is finished.
+        afterEvaluate {
+            check.configure {
+                module.set(project.name)
+                descriptions.set(
+                    project.extensions.getByType<PublishingExtension>().publications
+                        .withType(MavenPublication::class.java)
+                        .mapNotNull { it.pom.description.orNull }
+                        .distinct(),
+                )
+                nativeTargets.set(
+                    (project.extensions.findByName("kotlin") as? KotlinMultiplatformExtension)
+                        ?.targets.orEmpty()
+                        .filterIsInstance<KotlinNativeTarget>()
+                        .map { it.name }
+                        .sorted(),
+                )
+                jvmModule.set(project.plugins.hasPlugin("org.jetbrains.kotlin.jvm"))
+            }
+        }
+        tasks.named("check") { dependsOn(check) }
+    }
+}
+
+/**
+ * Holds every published module's POM description to what that module actually builds for.
+ *
+ * Two rules, in opposite directions, because the mistake can be made either way. A module that
+ * publishes native targets may not describe itself as JVM-only: that is the `2.0.0` failure, and it
+ * understated the library on the one surface a stranger meets first. A module that publishes for the
+ * JVM alone must say so: an adapter that wraps a JDBC driver or a Spring context runs nowhere else,
+ * and letting it inherit the library's "Multiplatform" sentence would overstate it just as quietly.
+ *
+ * The BOM is subject to neither: it is a `java-platform` with no Kotlin targets at all, so it has no
+ * platform of its own to name.
+ */
+abstract class PomPlatformCheck : DefaultTask() {
+
+    @get:Input
+    abstract val module: Property<String>
+
+    /** Every distinct description the module's publications carry. Normally one. */
+    @get:Input
+    abstract val descriptions: ListProperty<String>
+
+    /** The module's Kotlin/Native target names, empty for a JVM-only or non-Kotlin module. */
+    @get:Input
+    abstract val nativeTargets: ListProperty<String>
+
+    /** True when the module applies the Kotlin JVM plugin, which is what makes rule two apply. */
+    @get:Input
+    abstract val jvmModule: Property<Boolean>
+
+    init {
+        group = "verification"
+        description = "Fails when a module's POM description misstates the platforms it publishes for."
+    }
+
+    @TaskAction
+    fun check() {
+        val name = module.get()
+        val texts = descriptions.get()
+        require(texts.isNotEmpty()) { "$name publishes with no POM description; Maven Central requires one" }
+
+        val natives = nativeTargets.get()
+        for (text in texts) {
+            if (natives.isNotEmpty()) {
+                val claim = JVM_ONLY_CLAIMS.firstOrNull { text.contains(it, ignoreCase = true) }
+                check(claim == null) {
+                    "$name publishes ${natives.size} native targets (${natives.joinToString()}) and its " +
+                        "POM description calls it \"$claim\". Name the platforms it really supports.\n  $text"
+                }
+            } else if (jvmModule.get()) {
+                check(text.contains("JVM")) {
+                    "$name publishes for the JVM alone and its POM description never says so, so it " +
+                        "reads as if it ran everywhere the core does.\n  $text"
+                }
+            }
+        }
+    }
+
+    private companion object {
+        /** Phrases that assert the JVM is the whole story. A bare "JVM" in a platform list is not one. */
+        private val JVM_ONLY_CLAIMS = listOf("Kotlin/JVM", "JVM-only", "JVM only", "on the JVM")
+    }
 }
 
 apiValidation {
@@ -76,6 +173,7 @@ dependencies {
     dokka(project(":kmemo-spring-ai"))
     dokka(project(":kmemo-langchain4j"))
     dokka(project(":kmemo-ktor"))
+    dokka(project(":kmemo-guard-tck"))
 }
 
 // The Kotlin/JS toolchain resolves its own npm tooling, and three transitive packages carry advisories
