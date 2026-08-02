@@ -42,14 +42,31 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # The external split is fetched rather than committed, so the licence stays with the dataset —
+      # see tools/external-corpus/README.md. This job is the one place its floor is actually enforced,
+      # which is why every gradle call below passes -PexternalCorpusRequired=true: without the flag a
+      # missing file skips the test, and a floor nobody notices has stopped running is not a floor.
+      - name: Fetch the external corpus split
+        run: |
+          python -m pip install -r tools/external-corpus/requirements.txt
+          python tools/external-corpus/fetch.py
+
       # `build` runs the tests, the public-API check, ktlint and detekt.
       - name: Build, test, lint and verify public API
-        run: ./gradlew build --no-daemon --stacktrace
+        run: ./gradlew build -PexternalCorpusRequired=true --no-daemon --stacktrace
 
       # The corpus report is this project's headline claim. Keeping it in the build log means the
       # numbers in the README can always be checked against a real run.
-      - name: Corpus report (tuned and held-out)
-        run: ./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*' --rerun-tasks --no-daemon
+      - name: Corpus report (four splits)
+        run: >-
+          ./gradlew :kmemo-core:jvmTest
+          --tests '*CorpusTest*' --tests '*ExternalCorpusTest*'
+          -PexternalCorpusRequired=true --rerun-tasks --no-daemon
 
       - name: Upload test reports
         if: failure()

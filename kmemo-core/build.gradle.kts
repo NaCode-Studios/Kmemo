@@ -23,6 +23,19 @@ kotlin {
         testRuns.named("test") {
             executionTask.configure {
                 useJUnitPlatform()
+                // The external split (M24) is fetched, never committed: the licence stays with the
+                // dataset. The test finds it here, skips with a sentence when it is absent, and fails
+                // when `-PexternalCorpusRequired=true` says absence is not acceptable — which is what
+                // CI passes, because a floor nobody notices has stopped running is not a floor.
+                systemProperty(
+                    "kmemo.externalCorpus",
+                    rootProject.layout.buildDirectory
+                        .file("external-corpus/paws-wiki-test.json").get().asFile.path,
+                )
+                systemProperty(
+                    "kmemo.externalCorpus.required",
+                    providers.gradleProperty("externalCorpusRequired").getOrElse("false"),
+                )
                 testLogging {
                     events("passed", "skipped", "failed")
                     exceptionFormat = TestExceptionFormat.FULL
