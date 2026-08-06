@@ -14,7 +14,7 @@ logback = "1.6.1"
 jmh = "0.7.3"
 springBoot = "4.1.0"
 springAi = "2.0.0"
-langchain4j = "1.18.0"
+langchain4j = "1.18.1"
 ktor = "3.5.2"
 
 [libraries]
