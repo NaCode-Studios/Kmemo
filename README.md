@@ -380,6 +380,48 @@ indistinguishable from a miss. Kmemo ships the seam and no detector, for the sam
 `Verifier` are seams. Isolation *between* tenants is a different problem and is already `scope`, which
 the store TCK has enforced on every store since M4.
 
+### What is worth caching
+
+A different question, and `CachePolicy` cannot answer it: it decides on the content of one prompt and
+one response, never on whether that prompt has ever been seen before. In front of real traffic most
+prompts are asked once and never again, so every miss writing means the store fills with entries that
+will never be hit, `search` scans them, and on the exact-scan stores that cost is linear in the store
+size and lands on every request rather than on the ones that caused it.
+
+`AdmissionPolicy` makes a prompt earn its place. It keeps a fixed-size frequency sketch of what has been
+asked and stores an answer on the second sighting of the exact prompt rather than the first. Off by
+default:
+
+```kotlin
+val cache = semanticCache(embedder) {
+    admissionPolicy = AdmissionPolicy()   // admit on the first repeat
+}
+```
+
+It is a trade and here is the size of it. 20,000 requests over 4,000 distinct prompts drawn Zipf(s=1.0)
+over rank, exact repeats only, one entry per distinct prompt and no eviction:
+
+| Policy | Hit rate | Store size | Writes held back |
+| --- | --- | --- | --- |
+| none (the default) | 85.2% | 2,965 | 0 |
+| admit on the 2nd sighting | 76.1% | 1,907 | 2,883 |
+| admit on the 3rd | 70.2% | 1,224 | 4,738 |
+
+A third off the store for nine points of hit rate, or three fifths off for fifteen. Which of those is
+worth it depends on what your store costs and how flat your traffic is, and on a flatter distribution
+than this one it is worth less.
+
+Two things it will not do. It can only ever suppress a **write**, never a lookup, so a bad admission
+decision costs one future miss and cannot produce a wrong answer. And the sketch is keyed on the exact
+prompt text within a scope, never on similarity: a frequency estimate that counted two different
+questions as one would be the false hit this library exists to prevent, arriving through the write path.
+It does not apply to `put` or `warm`, which are a caller saying "store this" rather than traffic
+arriving.
+
+```bash
+./gradlew :kmemo-core:jvmTest --tests '*AdmissionPolicyTest*'
+```
+
 ### Verifying what lexical guards cannot see
 
 About a third of near misses get past the guards on the blind splits: 25 of 86 on held-out, 33 of 102 on

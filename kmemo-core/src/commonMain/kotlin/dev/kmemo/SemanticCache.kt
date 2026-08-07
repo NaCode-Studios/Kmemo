@@ -6,6 +6,7 @@ import dev.kmemo.guard.GuardVerdict
 import dev.kmemo.guard.MatchGuard
 import dev.kmemo.guard.MatchGuards
 import dev.kmemo.internal.CandidateOrder
+import dev.kmemo.internal.CountMinSketch
 import dev.kmemo.internal.ExactCache
 import dev.kmemo.internal.GuardChain
 import dev.kmemo.internal.Ids
@@ -140,6 +141,12 @@ import kotlin.time.TimeSource
  *   adaptation lowers the threshold as well as raising it, and the only thing that makes lowering safe
  *   is something above the threshold that can tell a right answer from a wrong one. Pass the same object
  *   in [listeners] so it can see the outcomes it adapts on. See [AdaptiveThresholds].
+ * @param admissionPolicy when non-null, makes a prompt earn its place before its answer is stored:
+ *   entries are written on the second sighting of the exact prompt rather than the first, so a store in
+ *   front of real traffic stops filling with questions asked once at three in the morning. Off by
+ *   default. It can only ever suppress a **write**, never a lookup, so a wrong decision costs a future
+ *   miss and nothing else. Applies to the write that follows a miss, not to [put] or [warm]. See
+ *   [AdmissionPolicy] for what it costs in hit rate.
  * @param prices what a model call costs, per scope, so the cache can report what its hits saved rather
  *   than leaving a hit count to be multiplied by an average nobody has. Empty by default and empty is
  *   honest: this library ships no table of provider prices, because one would be wrong the month after
@@ -198,6 +205,7 @@ public class SemanticCache(
     private val deduplicateWrites: Double? = null,
     private val adaptiveThresholds: AdaptiveThresholds? = null,
     private val prices: Map<String, TokenPrices> = emptyMap(),
+    private val admissionPolicy: AdmissionPolicy? = null,
 ) {
 
     init {
@@ -256,6 +264,11 @@ public class SemanticCache(
     // In-flight streaming misses, one entry per (scope, prompt) somebody is currently streaming.
     private val streams = StreamCoalescer()
 
+    // Null unless admission is turned on; the hot path checks it with a single null test.
+    private val sightings: CountMinSketch? = admissionPolicy?.let {
+        CountMinSketch(it.sketchWidth, it.sketchDepth, it.resetAfter)
+    }
+
     // Null unless negative caching is turned on; the hot path checks it with a single null test.
     private val negativeCache: NegativeCache? =
         if (negativeCacheSize > 0) NegativeCache(negativeCacheSize, negativeCacheTtl, clock) else null
@@ -303,6 +316,7 @@ public class SemanticCache(
     private val writeVetoCount = AtomicLong(0)
     private val exactHitCount = AtomicLong(0)
     private val embedderMismatchCount = AtomicLong(0)
+    private val writeNotAdmittedCount = AtomicLong(0)
 
     // One counter per guard, fixed at construction so no entry is ever inserted concurrently — the
     // hot path only ever does an atomic increment on a key that already exists. Guards that share a
@@ -724,7 +738,10 @@ public class SemanticCache(
                 }
                 // Reached only when the upstream flow completed without throwing (and was not
                 // cancelled): a partial stream must never be cached as if it were the whole answer.
-                put(prompt, assembled.toString(), scope, metadata, embedding, chunkLengths = lengths)
+                put(
+                    prompt, assembled.toString(), scope, metadata, embedding,
+                    chunkLengths = lengths, subjectToAdmission = true,
+                )
             }
         }
 
@@ -781,7 +798,10 @@ public class SemanticCache(
                 if (chunk.isNotEmpty()) lengths += chunk.length
                 shared.append(chunk)
             }
-            put(prompt, assembled.toString(), scope, metadata, embedding, chunkLengths = lengths)
+            put(
+                prompt, assembled.toString(), scope, metadata, embedding,
+                chunkLengths = lengths, subjectToAdmission = true,
+            )
             shared.complete()
         } catch (e: Throwable) {
             // Under NonCancellable because the commonest way to get here is the last collector leaving,
@@ -924,6 +944,7 @@ public class SemanticCache(
             exactHits = exactHitCount.load(),
             embedderMismatches = embedderMismatchCount.load(),
             savings = savingsByScope.mapValues { it.value.snapshot() },
+            writesNotAdmitted = writeNotAdmittedCount.load(),
         )
     }
 
@@ -1049,6 +1070,11 @@ public class SemanticCache(
         // after waiting. Counting it a second time reported more misses than there were calls and
         // halved the hit rate of the very workload coalescing exists to improve.
         if (counted) lookupCount.addAndFetch(1)
+
+        // The sighting is recorded here, on the lookup, and read later on the write. Recording it at
+        // write time instead would count each prompt once however often it was asked, which is the one
+        // thing a frequency estimate must not do.
+        if (counted) sightings?.addAndEstimate(sightingKey(scope, prompt))
 
         // Timings are only ever measured on the observed, counted path; nanoTime is cheap but not free,
         // and the coalescing re-check must not double-count a stage it did not run.
@@ -1316,8 +1342,10 @@ public class SemanticCache(
         embedding: FloatArray,
         tags: Set<String> = emptySet(),
         chunkLengths: List<Int> = emptyList(),
+        subjectToAdmission: Boolean = false,
     ): String {
         val entry = buildEntry(prompt, response, scope, metadata, embedding, tags, chunkLengths)
+        if (subjectToAdmission && !admits(entry)) return entry.id
         putEntry(entry)
         return entry.id
     }
@@ -1378,11 +1406,35 @@ public class SemanticCache(
      * Routes a write through the write-behind queue when it is on, or straight to the store when it is
      * off. If the queue is full the write falls through synchronously rather than being dropped or
      * blocking the caller indefinitely, so no write is ever lost.
+     *
+     * Admission is decided **here**, before the queue rather than inside the worker. The queue carries
+     * entries and nothing else, so a flag put into it would have to be carried through the channel; and
+     * a decision taken on the worker would be taken against a sketch that has moved on since the lookup
+     * that triggered it.
      */
     private suspend fun enqueueOrPut(entry: CacheEntry) {
+        if (!admits(entry)) return
         val channel = writeChannel ?: run { putEntry(entry); return }
         if (channel.trySend(entry).isFailure) putEntry(entry)
     }
+
+    /**
+     * Whether [entry]'s prompt has been asked often enough to be worth storing.
+     *
+     * Always true when no [AdmissionPolicy] is configured, which is the default. Refusing here is not a
+     * failure and not a veto: the call that produced the response returned it, and the only cost is
+     * that the next caller asking the same thing misses too. That asymmetry is what makes the whole
+     * mechanism safe, and it is why admission may never be consulted on the read path.
+     */
+    private suspend fun admits(entry: CacheEntry): Boolean {
+        val policy = admissionPolicy ?: return true
+        val sketch = sightings ?: return true
+        if (sketch.estimate(sightingKey(entry.scope, entry.prompt)) >= policy.minSightings) return true
+        writeNotAdmittedCount.addAndFetch(1)
+        return false
+    }
+
+    private fun sightingKey(scope: String, prompt: String): String = "$scope $prompt"
 
     /**
      * Seeds the cache with known prompt/response pairs, embedding them in **one batch call** where the

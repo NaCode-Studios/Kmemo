@@ -88,6 +88,18 @@ public data class CacheStats(
      * assumption.
      */
     public val savings: Map<String, Savings> = emptyMap(),
+    /**
+     * Writes an [AdmissionPolicy] held back because the prompt had not been asked often enough yet.
+     *
+     * Not a failure, not a miss and not a [writesVetoed]: the call returned its response and the cache
+     * decided the question was not worth a slot yet. Stays `0` without an admission policy, which is
+     * the default.
+     *
+     * There is deliberately no [CacheEvent] for this. `CacheEvent` is a sealed interface, so a new
+     * subtype would break every exhaustive `when` over it, and that is a source break `2.x` does not
+     * take for a counter that can be read from here.
+     */
+    public val writesNotAdmitted: Long = 0,
 ) {
     /** Fraction of lookups served from cache, in `[0.0, 1.0]`. `0.0` when nothing has been looked up. */
     public val hitRate: Double

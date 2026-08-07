@@ -103,6 +103,9 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
      */
     public var prices: MutableMap<String, TokenPrices> = mutableMapOf()
 
+    /** @see SemanticCache */
+    public var admissionPolicy: AdmissionPolicy? = null
+
     /** Constructs the [SemanticCache] from the current settings. */
     public fun build(): SemanticCache = SemanticCache(
         embedder = embedder,
@@ -129,6 +132,7 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
         deduplicateWrites = deduplicateWrites,
         adaptiveThresholds = adaptiveThresholds,
         prices = prices.toMap(),
+        admissionPolicy = admissionPolicy,
     )
 }
 

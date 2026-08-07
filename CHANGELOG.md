@@ -79,9 +79,37 @@ All notable changes to this project are documented here. The format follows
   carry no token counts are reported as `hitsMissingTokenCounts` next to the amount, since that is the
   one way the figure can be quietly wrong and a total that is too small should say why.
 
+- **`AdmissionPolicy`, opt-in and off by default (M32).** Every miss wrote. That is the right default
+  for a cache being filled deliberately and the wrong one for a cache in front of real traffic, where
+  most prompts are asked once and never again: the store fills with entries that will never be hit,
+  `search` scans them, and on the exact-scan stores the cost is linear in the store size and lands on
+  every request rather than on the ones that caused it. `CachePolicy` could not help, because it decides
+  on the content of one prompt and one response and answers "may this be stored", never "is this worth
+  storing".
+  The policy keeps a fixed-size count-min sketch of what has been asked, 64 KiB whatever the traffic,
+  and admits an entry on the second sighting of the exact prompt rather than the first. Counters halve
+  every 100,000 sightings so the estimate follows recent traffic instead of remembering a prompt asked
+  twice a year apart.
+  The measurement ships with it. On 20,000 requests over 4,000 distinct prompts drawn Zipf(s=1.0) over
+  rank, exact repeats only: hit rate 85.2% and 2,965 entries with no policy, 76.1% and 1,907 admitting
+  on the second sighting, 70.2% and 1,224 on the third. A third off the store for nine points of hit
+  rate, and it is worth less on a flatter distribution than this one.
+  Two constraints, both about what admission may look at. It can only ever suppress a **write**, never
+  a lookup, so a bad decision costs one future miss and can never produce a wrong answer. And the sketch
+  is keyed on exact prompt text within a scope, never on similarity, because a frequency estimate that
+  counted two different questions as one would be the false hit this library exists to prevent arriving
+  through the write path. It does not apply to `put` or `warm`, which are a caller saying "store this"
+  rather than traffic arriving, unlike `CachePolicy`, which covers every write path because a guarantee
+  with one path around it is not a guarantee.
+  Held-back writes are counted in `CacheStats.writesNotAdmitted`. There is deliberately no `CacheEvent`
+  for them: `CacheEvent` is a sealed interface, so a new subtype would break every exhaustive `when`
+  over it, and that is a source break the `2.x` line does not take for a counter that can be read from
+  `stats()`.
+
 ### Changed
 
-- `CacheStats` and `CacheEvent.Hit` gain fields (`savings`; `saved` and `currency`). Source compatible,
+- `CacheStats` and `CacheEvent.Hit` gain fields (`savings`, `writesNotAdmitted`; `saved` and
+  `currency`). Source compatible,
   and code compiled against `2.1.0` must be recompiled.
 - `SubstitutionGuard` takes a fourth constructor parameter, `maxTokens`, defaulting to `null`. Source
   compatible, and code compiled against `2.1.0` must be recompiled. `MatchGuards.standard()` is

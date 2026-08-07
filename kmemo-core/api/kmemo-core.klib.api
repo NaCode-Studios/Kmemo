@@ -697,6 +697,30 @@ final class dev.kmemo/AdaptiveThresholds : dev.kmemo/CacheListener { // dev.kmem
     final fun recommendations(): kotlin.collections/Map<kotlin/String, kotlin/Double> // dev.kmemo/AdaptiveThresholds.recommendations|recommendations(){}[0]
 }
 
+final class dev.kmemo/AdmissionPolicy { // dev.kmemo/AdmissionPolicy|null[0]
+    constructor <init>(kotlin/Int = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/Int = ...) // dev.kmemo/AdmissionPolicy.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+
+    final val minSightings // dev.kmemo/AdmissionPolicy.minSightings|{}minSightings[0]
+        final fun <get-minSightings>(): kotlin/Int // dev.kmemo/AdmissionPolicy.minSightings.<get-minSightings>|<get-minSightings>(){}[0]
+    final val resetAfter // dev.kmemo/AdmissionPolicy.resetAfter|{}resetAfter[0]
+        final fun <get-resetAfter>(): kotlin/Int // dev.kmemo/AdmissionPolicy.resetAfter.<get-resetAfter>|<get-resetAfter>(){}[0]
+    final val sketchDepth // dev.kmemo/AdmissionPolicy.sketchDepth|{}sketchDepth[0]
+        final fun <get-sketchDepth>(): kotlin/Int // dev.kmemo/AdmissionPolicy.sketchDepth.<get-sketchDepth>|<get-sketchDepth>(){}[0]
+    final val sketchWidth // dev.kmemo/AdmissionPolicy.sketchWidth|{}sketchWidth[0]
+        final fun <get-sketchWidth>(): kotlin/Int // dev.kmemo/AdmissionPolicy.sketchWidth.<get-sketchWidth>|<get-sketchWidth>(){}[0]
+
+    final object Companion { // dev.kmemo/AdmissionPolicy.Companion|null[0]
+        final const val DEFAULT_MIN_SIGHTINGS // dev.kmemo/AdmissionPolicy.Companion.DEFAULT_MIN_SIGHTINGS|{}DEFAULT_MIN_SIGHTINGS[0]
+            final fun <get-DEFAULT_MIN_SIGHTINGS>(): kotlin/Int // dev.kmemo/AdmissionPolicy.Companion.DEFAULT_MIN_SIGHTINGS.<get-DEFAULT_MIN_SIGHTINGS>|<get-DEFAULT_MIN_SIGHTINGS>(){}[0]
+        final const val DEFAULT_RESET_AFTER // dev.kmemo/AdmissionPolicy.Companion.DEFAULT_RESET_AFTER|{}DEFAULT_RESET_AFTER[0]
+            final fun <get-DEFAULT_RESET_AFTER>(): kotlin/Int // dev.kmemo/AdmissionPolicy.Companion.DEFAULT_RESET_AFTER.<get-DEFAULT_RESET_AFTER>|<get-DEFAULT_RESET_AFTER>(){}[0]
+        final const val DEFAULT_SKETCH_DEPTH // dev.kmemo/AdmissionPolicy.Companion.DEFAULT_SKETCH_DEPTH|{}DEFAULT_SKETCH_DEPTH[0]
+            final fun <get-DEFAULT_SKETCH_DEPTH>(): kotlin/Int // dev.kmemo/AdmissionPolicy.Companion.DEFAULT_SKETCH_DEPTH.<get-DEFAULT_SKETCH_DEPTH>|<get-DEFAULT_SKETCH_DEPTH>(){}[0]
+        final const val DEFAULT_SKETCH_WIDTH // dev.kmemo/AdmissionPolicy.Companion.DEFAULT_SKETCH_WIDTH|{}DEFAULT_SKETCH_WIDTH[0]
+            final fun <get-DEFAULT_SKETCH_WIDTH>(): kotlin/Int // dev.kmemo/AdmissionPolicy.Companion.DEFAULT_SKETCH_WIDTH.<get-DEFAULT_SKETCH_WIDTH>|<get-DEFAULT_SKETCH_WIDTH>(){}[0]
+    }
+}
+
 final class dev.kmemo/CacheEntry { // dev.kmemo/CacheEntry|null[0]
     constructor <init>(kotlin/String, kotlin/String, kotlin/String, kotlin/String, kotlin/FloatArray, kotlin.time/Instant, kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin.collections/Set<kotlin/String> = ..., kotlin/String = ..., kotlin.collections/List<kotlin/Int> = ...) // dev.kmemo/CacheEntry.<init>|<init>(kotlin.String;kotlin.String;kotlin.String;kotlin.String;kotlin.FloatArray;kotlin.time.Instant;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.collections.Set<kotlin.String>;kotlin.String;kotlin.collections.List<kotlin.Int>){}[0]
 
@@ -761,7 +785,7 @@ final class dev.kmemo/CacheExplanation { // dev.kmemo/CacheExplanation|null[0]
 }
 
 final class dev.kmemo/CacheStats { // dev.kmemo/CacheStats|null[0]
-    constructor <init>(kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin.collections/Map<kotlin/String, kotlin/Long> = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin.collections/Map<kotlin/String, dev.kmemo/Savings> = ...) // dev.kmemo/CacheStats.<init>|<init>(kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,kotlin.Long>;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,dev.kmemo.Savings>){}[0]
+    constructor <init>(kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin.collections/Map<kotlin/String, kotlin/Long> = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin.collections/Map<kotlin/String, dev.kmemo/Savings> = ..., kotlin/Long = ...) // dev.kmemo/CacheStats.<init>|<init>(kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,kotlin.Long>;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,dev.kmemo.Savings>;kotlin.Long){}[0]
 
     final val belowThreshold // dev.kmemo/CacheStats.belowThreshold|{}belowThreshold[0]
         final fun <get-belowThreshold>(): kotlin/Long // dev.kmemo/CacheStats.belowThreshold.<get-belowThreshold>|<get-belowThreshold>(){}[0]
@@ -791,6 +815,8 @@ final class dev.kmemo/CacheStats { // dev.kmemo/CacheStats|null[0]
         final fun <get-verifierRejections>(): kotlin/Long // dev.kmemo/CacheStats.verifierRejections.<get-verifierRejections>|<get-verifierRejections>(){}[0]
     final val writes // dev.kmemo/CacheStats.writes|{}writes[0]
         final fun <get-writes>(): kotlin/Long // dev.kmemo/CacheStats.writes.<get-writes>|<get-writes>(){}[0]
+    final val writesNotAdmitted // dev.kmemo/CacheStats.writesNotAdmitted|{}writesNotAdmitted[0]
+        final fun <get-writesNotAdmitted>(): kotlin/Long // dev.kmemo/CacheStats.writesNotAdmitted.<get-writesNotAdmitted>|<get-writesNotAdmitted>(){}[0]
     final val writesVetoed // dev.kmemo/CacheStats.writesVetoed|{}writesVetoed[0]
         final fun <get-writesVetoed>(): kotlin/Long // dev.kmemo/CacheStats.writesVetoed.<get-writesVetoed>|<get-writesVetoed>(){}[0]
 
@@ -799,6 +825,7 @@ final class dev.kmemo/CacheStats { // dev.kmemo/CacheStats|null[0]
     final fun component11(): kotlin/Long // dev.kmemo/CacheStats.component11|component11(){}[0]
     final fun component12(): kotlin/Long // dev.kmemo/CacheStats.component12|component12(){}[0]
     final fun component13(): kotlin.collections/Map<kotlin/String, dev.kmemo/Savings> // dev.kmemo/CacheStats.component13|component13(){}[0]
+    final fun component14(): kotlin/Long // dev.kmemo/CacheStats.component14|component14(){}[0]
     final fun component2(): kotlin/Long // dev.kmemo/CacheStats.component2|component2(){}[0]
     final fun component3(): kotlin/Long // dev.kmemo/CacheStats.component3|component3(){}[0]
     final fun component4(): kotlin/Long // dev.kmemo/CacheStats.component4|component4(){}[0]
@@ -807,7 +834,7 @@ final class dev.kmemo/CacheStats { // dev.kmemo/CacheStats|null[0]
     final fun component7(): kotlin/Long // dev.kmemo/CacheStats.component7|component7(){}[0]
     final fun component8(): kotlin.collections/Map<kotlin/String, kotlin/Long> // dev.kmemo/CacheStats.component8|component8(){}[0]
     final fun component9(): kotlin/Long // dev.kmemo/CacheStats.component9|component9(){}[0]
-    final fun copy(kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin.collections/Map<kotlin/String, kotlin/Long> = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin.collections/Map<kotlin/String, dev.kmemo/Savings> = ...): dev.kmemo/CacheStats // dev.kmemo/CacheStats.copy|copy(kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,kotlin.Long>;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,dev.kmemo.Savings>){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin.collections/Map<kotlin/String, kotlin/Long> = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin.collections/Map<kotlin/String, dev.kmemo/Savings> = ..., kotlin/Long = ...): dev.kmemo/CacheStats // dev.kmemo/CacheStats.copy|copy(kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,kotlin.Long>;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.collections.Map<kotlin.String,dev.kmemo.Savings>;kotlin.Long){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.kmemo/CacheStats.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.kmemo/CacheStats.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // dev.kmemo/CacheStats.toString|toString(){}[0]
@@ -931,7 +958,7 @@ final class dev.kmemo/ScoredEntry { // dev.kmemo/ScoredEntry|null[0]
 }
 
 final class dev.kmemo/SemanticCache { // dev.kmemo/SemanticCache|null[0]
-    constructor <init>(dev.kmemo/Embedder, dev.kmemo/CacheStore = ..., kotlin/Double = ..., kotlin.collections/List<dev.kmemo.guard/MatchGuard> = ..., dev.kmemo/Verifier? = ..., kotlin.time/Duration? = ..., kotlin/Int = ..., kotlin/Boolean = ..., dev.kmemo/EmbedFailurePolicy = ..., kotlin/Int = ..., kotlin.time/Duration? = ..., kotlin.collections/List<dev.kmemo/CacheListener> = ..., kotlinx.coroutines/CoroutineScope? = ..., kotlin/Int = ..., kotlin.time/Clock = ..., dev.kmemo/CachePolicy? = ..., kotlin/Int = ..., kotlin.time/Duration? = ..., kotlin.collections/Map<kotlin/String, kotlin/Double> = ..., kotlin.collections/List<kotlin/Double> = ..., dev.kmemo/CandidateReranker? = ..., kotlin/Double? = ..., dev.kmemo/AdaptiveThresholds? = ..., kotlin.collections/Map<kotlin/String, dev.kmemo/TokenPrices> = ...) // dev.kmemo/SemanticCache.<init>|<init>(dev.kmemo.Embedder;dev.kmemo.CacheStore;kotlin.Double;kotlin.collections.List<dev.kmemo.guard.MatchGuard>;dev.kmemo.Verifier?;kotlin.time.Duration?;kotlin.Int;kotlin.Boolean;dev.kmemo.EmbedFailurePolicy;kotlin.Int;kotlin.time.Duration?;kotlin.collections.List<dev.kmemo.CacheListener>;kotlinx.coroutines.CoroutineScope?;kotlin.Int;kotlin.time.Clock;dev.kmemo.CachePolicy?;kotlin.Int;kotlin.time.Duration?;kotlin.collections.Map<kotlin.String,kotlin.Double>;kotlin.collections.List<kotlin.Double>;dev.kmemo.CandidateReranker?;kotlin.Double?;dev.kmemo.AdaptiveThresholds?;kotlin.collections.Map<kotlin.String,dev.kmemo.TokenPrices>){}[0]
+    constructor <init>(dev.kmemo/Embedder, dev.kmemo/CacheStore = ..., kotlin/Double = ..., kotlin.collections/List<dev.kmemo.guard/MatchGuard> = ..., dev.kmemo/Verifier? = ..., kotlin.time/Duration? = ..., kotlin/Int = ..., kotlin/Boolean = ..., dev.kmemo/EmbedFailurePolicy = ..., kotlin/Int = ..., kotlin.time/Duration? = ..., kotlin.collections/List<dev.kmemo/CacheListener> = ..., kotlinx.coroutines/CoroutineScope? = ..., kotlin/Int = ..., kotlin.time/Clock = ..., dev.kmemo/CachePolicy? = ..., kotlin/Int = ..., kotlin.time/Duration? = ..., kotlin.collections/Map<kotlin/String, kotlin/Double> = ..., kotlin.collections/List<kotlin/Double> = ..., dev.kmemo/CandidateReranker? = ..., kotlin/Double? = ..., dev.kmemo/AdaptiveThresholds? = ..., kotlin.collections/Map<kotlin/String, dev.kmemo/TokenPrices> = ..., dev.kmemo/AdmissionPolicy? = ...) // dev.kmemo/SemanticCache.<init>|<init>(dev.kmemo.Embedder;dev.kmemo.CacheStore;kotlin.Double;kotlin.collections.List<dev.kmemo.guard.MatchGuard>;dev.kmemo.Verifier?;kotlin.time.Duration?;kotlin.Int;kotlin.Boolean;dev.kmemo.EmbedFailurePolicy;kotlin.Int;kotlin.time.Duration?;kotlin.collections.List<dev.kmemo.CacheListener>;kotlinx.coroutines.CoroutineScope?;kotlin.Int;kotlin.time.Clock;dev.kmemo.CachePolicy?;kotlin.Int;kotlin.time.Duration?;kotlin.collections.Map<kotlin.String,kotlin.Double>;kotlin.collections.List<kotlin.Double>;dev.kmemo.CandidateReranker?;kotlin.Double?;dev.kmemo.AdaptiveThresholds?;kotlin.collections.Map<kotlin.String,dev.kmemo.TokenPrices>;dev.kmemo.AdmissionPolicy?){}[0]
 
     final fun stats(): dev.kmemo/CacheStats // dev.kmemo/SemanticCache.stats|stats(){}[0]
     final suspend fun <#A1: kotlin/Any?> getOrPut(kotlin/String, dev.kmemo/ResponseCodec<#A1>, kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin.coroutines/SuspendFunction1<kotlin/String, #A1>): #A1 // dev.kmemo/SemanticCache.getOrPut|getOrPut(kotlin.String;dev.kmemo.ResponseCodec<0:0>;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.coroutines.SuspendFunction1<kotlin.String,0:0>){0§<kotlin.Any?>}[0]
@@ -968,6 +995,9 @@ final class dev.kmemo/SemanticCacheBuilder { // dev.kmemo/SemanticCacheBuilder|n
     final var adaptiveThresholds // dev.kmemo/SemanticCacheBuilder.adaptiveThresholds|{}adaptiveThresholds[0]
         final fun <get-adaptiveThresholds>(): dev.kmemo/AdaptiveThresholds? // dev.kmemo/SemanticCacheBuilder.adaptiveThresholds.<get-adaptiveThresholds>|<get-adaptiveThresholds>(){}[0]
         final fun <set-adaptiveThresholds>(dev.kmemo/AdaptiveThresholds?) // dev.kmemo/SemanticCacheBuilder.adaptiveThresholds.<set-adaptiveThresholds>|<set-adaptiveThresholds>(dev.kmemo.AdaptiveThresholds?){}[0]
+    final var admissionPolicy // dev.kmemo/SemanticCacheBuilder.admissionPolicy|{}admissionPolicy[0]
+        final fun <get-admissionPolicy>(): dev.kmemo/AdmissionPolicy? // dev.kmemo/SemanticCacheBuilder.admissionPolicy.<get-admissionPolicy>|<get-admissionPolicy>(){}[0]
+        final fun <set-admissionPolicy>(dev.kmemo/AdmissionPolicy?) // dev.kmemo/SemanticCacheBuilder.admissionPolicy.<set-admissionPolicy>|<set-admissionPolicy>(dev.kmemo.AdmissionPolicy?){}[0]
     final var cachePolicy // dev.kmemo/SemanticCacheBuilder.cachePolicy|{}cachePolicy[0]
         final fun <get-cachePolicy>(): dev.kmemo/CachePolicy? // dev.kmemo/SemanticCacheBuilder.cachePolicy.<get-cachePolicy>|<get-cachePolicy>(){}[0]
         final fun <set-cachePolicy>(dev.kmemo/CachePolicy?) // dev.kmemo/SemanticCacheBuilder.cachePolicy.<set-cachePolicy>|<set-cachePolicy>(dev.kmemo.CachePolicy?){}[0]
