@@ -106,6 +106,9 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
     /** @see SemanticCache */
     public var admissionPolicy: AdmissionPolicy? = null
 
+    /** @see SemanticCache */
+    public var requireTenant: Boolean = false
+
     /** Constructs the [SemanticCache] from the current settings. */
     public fun build(): SemanticCache = SemanticCache(
         embedder = embedder,
@@ -133,6 +136,7 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
         adaptiveThresholds = adaptiveThresholds,
         prices = prices.toMap(),
         admissionPolicy = admissionPolicy,
+        requireTenant = requireTenant,
     )
 }
 

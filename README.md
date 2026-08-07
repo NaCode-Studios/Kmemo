@@ -128,15 +128,29 @@ when (val result = cache.lookup(prompt)) {
 }
 ```
 
-### Scopes
+### Scopes and tenants
 
 Anything that changes what a correct answer looks like belongs in the scope: model, temperature, system
-prompt, tenant, language. Leave one out and the cache serves one model's answer to another model's
-caller.
+prompt, language. Leave one out and the cache serves one model's answer to another model's caller.
 
 ```kotlin
 cache.getOrPut(prompt, scope = "gpt-4o|t=0.0|v3") { llm.complete(it) }
 ```
+
+**A tenant is not a scope.** Serving more than one customer from one cache used to mean one key space
+between all of them, and on the exact-match fast path the second tenant was served the first one's answer
+without similarity, without guards and without the verifier, because skipping all three is what that path
+is for. `forTenant` partitions everything, including that path:
+
+```kotlin
+val cache = semanticCache(embedder) { requireTenant = true }
+
+cache.forTenant(request.customerId).getOrPut(prompt) { llm.complete(it) }
+```
+
+A view rather than a parameter, because a parameter is something somebody can omit, and isolation that
+depends on nobody making a mistake later is not isolation. With `requireTenant` on, a call that did not
+come through a view is refused rather than defaulted.
 
 ### Choosing guards
 

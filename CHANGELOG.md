@@ -8,6 +8,25 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`forTenant`, and a key space per customer (M37).** The cache key carried the prompt, the conversation
+  and, since `2.1.0`, the embedder. It did not carry who was asking, so a deployment serving more than one
+  customer had one key space shared between all of them. Two tenants asking a byte-identical question got
+  one entry, and on the exact-match fast path the second was served the first one's answer **without
+  similarity, without guards and without the verifier**, because skipping all three is what that path is
+  for. Every safety layer in this library sat downstream of a key collision it could not see. The
+  identical-prompt case is the obvious one; the dangerous one is a prompt carrying retrieved context, where
+  two tenants ask the same question of different documents and the answer belongs to somebody else's data.
+  `SemanticCache.forTenant(id)` returns a `TenantedCache` through which nothing can reach another tenant's
+  entries, on every path including the fast one, and `requireTenant = true` refuses any read or write that
+  did not come through one. A view rather than a parameter, because a parameter is something somebody can
+  omit, and an isolation property that depends on nobody making a mistake later is the thing this library
+  refuses to accept anywhere else. A missing tenant is a distinct state rather than a default, since a
+  default is what silently reintroduces the shared space.
+  The tenant is folded into the scope the `CacheStore` sees, which puts the isolation inside the library
+  rather than in the wiring: every store partitions by scope already, including one somebody else wrote, so
+  nothing is re-implemented per backend and nothing can be configured wrongly. Both are additive and off by
+  default, so a single-tenant cache is unchanged.
+
 - **The guards measured against prompt length (M28).** `2.1.0` shipped an external split whose
   breakdown said something nobody followed up: `substitution` rejected 498 of 3,536 PAWS paraphrases
   against 2 of 51 on validation, from a guard that had not changed. The release notes called it a
