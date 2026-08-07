@@ -227,6 +227,10 @@ policy that makes a prompt earn its place, a `CachePolicy` veto for data that mu
 `EntryCipher` seam for a store that may hold no readable prompt, write-behind, negative caching and an
 embed-failure fall-back that is counted rather than silent.
 
+[docs/THREAT-MODEL.md](docs/THREAT-MODEL.md) is what a security review asks for: the assets, the
+adversaries, the trust boundaries, and what a cache still discloses once every mitigation here is
+switched on. The embedding cannot be encrypted, and that section is the one worth reading first.
+
 ## Architecture
 
 | Module | Contents |

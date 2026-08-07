@@ -44,6 +44,11 @@ package dev.kmemo
  * Tags and metadata are also passed through unencrypted. Tags are meant to be low-cardinality labels
  * about a source of truth (`price-list`, `policy-2026`) rather than about a request, and metadata is
  * caller-supplied payload the cache never reads. Neither is user input unless you make it so.
+ *
+ * `docs/THREAT-MODEL.md` is the assembled version of all of this: the assets, the adversaries, the
+ * trust boundaries, and what is still disclosed once every mitigation the library offers is switched
+ * on. It is the document to hand a security review, because deciding whether to trust a library from
+ * four class comments is homework nobody should be set.
  */
 public interface EntryCipher {
 
