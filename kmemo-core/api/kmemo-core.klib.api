@@ -661,6 +661,20 @@ final class dev.kmemo.guard/UnitGuard : dev.kmemo.guard/MatchGuard { // dev.kmem
     final fun evaluate(kotlin/String, kotlin/String): dev.kmemo.guard/GuardVerdict // dev.kmemo.guard/UnitGuard.evaluate|evaluate(kotlin.String;kotlin.String){}[0]
 }
 
+final class dev.kmemo.guard/WordOrderGuard : dev.kmemo.guard/MatchGuard { // dev.kmemo.guard/WordOrderGuard|null[0]
+    constructor <init>(kotlin.collections/Set<kotlin/String> = ..., kotlin.collections/Set<kotlin/String> = ..., kotlin.collections/Set<kotlin/String> = ..., kotlin/Int = ...) // dev.kmemo.guard/WordOrderGuard.<init>|<init>(kotlin.collections.Set<kotlin.String>;kotlin.collections.Set<kotlin.String>;kotlin.collections.Set<kotlin.String>;kotlin.Int){}[0]
+
+    final val name // dev.kmemo.guard/WordOrderGuard.name|{}name[0]
+        final fun <get-name>(): kotlin/String // dev.kmemo.guard/WordOrderGuard.name.<get-name>|<get-name>(){}[0]
+
+    final fun evaluate(kotlin/String, kotlin/String): dev.kmemo.guard/GuardVerdict // dev.kmemo.guard/WordOrderGuard.evaluate|evaluate(kotlin.String;kotlin.String){}[0]
+
+    final object Companion { // dev.kmemo.guard/WordOrderGuard.Companion|null[0]
+        final const val DEFAULT_MIN_ANCHORS // dev.kmemo.guard/WordOrderGuard.Companion.DEFAULT_MIN_ANCHORS|{}DEFAULT_MIN_ANCHORS[0]
+            final fun <get-DEFAULT_MIN_ANCHORS>(): kotlin/Int // dev.kmemo.guard/WordOrderGuard.Companion.DEFAULT_MIN_ANCHORS.<get-DEFAULT_MIN_ANCHORS>|<get-DEFAULT_MIN_ANCHORS>(){}[0]
+    }
+}
+
 final class dev.kmemo.store/EncryptedStore : dev.kmemo/CacheStore { // dev.kmemo.store/EncryptedStore|null[0]
     constructor <init>(dev.kmemo/CacheStore, dev.kmemo/EntryCipher) // dev.kmemo.store/EncryptedStore.<init>|<init>(dev.kmemo.CacheStore;dev.kmemo.EntryCipher){}[0]
 

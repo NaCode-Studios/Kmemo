@@ -272,6 +272,13 @@ pair by length, the guard responsible rejects paraphrases at 0% under 48 charact
 the splits sit on opposite sides of that. **Register is not**: at the same register PAWS still catches 9%
 where validation catches 65%. What is left is difficulty, which is what PAWS was built for.
 
+**And the number was attacked, against a target written down first.** A guard aimed at how PAWS
+constructs its pairs takes that 14% to 39.7%, past the 25% registered as success, and pays for it with a
+ninth of the genuine paraphrases on the same corpus. That is the boundary case as it was defined before
+the attempt, so the guard ships in no preset and `standard()` is untouched. The line it draws is the
+useful part: **Kmemo catches near misses that arise in traffic, and does not catch adversarially
+constructed ones at a price worth paying.**
+
 Against a threshold-only cache on the blind splits, `standard()` cuts the false-hit rate from 1.000 to
 0.291 and 0.324 while keeping 88% of paraphrases. Against GPTCache the result is a trade rather than a
 win, and both halves are published.

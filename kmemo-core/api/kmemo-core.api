@@ -961,6 +961,19 @@ public final class dev/kmemo/guard/Vocabulary {
 	public final fun getUNITS ()Ljava/util/Map;
 }
 
+public final class dev/kmemo/guard/WordOrderGuard : dev/kmemo/guard/MatchGuard {
+	public static final field Companion Ldev/kmemo/guard/WordOrderGuard$Companion;
+	public static final field DEFAULT_MIN_ANCHORS I
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;I)V
+	public synthetic fun <init> (Ljava/util/Set;Ljava/util/Set;Ljava/util/Set;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
+	public fun getName ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/WordOrderGuard$Companion {
+}
+
 public final class dev/kmemo/store/EncryptedStore : dev/kmemo/CacheStore {
 	public fun <init> (Ldev/kmemo/CacheStore;Ldev/kmemo/EntryCipher;)V
 	public fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

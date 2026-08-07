@@ -97,6 +97,48 @@ tuned until PAWS improves, shipped without checking what it did to the other thr
 rejects more paraphrases has not got better, it has moved cost from the wrong-answer column to the
 API-bill column, and those two columns are not interchangeable.
 
+### The result: the boundary case
+
+The attempt was `WordOrderGuard`, and it was chosen from how PAWS is built rather than from what its
+pairs contain. PAWS is Paraphrase Adversaries from Word Scrambling: its near misses carry the same words
+in a different arrangement, which is the one shape the chain is structurally blind to, because every
+guard in it but one compares sets and that one requires the order to match. `Flights from New York to
+Miami` and `Flights from Miami to New York` differ in nothing any of them can see.
+
+| Split | Near misses caught | Paraphrases kept |
+| --- | --- | --- |
+| tuned | 76 → 76 (91.6% → 91.6%) | 46 → 46 (100% → 100%) |
+| held-out | 61 → 61 (70.9% → 70.9%) | 37 → 36 (88.1% → **85.7%**) |
+| validation | 69 → 70 (67.6% → 68.6%) | 45 → 45 (88.2% → 88.2%) |
+| **external** | 647 → 1,772 (14.5% → **39.7%**) | 2,807 → 2,417 (79.4% → **68.4%**) |
+
+**The target was cleared and the constraint was not.** PAWS rejection reached 39.7%, well past the 25%
+registered, and it was paid for with 390 paraphrases there and one on held-out. That is the boundary case
+as it was defined before the attempt: the gain came out of the API-bill column, and this project does not
+count that as an improvement.
+
+So the guard ships and **no preset carries it**. `MatchGuards.standard()` is byte-for-byte what it was, so
+every figure above it is still the figure it was. A caller whose domain makes a wrong answer expensive
+enough to buy at that price can add `WordOrderGuard()` to their chain deliberately, with the trade in
+front of them.
+
+### The boundary this draws
+
+The honest statement the milestone asked for, now that it has a measurement behind it rather than a
+guess. **Kmemo catches near misses that arise in traffic. It does not catch adversarially constructed
+ones at a price worth paying.** The line is at roughly 40%: reaching it costs a ninth of the genuine
+paraphrases on the same corpus, and the guard chain has no way to tell a reversed relation from a
+reordered clause without reading the sentence, which is what a cross-encoder does and what a lexical
+chain by definition does not.
+
+That is not an argument for stopping. It is the number that says what the next thing would have to be:
+something that reads structure rather than tokens, at a cost between a regular expression and a
+transformer, and nothing in this repository is that yet.
+
+```bash
+python tools/external-corpus/fetch.py && ./gradlew :kmemo-core:jvmTest --tests '*PawsTargetTest*'
+```
+
 ## What register does to the guards, and what it does not explain
 
 Register is a property of a deployment, not of a benchmark. A support assistant sees questions, a command
