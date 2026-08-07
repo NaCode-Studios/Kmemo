@@ -6,7 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-08-07
+
 Tier 11 and Tier 12: the evidence leaves the repository, and the third that gets through.
+
+**This release closes two tiers, and after `1.0` that is a statement about traceability rather than
+about versioning.** Versions follow API impact from `1.0` onwards, and this one is additive, so it
+would be a minor whichever tiers it carried. The two are together because they are one argument:
+Tier 11 took the evidence out of this repository, and Tier 12 spent it re-deciding four things about
+the guards, three of which came out against the change. Splitting them would have published the
+questions in one release and the answers in another. Traceability is preserved the way it was for
+`2.2.0`: every entry below carries its milestone id, and the board reads `2.3.0` on both tiers.
 
 ### Added
 
@@ -1082,7 +1092,8 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
 - Published to Maven Central and GitHub Packages under `io.github.nacode-studios` (package
   `dev.kmemo`), with the public API tracked by binary-compatibility-validator (`./gradlew apiCheck`).
 
-[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/NaCode-Studios/Kmemo/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/NaCode-Studios/Kmemo/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/NaCode-Studios/Kmemo/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/NaCode-Studios/Kmemo/compare/v1.1.0...v2.0.0

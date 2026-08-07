@@ -89,6 +89,21 @@ jobs:
           [ -s notes.md ] || { echo "::error::no CHANGELOG.md section for $VERSION"; exit 1; }
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
 
+      # The corpora, the metric and the guard rules, as one archive with a SHA-256 per file. It is
+      # attached here rather than published to a registry because it is data and prose rather than
+      # code, and because a figure quoted against a version has to be able to name bytes. spec/README.md
+      # tells a reader it is on the release, so it has to be.
+      - name: Attach the corpus bundle
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew corpusBundle --no-daemon
+          VERSION="${GITHUB_REF_NAME#v}"
+          BUNDLE="build/distributions/kmemo-corpus-$VERSION.zip"
+          [ -f "$BUNDLE" ] || { echo "::error::no corpus bundle at $BUNDLE"; exit 1; }
+          gh release upload "$GITHUB_REF_NAME" "$BUNDLE"
+
       # Metadata only, not a distribution channel: this tells GitHub which artifacts the repository
       # built and where they actually live, so the Packages panel reflects Maven Central instead of
       # sitting empty. Nothing is hosted here and nobody downloads from here, which is the whole

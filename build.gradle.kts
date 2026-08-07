@@ -15,7 +15,7 @@ plugins {
 // One version for the whole build, at the root, because the corpus bundle is a root artifact and a
 // second copy of the number is a second thing to forget on a release.
 group = "io.github.nacode-studios"
-version = "2.2.0"
+version = "2.3.0"
 
 subprojects {
     group = rootProject.group
