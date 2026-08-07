@@ -45,7 +45,7 @@ source; Kmemo ships none and depends on no provider SDK.
 > **See it end to end.** [`examples/`](examples) is a runnable demo (no API key needed) that shows a
 > guard catching a live near miss, with a `docker-compose` for the Redis store.
 
-> **Status — `2.2`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
+> **Status — `2.3`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
 > Windows, JS and WasmJS, and so does the persistent store, so a phone no longer starts cold. The
 > framework integrations, the threshold calibrator, the optional verifier and the store adapters that
 > wrap a JVM driver are JVM-side. Everything here is measured against labelled corpora whose blind
@@ -83,7 +83,7 @@ else. Artifacts are published to Maven Central under `io.github.nacode-studios`.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:2.2.0")
+    implementation("io.github.nacode-studios:kmemo-core:2.3.0")
 }
 ```
 
@@ -339,13 +339,7 @@ that keep the data honest.
 
 ## Roadmap
 
-**Shipped (`2.2.0`).** The guarded semantic cache with eleven guards and their measured numbers,
-calibrated thresholds and an optional verifier; six stores behind one `CacheStore` seam, two of which
-follow `kmemo-core` to every target it publishes; a key space per tenant; a cipher seam for a store that
-may hold no readable prompt; the cost of a hit reported in the currency you declare; and Spring Boot,
-Spring AI, LangChain4j and Ktor integrations. The measurements, including the ones that came out against
-the library, are in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md). Every version is in
-[CHANGELOG.md](CHANGELOG.md).
+**Shipped (`2.3.0`).** The guarded semantic cache with eleven guards and their measured numbers, calibrated thresholds and a verifier whose refusals the caller can put on a scale; seven stores and adapters behind one `CacheStore` seam, two of which follow `kmemo-core` to every target it publishes; a key space per tenant; a cipher seam and a threat model for a deployment that has to answer to a security review; OpenTelemetry and Micrometer; and Spring Boot, Spring AI, LangChain4j and Ktor integrations. The corpora, the false-hit metric and the guard rules ship as a versioned standard in [`spec/`](spec), with a Python implementation that reproduces every published figure without a JVM. The measurements, including the ones that came out against the library, are in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md). Every version is in [CHANGELOG.md](CHANGELOG.md).
 
 **Next.** The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5), one
 item per milestone with its exit criterion, and every tier is a
