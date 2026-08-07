@@ -14,6 +14,7 @@ import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.test.fail
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * M42: what the cache removes from a retrieval-augmented pipeline, and what it gets wrong there.
@@ -55,13 +56,14 @@ import kotlin.test.fail
 class RagPipelineTest {
 
     @Test
-    fun `print what a cache removes from a RAG pipeline`() = runTest {
+    fun `print what a cache removes from a RAG pipeline`() = runTest(timeout = TIMEOUT) {
         val corpus = corpus() ?: return@runTest
+        val retrieved = retrieve(corpus)
 
         val configurations = listOf(
-            "question, no guards" to run(corpus, foldContextIntoKey = false, guarded = false),
-            "question, guarded" to run(corpus, foldContextIntoKey = false, guarded = true),
-            "question + context" to run(corpus, foldContextIntoKey = true, guarded = true),
+            "question, no guards" to run(corpus, retrieved, foldContextIntoKey = false, guarded = false),
+            "question, guarded" to run(corpus, retrieved, foldContextIntoKey = false, guarded = true),
+            "question + context" to run(corpus, retrieved, foldContextIntoKey = true, guarded = true),
         )
 
         println()
@@ -99,12 +101,13 @@ class RagPipelineTest {
      * not make it worse than leaving it out.
      */
     @Test
-    fun `the guards survive contact with retrieved context`() = runTest {
+    fun `the guards survive contact with retrieved context`() = runTest(timeout = TIMEOUT) {
         val corpus = corpus() ?: return@runTest
+        val retrieved = retrieve(corpus)
 
-        val unguarded = run(corpus, foldContextIntoKey = false, guarded = false)
-        val guarded = run(corpus, foldContextIntoKey = false, guarded = true)
-        val contextual = run(corpus, foldContextIntoKey = true, guarded = true)
+        val unguarded = run(corpus, retrieved, foldContextIntoKey = false, guarded = false)
+        val guarded = run(corpus, retrieved, foldContextIntoKey = false, guarded = true)
+        val contextual = run(corpus, retrieved, foldContextIntoKey = true, guarded = true)
 
         assertTrue(
             unguarded.falseHits > 0,
@@ -138,7 +141,30 @@ class RagPipelineTest {
      * The warm pass is the same questions in the same order, which is what a pipeline serving repeated
      * traffic looks like and what makes the difference between the two counts the saving.
      */
-    private suspend fun run(corpus: Corpus, foldContextIntoKey: Boolean, guarded: Boolean): Result {
+    /**
+     * Which paragraph each question retrieves, computed once.
+     *
+     * Retrieval does not depend on how the cache is configured, so doing it inside each configuration
+     * repeated the same nearest-neighbour scan six times over four hundred documents. Hoisting it is not
+     * a test optimisation: it is what a real pipeline does, where retrieval happens before anything
+     * knows a cache exists.
+     */
+    private suspend fun retrieve(corpus: Corpus): Map<String, String> {
+        val index = corpus.documents.map { it to bagOfWords.embed(it.text) }
+        val byQuestion = LinkedHashMap<String, String>(corpus.questions.size)
+        for (question in corpus.questions) {
+            if (question.question in byQuestion) continue
+            byQuestion[question.question] = nearest(index, bagOfWords.embed(question.question)).id
+        }
+        return byQuestion
+    }
+
+    private suspend fun run(
+        corpus: Corpus,
+        retrieved: Map<String, String>,
+        foldContextIntoKey: Boolean,
+        guarded: Boolean,
+    ): Result {
         val embedder = bagOfWords
         val cache = SemanticCache(
             embedder = embedder,
@@ -149,8 +175,6 @@ class RagPipelineTest {
             threshold = 0.90,
             guards = if (guarded) MatchGuards.standard() else MatchGuards.none(),
         )
-        val index = corpus.documents.map { it to embedder.embed(it.text) }
-
         var calls = 0
         var coldCalls = 0
         var falseHits = 0
@@ -158,15 +182,15 @@ class RagPipelineTest {
         repeat(2) { pass ->
             if (pass == 1) coldCalls = calls
             for (question in corpus.questions) {
-                val retrieved = nearest(index, embedder.embed(question.question))
-                val context = if (foldContextIntoKey) listOf(retrieved.id) else emptyList()
+                val document = retrieved.getValue(question.question)
+                val context = if (foldContextIntoKey) listOf(document) else emptyList()
                 val answer = cache.getOrPut(question.question, context) {
                     calls++
                     // The generation step: the labelled answer for the paragraph that was retrieved.
                     // Deterministic on purpose, so every number here is about the cache.
-                    corpus.answerFor(question.question, retrieved.id) ?: NOT_IN_THIS_DOCUMENT
+                    corpus.answerFor(question.question, document) ?: NOT_IN_THIS_DOCUMENT
                 }
-                if (pass == 1 && answer != question.answer && retrieved.id == question.documentId) {
+                if (pass == 1 && answer != question.answer && document == question.documentId) {
                     // Retrieval found the right paragraph and the cache still served another answer.
                     // Anything else would be measuring retrieval rather than the cache.
                     falseHits++
@@ -266,5 +290,12 @@ class RagPipelineTest {
         private const val PATH_PROPERTY = "kmemo.ragCorpus"
         private const val REQUIRED_PROPERTY = "kmemo.ragCorpus.required"
         private const val NOT_IN_THIS_DOCUMENT = "the retrieved paragraph does not answer this question"
+
+        /**
+         * `runTest` defaults to a minute, and this replays 2,410 questions through three cache
+         * configurations twice each. Generous rather than tight: a timeout that fires on a slow CI
+         * runner is a flaky build, and the thing being measured is model calls rather than seconds.
+         */
+        private val TIMEOUT = 10.minutes
     }
 }
