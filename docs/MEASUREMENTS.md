@@ -271,6 +271,78 @@ transformer, and nothing in this repository is that yet.
 python tools/external-corpus/fetch.py && ./gradlew :kmemo-core:jvmTest --tests '*PawsTargetTest*'
 ```
 
+## Whether anything reads structure between a regular expression and a transformer
+
+M34 closed with a sentence rather than a number: what would have to come next is something that reads
+structure rather than tokens, at a cost between a regular expression and a transformer, and nothing
+here was that. Two candidates were built and measured, both pure Kotlin, neither with a model file or
+a dependency.
+
+**`slot-order` reads argument roles.** A relation word splits a prompt into what sits on each side of
+it, so `from London to Tokyo` and `from Tokyo to London` are one relation with its arguments
+exchanged, and a fronted phrase is not. It is the cheap approximation of the part-of-speech tagger
+that would do this properly.
+
+**`learned` is a linear classifier over eight cheap features**, weights fitted by full-batch gradient
+descent on the tuned split alone, with the classes balanced because every corpus here is two thirds
+near misses by construction.
+
+| On the external question split | Near misses caught | Paraphrases kept | Per candidate |
+| --- | --- | --- | --- |
+| the lexical chain | 1,634 of 2,500 | 2,205 of 2,796 (79%) | ~20 µs |
+| chain + `slot-order` | 1,634 | 2,205 | ~1 µs added |
+| `learned` alone | 1,964 | 786 of 2,796 (28%) | ~6 µs |
+
+**Both fail, and they fail differently.** `slot-order` adds nothing: zero unique catches on 6,964
+blind pairs, because `direction` reaches the same reversals first and the cases it would add are ones
+no corpus here contains. `learned` catches a great deal and refuses nearly three quarters of genuine
+paraphrases, which is worse than the cross-encoder this project already priced at 45% and 69%
+retention. A cheap classifier is not a cheaper transformer; it is a worse one, and being cheaper than
+something that lands outside the useful region is not an argument.
+
+The boundary M34 drew therefore stands, with two measurements under it rather than an assumption. The
+search is not exhausted: what has been shown is that the two cheapest things anybody would try do not
+land inside the region, not that nothing does.
+
+```bash
+./gradlew :kmemo-core:jvmTest --tests '*StructureReadingTest*'
+```
+
+## Eleven vetoes, or one calibrated decision
+
+A guard returns Accept or Reject and the chain is an OR, so one guard that is sure vetoes and ten that
+are mildly suspicious serve the answer. Combining weak signals is the standard answer to that, and the
+chain has eleven going unused.
+
+The scoring chain reads the same mechanisms the guards read and reports what each of them nearly
+concluded, summed, against **one** threshold calibrated on the tuned split by the rule every default
+here follows: the lowest value that rejects no tuned paraphrase. One parameter rather than eleven
+weights, because eleven weights on 129 pairs is a good way to fit noise and the section above measures
+what that produces.
+
+| Split | Veto: caught, kept | Scoring: caught, kept |
+| --- | --- | --- |
+| held-out | 61, 37 | 19, 36 |
+| validation | 69, 45 | 21, 51 |
+| qqp | 1,634, 2,205 | 1,271, 2,480 |
+| external | 647, 2,807 | 429, 3,258 |
+
+**The veto chain wins on the axis this library is judged on**, and neither dominates. The sum is the
+more conservative decision everywhere: it catches a fifth fewer near misses on the question split and
+keeps ten points more paraphrases. A deployment that wants that trade already has it, by running fewer
+guards.
+
+Two other things settle it. A sum cannot say which guard fired, so `CacheLookup.Miss` would name its
+strongest term instead of a rule and a reason, which is a real loss on a library that argues an
+untunable cache is a useless one. And `MatchGuard` is a public interface with a conformance suite and
+a third-party contract behind it, so the change is not free even where the numbers are close.
+`GuardVerdict` keeps its two states, and `ScoringChainTest` asserts that so the decision has to be
+argued with rather than walked past.
+
+```bash
+./gradlew :kmemo-core:jvmTest --tests '*ScoringChainTest*'
+```
+
 ## What register does to the guards, and what it does not explain
 
 Register is a property of a deployment, not of a benchmark. A support assistant sees questions, a command
@@ -383,6 +455,43 @@ hand back.
 
 ```bash
 ./gradlew :kmemo-core:jvmTest --tests '*VerifierCostTest*'
+```
+
+### And what the caller can now do about it
+
+45% paraphrase retention is a cache doing half its job, and until `2.3.0` the only dial was off. Two
+directions were measured and only one of them is a gain.
+
+**Invoking it where the chain is uncertain rather than where it is silent does not work.** Gating on
+how close the guards came to rejecting cuts invocations from 280 to 228 on the residual and cuts
+catches from 91 to 69 with them. The reason is worth more than the attempt: the verifier's catches are
+not concentrated in the uncertain slice. A quarter of them sit where the chain has no signal at all,
+which is exactly the population a verifier exists for, because a lexical chain with a signal there
+would have used it.
+
+**Putting the refusals on a scale does work, and it is what ships.** A cross-encoder produces a
+probability and then throws it away at a threshold somebody else chose. `ConfidenceVerifier` returns
+it, with a threshold the caller sets, on the residual across both written splits:
+
+| Serve at confidence | Near misses stopped | Paraphrases kept |
+| --- | --- | --- |
+| 0.05 | 69 of 116 | 76% |
+| 0.10 | 80 of 116 | 73% |
+| 0.30 | 87 of 116 | 66% |
+| 0.50, the usual default | 91 of 116 | 66% |
+| 0.90 | 95 of 116 | 57% |
+
+**There is no free point on that curve, and that is the answer rather than a disappointment.** Every
+wrong answer avoided past the default costs genuine hits. What a library can stop doing is choosing
+for the caller, because how expensive a wrong answer is depends on a deployment and on nothing this
+code can see. The similarity threshold has always been the caller's; the verifier's is now the same
+kind of thing.
+
+Fail-closed is unchanged and asserted. `verify` compares a confidence against a threshold and does not
+catch, so a check that could not complete propagates and the lookup refuses.
+
+```bash
+./gradlew :kmemo-core:jvmTest --tests '*VerifierGateTest*'
 ```
 
 ## What admission costs

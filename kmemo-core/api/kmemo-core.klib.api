@@ -135,6 +135,19 @@ abstract interface dev.kmemo/CacheStore { // dev.kmemo/CacheStore|null[0]
     open suspend fun touch(kotlin/String) // dev.kmemo/CacheStore.touch|touch(kotlin.String){}[0]
 }
 
+abstract interface dev.kmemo/ConfidenceVerifier : dev.kmemo/Verifier { // dev.kmemo/ConfidenceVerifier|null[0]
+    open val threshold // dev.kmemo/ConfidenceVerifier.threshold|{}threshold[0]
+        open fun <get-threshold>(): kotlin/Double // dev.kmemo/ConfidenceVerifier.threshold.<get-threshold>|<get-threshold>(){}[0]
+
+    abstract suspend fun confidence(kotlin/String, kotlin/String, kotlin/Double): kotlin/Double // dev.kmemo/ConfidenceVerifier.confidence|confidence(kotlin.String;kotlin.String;kotlin.Double){}[0]
+    open suspend fun verify(kotlin/String, kotlin/String, kotlin/Double): kotlin/Boolean // dev.kmemo/ConfidenceVerifier.verify|verify(kotlin.String;kotlin.String;kotlin.Double){}[0]
+
+    final object Companion { // dev.kmemo/ConfidenceVerifier.Companion|null[0]
+        final const val DEFAULT_THRESHOLD // dev.kmemo/ConfidenceVerifier.Companion.DEFAULT_THRESHOLD|{}DEFAULT_THRESHOLD[0]
+            final fun <get-DEFAULT_THRESHOLD>(): kotlin/Double // dev.kmemo/ConfidenceVerifier.Companion.DEFAULT_THRESHOLD.<get-DEFAULT_THRESHOLD>|<get-DEFAULT_THRESHOLD>(){}[0]
+    }
+}
+
 abstract interface dev.kmemo/EntryCipher { // dev.kmemo/EntryCipher|null[0]
     open val identity // dev.kmemo/EntryCipher.identity|{}identity[0]
         open fun <get-identity>(): kotlin/String // dev.kmemo/EntryCipher.identity.<get-identity>|<get-identity>(){}[0]
