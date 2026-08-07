@@ -882,8 +882,15 @@ than one lump, with the decision about replay timing made explicitly in the API.
 puts the harness the eleven built-in guards are held to in a form a consumer can run, so a guard for a
 domain nobody here understands can arrive with a measured number attached rather than with a claim.
 
-**Next.** Nothing is scheduled. Tier 8 is complete, and the 2027 plan is written in December against
-whatever the year's traffic and feedback have shown.
+**In flight (Tier 9).** Reach, cost and the regulated buyer. The guards are measured against prompt
+length rather than explained by register, and the one that moves with it gets a bounded preset. A
+streaming miss under load stops calling the model once per caller. The cache reports what it saved, in
+the currency you declare, from the token counts on the entries it served. A prompt earns its place
+before its answer is stored. A cipher seam lets a regulated deployment keep prompts nobody can read.
+`kmemo-store-file` follows the core onto every target it publishes, so a phone stops starting cold, and
+`kmemo-store-qdrant` means a team already running Qdrant operates nothing new. On-device embedding was
+measured on a native target and ruled out, which is a negative result worth more than the silence it
+replaces.
 
 The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5), one item per milestone with its exit
 criterion, and every tier is a [milestone](https://github.com/NaCode-Studios/Kmemo/milestones) in this repository. See
