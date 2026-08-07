@@ -3,6 +3,45 @@
 One section per hop, newest first. Nothing here is a break you can hit by upgrading alone: every item
 says who it affects, and most readers affected by none of them change a version number and stop.
 
+# Migrating from 2.1 to 2.2
+
+`2.2` is additive apart from one behaviour change, and everything new is off by default. Most readers
+change a version number, recompile, and stop.
+
+## Recompile
+
+Four types gained a constructor parameter or a field with a default, so code compiled against `2.1`
+must be recompiled even though no source changes: `SemanticCache`, `CacheStats`, `CacheEvent.Hit` and
+`SubstitutionGuard`. `STABILITY.md` allows this at a minor and this is the notice it requires.
+
+## `getOrPutStreaming` coalesces concurrent misses
+
+The one behaviour change, and the one to read even if nothing else here applies. Concurrent
+`getOrPutStreaming` calls for the same new prompt in the same scope used to open one provider stream
+each. They now share one: the first collector opens it, the rest attach, are replayed whatever has
+arrived, and follow it live.
+
+Three things follow, and none of them is configurable because none of them should be. A provider that
+fails partway fails **every** attached collector and writes nothing. The provider is stopped when the
+last collector leaves rather than the first, so a caller closing a connection no longer takes the answer
+away from everyone else, while a lone caller who cancels still stops the stream and still caches nothing.
+And an attached caller sees the provider's own chunk boundaries whatever `StreamReplay` it asked for,
+because there is one live stream and `StreamReplay` describes how a *stored* answer is cut up.
+
+If you were relying on fifty independent provider calls for one prompt, `coalesceConcurrentMisses = false`
+restores that, and it is worth being sure you were relying on it rather than merely receiving it.
+
+## Everything else is opt-in and off
+
+`forTenant` and `requireTenant`, `TokenPrices`, `AdmissionPolicy`, `EntryCipher` with `EncryptedStore`,
+`MatchGuards.longPrompts()`, `MatchGuards.prose()`, `WordOrderGuard`, `kmemo-store-file` and
+`kmemo-store-qdrant`. A cache that configures none of them behaves exactly as it did, and
+`MatchGuards.standard()` is unchanged, so every corpus figure published against it still describes the
+chain you are running.
+
+`InMemoryStore.entries()` is new and public. It exists so a store that keeps this one as its index can
+write the live set out, which is how `kmemo-store-file` compacts its journal.
+
 # Migrating from 2.0 to 2.1
 
 `2.1` gives the embedding model a name and makes a cache entry record which model wrote it. If you
