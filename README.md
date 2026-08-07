@@ -45,13 +45,14 @@ source; Kmemo ships none and depends on no provider SDK.
 > **See it end to end.** [`examples/`](examples) is a runnable demo (no API key needed) that shows a
 > guard catching a live near miss, with a `docker-compose` for the Redis store.
 
-> **Status — `2.1`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
-> Windows, JS and WasmJS. The framework integrations, the threshold calibrator, the optional verifier and
-> the store adapters that wrap a JVM driver are JVM-side. Everything here is measured against labelled
-> corpora with blind splits, one of which this project did not write. The public API is stable under
-> SemVer, every hop is listed in [docs/MIGRATION.md](docs/MIGRATION.md), the policy is in
-> [STABILITY.md](STABILITY.md), and the plan is on the
-> [board](https://github.com/orgs/NaCode-Studios/projects/5).
+> **Status — `2.2`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
+> Windows, JS and WasmJS, and so does the persistent store, so a phone no longer starts cold. The
+> framework integrations, the threshold calibrator, the optional verifier and the store adapters that
+> wrap a JVM driver are JVM-side. Everything here is measured against labelled corpora with blind
+> splits, one of which this project did not write, and the results are published whichever way they
+> come out. The public API is stable under SemVer, every hop is listed in
+> [docs/MIGRATION.md](docs/MIGRATION.md), the policy is in [STABILITY.md](STABILITY.md), and the plan is
+> on the [board](https://github.com/orgs/NaCode-Studios/projects/5).
 
 ## Why Kmemo
 
@@ -81,7 +82,7 @@ else. Artifacts are published to Maven Central under `io.github.nacode-studios`.
 
 ```kotlin
 dependencies {
-    implementation("io.github.nacode-studios:kmemo-core:2.1.0")
+    implementation("io.github.nacode-studios:kmemo-core:2.2.0")
 }
 ```
 
@@ -319,11 +320,13 @@ that keep the data honest.
 
 ## Roadmap
 
-**Shipped (`2.1.0`).** The guarded semantic cache with eleven guards and their measured numbers,
-calibrated thresholds and an optional verifier; Redis, Postgres and HNSW stores behind one `CacheStore`
-seam; multiplatform `kmemo-core`; resilience, observability and the ergonomics around the match path;
-Spring Boot, Spring AI, LangChain4j and Ktor integrations; and a fourth corpus this project did not
-write. Every version is in [CHANGELOG.md](CHANGELOG.md).
+**Shipped (`2.2.0`).** The guarded semantic cache with eleven guards and their measured numbers,
+calibrated thresholds and an optional verifier; six stores behind one `CacheStore` seam, two of which
+follow `kmemo-core` to every target it publishes; a key space per tenant; a cipher seam for a store that
+may hold no readable prompt; the cost of a hit reported in the currency you declare; and Spring Boot,
+Spring AI, LangChain4j and Ktor integrations. The measurements, including the ones that came out against
+the library, are in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md). Every version is in
+[CHANGELOG.md](CHANGELOG.md).
 
 **Next.** The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5), one
 item per milestone with its exit criterion, and every tier is a
