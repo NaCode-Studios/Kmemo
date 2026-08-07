@@ -2,6 +2,7 @@ package dev.kmemo.guard
 
 import dev.kmemo.fixtures.CorpusPair
 import dev.kmemo.fixtures.ExternalCorpus
+import dev.kmemo.guard.tck.ScoreInterval
 import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -54,33 +55,35 @@ class ExternalCorpusTest {
     /** Not an assertion: the report the README quotes beside the three internal ones. */
     @Test
     fun `print the external corpus report`() {
-        val pairs = externalPairs() ?: return
+        val corpus = ExternalCorpus.corpus() ?: return
         val guards = MatchGuards.standard()
-        val nearMisses = pairs.filter { !it.shouldMatch }
-        val paraphrases = pairs.filter { it.shouldMatch }
-        val caught = nearMisses.count { rejects(guards, it) }
-        val kept = paraphrases.count { !rejects(guards, it) }
+        val caught = corpus.nearMisses.count { rejects(guards, it) }
+        val kept = corpus.paraphrases.count { !rejects(guards, it) }
+        val catchInterval = ScoreInterval.wilson95(caught, corpus.nearMisses.size)
+        val keptInterval = ScoreInterval.wilson95(kept, corpus.paraphrases.size)
 
         println()
         println(
             String.format(
                 Locale.ROOT,
-                "external  corpus: %d pairs, near misses rejected %d/%d (%.0f%%), " +
-                    "paraphrases kept %d/%d (%.0f%%)",
-                pairs.size,
-                caught, nearMisses.size, 100.0 * caught / nearMisses.size,
-                kept, paraphrases.size, 100.0 * kept / paraphrases.size,
+                "external  corpus (blind): %d pairs, near misses rejected %d/%d (%.1f%% ±%.1f), " +
+                    "paraphrases kept %d/%d (%.1f%% ±%.1f)",
+                corpus.pairs.size,
+                caught, corpus.nearMisses.size, 100.0 * caught / corpus.nearMisses.size,
+                catchInterval.halfWidthPoints,
+                kept, corpus.paraphrases.size, 100.0 * kept / corpus.paraphrases.size,
+                keptInterval.halfWidthPoints,
             ),
         )
-        println("  per guard, in isolation:")
-        for (guard in guards) {
+        println("  per guard: alone, and what the chain would lose without it")
+        for (stat in GuardReport.of(guards, listOf(corpus)).corpora.single().perGuard) {
             println(
                 String.format(
                     Locale.ROOT,
-                    "    %-22s caught %4d   false rejections %4d",
-                    guard.name,
-                    nearMisses.count { rejects(listOf(guard), it) },
-                    paraphrases.count { rejects(listOf(guard), it) },
+                    "    %-22s alone: caught %4d, false rejections %4d   marginal: unique %3d, " +
+                        "paraphrases lost to it alone %3d",
+                    stat.guard, stat.caught, stat.falseRejections,
+                    stat.uniqueCatches, stat.uniqueFalseRejections,
                 ),
             )
         }
