@@ -39,6 +39,26 @@ All notable changes to this project are documented here. The format follows
   the tuned corpus, which is the split that exists to be fitted, and measured everywhere else;
   `SubstitutionBoundTest` holds all of that.
 
+- **Concurrent-miss coalescing on the streaming path (M29).** M26 put the cache on a streaming path and
+  named the hole it left: coalescing did not apply to `getOrPutStreaming`. That hole is where the
+  traffic is. A cold cache under load is the case coalescing exists for, and streaming is the path a
+  chat product serves users on, so the cache was coalescing the calls that cost least and letting
+  through the ones that cost most.
+  Fifty concurrent `getOrPutStreaming` calls for one new prompt in one scope now make **one** provider
+  call. The first collector opens the stream; the rest attach, are replayed whatever has already
+  arrived, and then follow it live. Attaching rather than waiting for completion is the whole point: a
+  streaming caller made to wait for the end is paying the latency they streamed to avoid.
+  M26's rules hold to the letter. A provider that throws after n chunks fails **every** attached
+  collector and writes nothing. The provider never runs more than one chunk ahead of the fastest
+  collector, which is what an uncoalesced collection did implicitly by driving the provider from the
+  caller's own coroutine, so a caller who walks away still stops the stream rather than leaving a
+  complete answer to be written behind their back. What did change is who the stream belongs to: it is
+  stopped when the **last** collector leaves rather than the first, because dropping fifty people's
+  answer when one of them closes a tab is a behaviour nobody would choose deliberately.
+  An attached caller sees the provider's own chunk boundaries whatever `StreamReplay` it asked for,
+  since there is one live stream and `StreamReplay` describes how a *stored* answer is cut up.
+  `coalesceConcurrentMisses = false` restores a provider stream per caller.
+
 ### Changed
 
 - `SubstitutionGuard` takes a fourth constructor parameter, `maxTokens`, defaulting to `null`. Source

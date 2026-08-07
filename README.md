@@ -185,6 +185,17 @@ val weather: Weather = cache.getOrPut(prompt, weatherCodec) { llm.extractWeather
 cache.getOrPutStreaming(prompt) { llm.completeStreaming(it) }.collect { print(it) }
 ```
 
+Concurrent streaming misses are coalesced, on the same switch as `getOrPut`. Fifty callers asking one
+new question together open one provider stream: the first opens it, the rest attach, are replayed
+whatever has already arrived, and then follow it live. Attaching rather than waiting is the point,
+since a streaming caller made to wait for the end is paying the latency they streamed to avoid.
+
+The safety rules do not soften when a stream is shared. A provider that fails partway fails every
+attached collector and writes nothing, because a truncated answer served confidently to fifty people is
+fifty wrong answers rather than one. The provider is stopped when the **last** collector leaves rather
+than the first, so a caller closing a tab no longer takes the answer away from everyone else, while a
+lone caller who cancels still stops the stream and still caches nothing.
+
 ### Observability
 
 `stats()` gives lifetime counters (hit rate, per-reason and per-guard misses). For dashboards and logs,

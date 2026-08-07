@@ -12,14 +12,20 @@ import dev.kmemo.internal.Ids
 import dev.kmemo.internal.KeyedMutex
 import dev.kmemo.internal.NegativeCache
 import dev.kmemo.internal.ShadowRun
+import dev.kmemo.internal.SharedStream
+import dev.kmemo.internal.StreamCoalescer
 import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.concurrent.atomics.AtomicLong
 import kotlin.time.Clock
@@ -89,7 +95,10 @@ import kotlin.time.TimeSource
  *   when a guard rejects the top candidate, the second may still be a correct answer.
  * @param coalesceConcurrentMisses whether concurrent [getOrPut] calls for the same prompt in the
  *   same scope wait for the first one instead of each calling the model. On by default: a cold
- *   cache under load is the case where duplicate calls are most expensive and most likely.
+ *   cache under load is the case where duplicate calls are most expensive and most likely. It governs
+ *   [getOrPutStreaming] too, where callers attach to the one provider stream rather than waiting for
+ *   it, since a streaming caller who waited for the end would be paying the latency they streamed to
+ *   avoid. [getOrPutAll] is the exception and says why.
  * @param embedFailurePolicy what [getOrPut] does when the [Embedder] throws — propagate (the default)
  *   or fall back to [compute] so a lookup is never *worse* than no cache. See [EmbedFailurePolicy].
  *   [lookup], [get] and [put] have no fallback and always propagate. [CancellationException] always
@@ -236,6 +245,9 @@ public class SemanticCache(
     private val shadowRun = ShadowRun(shadowThresholds, guardChain)
 
     private val inFlight = KeyedMutex()
+
+    // In-flight streaming misses, one entry per (scope, prompt) somebody is currently streaming.
+    private val streams = StreamCoalescer()
 
     // Null unless negative caching is turned on; the hot path checks it with a single null test.
     private val negativeCache: NegativeCache? =
@@ -574,10 +586,24 @@ public class SemanticCache(
      * **On a miss** the flow from [compute] is passed straight through, chunk by chunk, while being
      * accumulated. Empty chunks are forwarded but not recorded: they carry nothing to replay.
      *
+     * **Concurrent misses are coalesced**, on the same [coalesceConcurrentMisses] switch as [getOrPut]
+     * and for the same reason: fifty requests for one new prompt arriving together is the case a cache
+     * exists for, and streaming is the path a chat product actually serves users on. The first
+     * collector opens the provider stream; the rest attach to it, are replayed whatever has already
+     * arrived, and then follow it live. There is one provider call and everyone sees the same chunks.
+     *
+     * Three consequences worth stating. A failure reaches **every** attached collector and writes
+     * nothing, because a truncated answer served confidently to fifty people is fifty wrong answers
+     * rather than one. The provider stream is stopped when the **last** collector leaves rather than
+     * the first, so a caller who closes a tab no longer takes the answer away from everyone else,
+     * while a lone caller who cancels still cancels the stream and still caches nothing. And an
+     * attached caller sees the provider's own chunk boundaries whatever [replay] it asked for, because
+     * there is one live stream and [replay] describes how a *stored* answer is cut up.
+     *
      * The returned flow is cold: nothing is computed or streamed until it is collected, though the
-     * embedding and the lookup are already done. Concurrent-miss coalescing and write-behind do not
-     * apply to this path. If the embedder throws under [EmbedFailurePolicy.FALL_BACK_TO_COMPUTE], the
-     * raw stream from [compute] is returned uncached.
+     * embedding and the lookup are already done. Write-behind does not apply to this path. If the
+     * embedder throws under [EmbedFailurePolicy.FALL_BACK_TO_COMPUTE], the raw stream from [compute]
+     * is returned uncached.
      *
      * ```kotlin
      * cache.getOrPutStreaming(prompt) { llm.completeStreaming(it) }.collect { chunk -> print(chunk) }
@@ -624,19 +650,90 @@ public class SemanticCache(
         val result = lookup(prompt, scope, embedding, embedNanos = embedNanos)
         if (result is CacheLookup.Hit) return replayed(result, replay)
 
+        if (!coalesceConcurrentMisses) {
+            return flow {
+                val assembled = StringBuilder()
+                val lengths = ArrayList<Int>()
+                compute(prompt).collect { chunk ->
+                    assembled.append(chunk)
+                    // A zero-length chunk is a keep-alive, not content. Forwarded so the caller sees
+                    // the provider's stream unaltered, unrecorded so replay does not emit nothing
+                    // repeatedly.
+                    if (chunk.isNotEmpty()) lengths += chunk.length
+                    emit(chunk)
+                }
+                // Reached only when the upstream flow completed without throwing (and was not
+                // cancelled): a partial stream must never be cached as if it were the whole answer.
+                put(prompt, assembled.toString(), scope, metadata, embedding, chunkLengths = lengths)
+            }
+        }
+
+        // The same key shape getOrPut coalesces on, separated the same way: a scope and a prompt
+        // joined by an ordinary character would let one pair of them spell another.
+        val key = "$scope $prompt"
         return flow {
+            val attachment = streams.joinOrLead(key)
+            val shared = attachment.stream
+            try {
+                if (attachment.leader) {
+                    // Deliberately not a child of this collector's job. A child would die with the
+                    // caller who happened to open the stream, taking the answer away from everyone
+                    // attached to it. The producer is instead stopped by StreamCoalescer.leave when the
+                    // last collector goes, which keeps M26's rule intact for the single-caller case and
+                    // only changes the case where somebody else is still reading.
+                    val producer = CoroutineScope(currentCoroutineContext().minusKey(Job) + Job())
+                    shared.leadWith(
+                        producer.launch { produce(shared, key, prompt, scope, metadata, embedding, compute) },
+                    )
+                }
+                shared.collect { chunk -> emit(chunk) }
+            } finally {
+                streams.leave(key, shared)
+            }
+        }
+    }
+
+    /**
+     * The one provider call behind a coalesced streaming miss.
+     *
+     * Every ending goes through [SharedStream], so a collector is never left waiting on a stream whose
+     * producer has stopped: normal completion, a provider that threw, a store write that threw, and
+     * cancellation when the last collector left all terminate it. The store write happens **before**
+     * the completion signal, which keeps the uncoalesced path's behaviour exactly: every chunk has
+     * already been delivered, and a failed write still surfaces as a failed flow rather than being
+     * swallowed because the text happened to arrive.
+     */
+    @Suppress("TooGenericExceptionCaught", "LongParameterList")
+    private suspend fun produce(
+        shared: SharedStream,
+        key: String,
+        prompt: String,
+        scope: String,
+        metadata: Map<String, String>,
+        embedding: FloatArray,
+        compute: suspend (String) -> Flow<String>,
+    ) {
+        try {
             val assembled = StringBuilder()
             val lengths = ArrayList<Int>()
             compute(prompt).collect { chunk ->
                 assembled.append(chunk)
-                // A zero-length chunk is a keep-alive, not content. Forwarded so the caller sees the
-                // provider's stream unaltered, unrecorded so replay does not emit nothing repeatedly.
                 if (chunk.isNotEmpty()) lengths += chunk.length
-                emit(chunk)
+                shared.append(chunk)
             }
-            // Reached only when the upstream flow completed without throwing (and was not cancelled):
-            // a partial stream must never be cached as if it were the whole answer.
             put(prompt, assembled.toString(), scope, metadata, embedding, chunkLengths = lengths)
+            shared.complete()
+        } catch (e: Throwable) {
+            // Under NonCancellable because the commonest way to get here is the last collector leaving,
+            // and a suspending hand-off skipped by cancellation would strand any collector that had not
+            // yet noticed.
+            withContext(NonCancellable) { shared.fail(e) }
+            // An ordinary provider failure has already reached every collector, so re-throwing it would
+            // only hand a duplicate to an uncaught-exception handler on a coroutine nobody is awaiting.
+            // Cancellation and anything that is not an Exception still propagate.
+            if (e !is Exception || e is CancellationException) throw e
+        } finally {
+            streams.finished(key, shared)
         }
     }
 
@@ -733,6 +830,14 @@ public class SemanticCache(
 
     /** Number of cached entries in [scope], or in the whole cache when [scope] is `null`. */
     public suspend fun size(scope: String? = null): Int = store.size(scope)
+
+    /**
+     * Coalesced streams in flight right now.
+     *
+     * Not public API: the registry is reference counted and a leak in it is invisible from outside,
+     * so the tests need a window on it. It must come back to zero.
+     */
+    internal suspend fun inFlightStreams(): Int = streams.size()
 
     /**
      * Counters since this instance was created. See [CacheStats] for what they tell you.
