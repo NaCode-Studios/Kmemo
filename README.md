@@ -73,8 +73,9 @@ source; Kmemo ships none and depends on no provider SDK.
 ## Installation
 
 `kmemo-core` is a Kotlin Multiplatform library: JVM (17+), Android via the JVM artifact, iOS, macOS,
-Linux, Windows, JS and WasmJS. The store adapters and framework integrations are JVM-only. Artifacts
-are published to Maven Central under `io.github.nacode-studios`.
+Linux, Windows, JS and WasmJS. `kmemo-store-file` follows it to every one of those targets; the other
+store adapters and the framework integrations are JVM-only, because they wrap drivers that exist
+nowhere else. Artifacts are published to Maven Central under `io.github.nacode-studios`.
 
 ```kotlin
 dependencies {
@@ -380,6 +381,64 @@ indistinguishable from a miss. Kmemo ships the seam and no detector, for the sam
 `Verifier` are seams. Isolation *between* tenants is a different problem and is already `scope`, which
 the store TCK has enforced on every store since M4.
 
+### Which store to use where
+
+| Store | Survives a restart | Shared between processes | Where it runs |
+| --- | --- | --- | --- |
+| `InMemoryStore` | no | no | everywhere `kmemo-core` does |
+| `kmemo-store-file` | **yes** | no | everywhere `kmemo-core` does |
+| `kmemo-store-hnsw` | no | no | JVM |
+| `kmemo-store-postgres` | yes | yes | JVM |
+| `kmemo-store-redis` | yes | yes | JVM |
+
+Read it down the first column. One process that can start cold wants `InMemoryStore`. One process that
+cannot, which is every phone, desktop and edge deployment, wants `kmemo-store-file`. More than one
+process wants a server, and then the choice is between Postgres, which you probably already run and
+which reaches filtered lookup through pgvector, and Redis, which is faster and remembers less.
+`kmemo-store-hnsw` is the different axis: it is in-memory like the first, and it is for a single store
+large enough that the exact scan has become the cost.
+
+### A cache that survives the process, on every target
+
+`kmemo-core` has built for iOS, macOS, Linux, Windows, JS and WasmJS since `2.0.0`, and the argument for
+that release was a good one: a phone pays for every call over a mobile network, a browser has no server
+to cache on, and an edge deployment may have no reliable uplink. Those are the deployments where a cache
+pays for itself fastest. They were also the deployments that lost the entire cache on every restart,
+because `InMemoryStore` was the only store that built off the JVM. An iOS app cached for the length of
+one session, so a user who asked the same question on Monday and Tuesday paid twice, on the connection
+that costs most.
+
+```kotlin
+val cache = semanticCache(embedder) {
+    store = FileStore(path = "$appSupportDirectory/kmemo.journal", maxEntries = 5_000)
+}
+```
+
+**It is a journal over the in-memory index, not a database.** The two obvious answers were a
+multiplatform SQLite driver, which brings decades of somebody else's work on durability, and a
+hand-written index on disk, which keeps the dependency count where this README is proud of it. The first
+does not reach WasmJS at all, so it cannot satisfy a store that has to follow `kmemo-core` everywhere,
+and that settles it on availability rather than on taste. The second is the wrong shape: an on-disk
+index exists so the working set can exceed memory, and a cache's working set is bounded by `maxEntries`
+by construction. What was missing was never the index. It was durability across a restart, and that is
+an append-only log. The log puts four operations on the platform seam, read, append, replace and delete,
+instead of a driver.
+
+What it costs, in the order it will bite you. Memory holds everything, so this is `InMemoryStore` with a
+log beside it and a cache bigger than one process still wants a server. A write is a buffered file
+append rather than an fsync, so a power cut can lose the last writes, which for a cache is a future miss
+and the right trade in both directions. And a journal is one file with one tail, so two processes
+pointed at one path will interleave records: give each its own, or use a store that is a server.
+
+The journal is compacted when it outgrows its live set, through a temporary file that is moved into
+place, and a tail truncated by a process that died mid-append is dropped rather than refused. Turning
+one lost write into a lost cache is the wrong direction for a cache to fail in.
+
+The whole of `CacheStoreContract`, the same suite Postgres and Redis pass, runs against it on the JVM,
+Node, WasmJS, `macosArm64` and the iOS simulator on every build. That is what the suite becoming
+multiplatform was for: a store that is conformant on the JVM and untested on iOS is a store that will
+serve a wrong answer on a phone first.
+
 ### On a phone or in a browser, the embedder is a network call
 
 `Embedder`'s documentation names four places to get an implementation, and three of them are network
@@ -529,6 +588,7 @@ build that spends a model call per run is a build nobody keeps.
 | `kmemo-store-redis` | A `CacheStore` on Redis (RediSearch KNN), for a cache shared across processes. |
 | `kmemo-store-postgres` | A durable `CacheStore` on Postgres / pgvector. |
 | `kmemo-store-hnsw` | An opt-in in-process approximate (HNSW) `CacheStore` that scales past the exact scan. |
+| `kmemo-store-file` | A persistent `CacheStore` on an append-only journal. **Multiplatform**: every target `kmemo-core` has. |
 | `kmemo-micrometer` / `kmemo-slf4j` | A Micrometer `MeterBinder` and an SLF4J logging listener. |
 | `kmemo-spring-boot-starter` / `kmemo-spring-ai` | Auto-config for a `SemanticCache` bean, and a caching `Advisor` for Spring AI's `ChatClient`. |
 | `kmemo-langchain4j` / `kmemo-ktor` | A caching `ChatModel` wrapper, and a Ktor server plugin. |

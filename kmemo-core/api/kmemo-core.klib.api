@@ -677,6 +677,7 @@ final class dev.kmemo.store/InMemoryStore : dev.kmemo/CacheStore { // dev.kmemo.
     constructor <init>(kotlin/Int = ..., kotlin.time/Duration? = ..., kotlin.time/Clock = ..., kotlin/Long? = ..., dev.kmemo/CacheListener? = ..., dev.kmemo/Quantization = ...) // dev.kmemo.store/InMemoryStore.<init>|<init>(kotlin.Int;kotlin.time.Duration?;kotlin.time.Clock;kotlin.Long?;dev.kmemo.CacheListener?;dev.kmemo.Quantization){}[0]
 
     final suspend fun clear(kotlin/String?) // dev.kmemo.store/InMemoryStore.clear|clear(kotlin.String?){}[0]
+    final suspend fun entries(): kotlin.collections/List<dev.kmemo/CacheEntry> // dev.kmemo.store/InMemoryStore.entries|entries(){}[0]
     final suspend fun invalidateByTag(kotlin/String, kotlin/String?): kotlin/Int // dev.kmemo.store/InMemoryStore.invalidateByTag|invalidateByTag(kotlin.String;kotlin.String?){}[0]
     final suspend fun purgeExpired(): kotlin/Int // dev.kmemo.store/InMemoryStore.purgeExpired|purgeExpired(){}[0]
     final suspend fun put(dev.kmemo/CacheEntry) // dev.kmemo.store/InMemoryStore.put|put(dev.kmemo.CacheEntry){}[0]

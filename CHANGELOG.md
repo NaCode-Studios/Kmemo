@@ -79,6 +79,34 @@ All notable changes to this project are documented here. The format follows
   carry no token counts are reported as `hitsMissingTokenCounts` next to the amount, since that is the
   one way the figure can be quietly wrong and a total that is too small should say why.
 
+- **`kmemo-store-file`, a persistent store on every target `kmemo-core` publishes (M30).** The reach
+  shipped in `2.0.0` and the benefit did not follow it. A phone pays for every call over a mobile
+  network, a browser has no server to cache on, an edge deployment may have no reliable uplink, and all
+  three lost the entire cache every time the process ended, because `InMemoryStore` was the only store
+  that built off the JVM. An iOS app cached for the length of one session.
+  It is an append-only journal over the in-memory index, and the shape was argued rather than assumed. A
+  multiplatform SQLite driver would bring decades of somebody else's work on durability and does not
+  reach `wasmJs` at all, so it cannot satisfy a store that has to follow `kmemo-core` everywhere. A
+  hand-written index on disk is the wrong shape for a cache: an on-disk index exists so the working set
+  can exceed memory, and a cache's working set is bounded by `maxEntries` by construction. What was
+  missing was durability across a restart, which is a log. The log puts four operations on the platform
+  seam, read, append, replace and delete, instead of a driver.
+  The journal's format is length-prefixed rather than separated, so a prompt containing a newline, a
+  comma or a quote needs no escaping and escaping is where a parser silently corrupts one entry in ten
+  thousand. Records are self-delimiting, so a tail truncated by a process that died mid-append is
+  dropped and everything before it is still served: turning one lost write into a lost cache is the
+  wrong direction for a cache to fail in. Vectors are written as raw bits, because a float printed as a
+  decimal and parsed back is not guaranteed to be the same float on every platform. Compaction rewrites
+  the log as one record per live entry, through a temporary file that is moved into place.
+  Three costs, stated because they decide whether it suits you. Memory holds everything, so a cache
+  bigger than one process still wants Postgres or Redis. A write is a buffered append rather than an
+  fsync, so a power cut can lose the last writes. And a journal is one file with one tail, so two
+  processes must not share a path.
+  `kmemo-store-tck` became multiplatform to carry this, so `CacheStoreContract` now runs on the JVM,
+  Node, WasmJS, `macosArm64` and the iOS simulator instead of on the JVM alone. A store that is
+  conformant on the JVM and untested on iOS is a store that will serve a wrong answer on a phone first.
+  `InMemoryStore.entries()` is new and public: the file store compacts by writing the live set out, and
+  without it would have to keep a second copy of everything to know what to write.
 - **On-device embedding, measured and ruled out (M41).** `Embedder` names four places to get an
   implementation. Three are network providers and the fourth runs only on the JVM, and the consequence
   had never been written down: on the native targets and on wasm an embedder is always a network call,

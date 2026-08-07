@@ -377,7 +377,7 @@ public abstract class CacheStoreContract {
     }
 
     @Test
-    public fun `invalidateByTag can be scoped, leaving other scopes alone`() = runTest {
+    public fun `invalidateByTag can be scoped and leaves other scopes alone`() = runTest {
         if (!supportsTagInvalidation) return@runTest
         val store = createStore()
         store.put(entry("a", scope = "one", tags = setOf("shared")))

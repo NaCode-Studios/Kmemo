@@ -976,6 +976,7 @@ public final class dev/kmemo/store/InMemoryStore : dev/kmemo/CacheStore {
 	public synthetic fun <init> (ILkotlin/time/Duration;Lkotlin/time/Clock;Ljava/lang/Long;Ldev/kmemo/CacheListener;Ldev/kmemo/Quantization;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public synthetic fun <init> (ILkotlin/time/Duration;Lkotlin/time/Clock;Ljava/lang/Long;Ldev/kmemo/CacheListener;Ldev/kmemo/Quantization;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun entries (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun invalidateByTag (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun purgeExpired (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun put (Ldev/kmemo/CacheEntry;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
