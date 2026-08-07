@@ -747,6 +747,8 @@ public abstract interface class dev/kmemo/guard/MatchGuard {
 
 public final class dev/kmemo/guard/MatchGuards {
 	public static final field INSTANCE Ldev/kmemo/guard/MatchGuards;
+	public final fun longPrompts ()Ljava/util/List;
+	public final fun longPrompts (Ldev/kmemo/guard/GuardVocabulary;)Ljava/util/List;
 	public final fun none ()Ljava/util/List;
 	public final fun responseAware ()Ljava/util/List;
 	public final fun responseAware (Ldev/kmemo/guard/GuardVocabulary;)Ljava/util/List;
@@ -811,9 +813,10 @@ public final class dev/kmemo/guard/SubSpanGuard : dev/kmemo/guard/MatchGuard {
 public final class dev/kmemo/guard/SubstitutionGuard : dev/kmemo/guard/MatchGuard {
 	public static final field Companion Ldev/kmemo/guard/SubstitutionGuard$Companion;
 	public static final field DEFAULT_MIN_TOKENS I
+	public static final field LONG_PROMPT_MAX_TOKENS I
 	public fun <init> ()V
-	public fun <init> (ILjava/util/Set;Ljava/util/Map;)V
-	public synthetic fun <init> (ILjava/util/Set;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ILjava/util/Set;Ljava/util/Map;Ljava/lang/Integer;)V
+	public synthetic fun <init> (ILjava/util/Set;Ljava/util/Map;Ljava/lang/Integer;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun evaluate (Ljava/lang/String;Ljava/lang/String;)Ldev/kmemo/guard/GuardVerdict;
 	public fun getName ()Ljava/lang/String;
 }

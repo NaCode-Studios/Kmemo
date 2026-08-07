@@ -21,6 +21,23 @@ The whole value of the held-out and validation splits is that no guard was fitte
 prompt pair moved from validation into a guard's design destroys that pair's evidentiary value forever.
 So the rule is simple and absolute: **you do not read the validation failures while editing a guard.**
 
+### The derived envelope splits
+
+There is a fifth thing in the reports and it is not a split. `external+rag512`, `external+rag1024` and
+`external+rag2048` are the external pairs with both sides wrapped in the same retrieved-context
+envelope: a fixed instruction, a block of passages drawn from other pairs in the same split, and the
+original prompt as the question. The envelope is byte-identical on the two sides, so the only
+difference between the long prompts is still the difference between the short ones, and the label
+carries over untouched.
+
+They exist because every pair anybody has written or fetched for this project is between 19 and 214
+characters, and the audience that most needs the guards is caching prompts ten times that. What they
+can say is whether a guard's behaviour changes when the same evidence is diluted. What they cannot say
+is anything about how good the guards are: they contain no near miss anybody wrote and no paraphrase
+anybody judged. **They are never quoted as a score**, and the reports print them under their own
+heading for that reason. Adding to them means changing `LongPromptCorpus`, which is code, not data,
+and the change shows up as a moved number in every band at once.
+
 ## The external split, and the objection it answers
 
 The three splits above are careful, and they still share one weakness that no amount of process can

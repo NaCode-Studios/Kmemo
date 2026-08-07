@@ -6,6 +6,46 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **The guards measured against prompt length (M28).** `2.1.0` shipped an external split whose
+  breakdown said something nobody followed up: `substitution` rejected 498 of 3,536 PAWS paraphrases
+  against 2 of 51 on validation, from a guard that had not changed. The release notes called it a
+  register difference, which is a label covering at least three things that would each need a different
+  answer. It was mostly length. Filing every pair in every split by the mean length of its two prompts
+  and measuring each band separately, `substitution` rejects paraphrases at 0% below 48 characters, 12%
+  between 48 and 95, and 15% from 96 characters up. The written splits are almost entirely below 48 and
+  PAWS is almost entirely above 96, so the two averages were describing different lengths. Where the
+  bands overlap they read 10% and 12%.
+  `GuardReport` now carries a `byLength` breakdown across all four splits, written to
+  `build/reports/guards/guard-length-report.json` beside the existing report, with the bands that
+  contain nothing kept rather than dropped: an axis that stops at the last measurement reads as
+  coverage. `GuardLengthTest` prints the table and asserts that banding partitions a corpus rather than
+  sampling it.
+  Past 214 characters there was nothing to measure at all, so the report derives one: both sides of
+  every PAWS pair wrapped in an identical retrieved-context envelope at 512, 1024 and 2048 characters,
+  which leaves the difference between them untouched and only buries it. `substitution` holds at 15%
+  across all three, so there is no cliff further up. `entity` and `direction` do move, from 6% to 10%
+  and 0% to 4%, because both treat the first word of the text they are handed as a sentence opener and
+  a question with passages in front of it no longer has one. That is documented rather than fixed: it
+  needs a way to tell a guard where the question starts, which this API does not have. The derived
+  splits measure dilution and are not a fifth independent score.
+- **`MatchGuards.longPrompts()`**, the chain for traffic whose prompts carry retrieved context. It is
+  `standard()` with `SubstitutionGuard` bounded at `LONG_PROMPT_MAX_TOKENS`, so past a dozen content
+  words the guard abstains instead of rejecting on one differing word. On the external split it gives
+  up 12 of 647 catches and keeps 125 more of 3,536 paraphrases, roughly ten kept per catch lost; on the
+  derived envelope splits, between 6 and 8 given up for between 57 and 61 kept. It changes nothing on
+  the three written splits, because none of their prompts reaches the bound. The bound was placed on
+  the tuned corpus, which is the split that exists to be fitted, and measured everywhere else;
+  `SubstitutionBoundTest` holds all of that.
+
+### Changed
+
+- `SubstitutionGuard` takes a fourth constructor parameter, `maxTokens`, defaulting to `null`. Source
+  compatible, and code compiled against `2.1.0` must be recompiled. `MatchGuards.standard()` is
+  unchanged and every published corpus figure with it, which is why the bound ships as a preset rather
+  than as a new default.
+
 ### Internal
 
 - The release workflow now publishes rather than uploading. Every module called

@@ -22,9 +22,11 @@ data class CorpusPair(
  * three rounds of fitting produced a 96% catch rate that fell to 26% the first time anyone tried
  * prompts from outside it.
  */
-class Corpus(private val resource: String, val name: String) {
+class Corpus private constructor(val name: String, private val loader: () -> List<CorpusPair>) {
 
-    val pairs: List<CorpusPair> by lazy { load() }
+    constructor(resource: String, name: String) : this(name, { fromResource(resource) })
+
+    val pairs: List<CorpusPair> by lazy { loader() }
 
     /** Pairs that must never be served from cache. */
     val nearMisses: List<CorpusPair> get() = pairs.filter { !it.shouldMatch }
@@ -35,23 +37,38 @@ class Corpus(private val resource: String, val name: String) {
     fun asPromptPairs(): List<PromptPair> =
         pairs.map { PromptPair(a = it.a, b = it.b, shouldMatch = it.shouldMatch, label = it.category) }
 
-    private fun load(): List<CorpusPair> {
-        val json = Corpus::class.java.getResourceAsStream(resource)
-            ?.bufferedReader()
-            ?.use { it.readText() }
-            ?: error("$resource is missing from the test classpath")
+    companion object {
 
-        return Json.parseToJsonElement(json).jsonObject
-            .getValue("pairs").jsonArray
-            .map { element ->
-                val fields = element.jsonObject
-                CorpusPair(
-                    a = fields.getValue("a").jsonPrimitive.content,
-                    b = fields.getValue("b").jsonPrimitive.content,
-                    shouldMatch = fields.getValue("shouldMatch").jsonPrimitive.content.toBoolean(),
-                    category = fields.getValue("category").jsonPrimitive.content,
-                )
-            }
+        /**
+         * A corpus over pairs already in hand rather than over a resource on the classpath.
+         *
+         * The external split is fetched at build time and the derived long-prompt split is computed
+         * from it, so neither has a resource to name. Both still have to be measurable by the same
+         * report as the three committed splits, or the report would describe the short prompts and
+         * call itself a measurement of the guards.
+         */
+        fun of(name: String, pairs: List<CorpusPair>): Corpus = Corpus(name) { pairs }
+
+        fun fromResource(resource: String): List<CorpusPair> {
+            val json = Corpus::class.java.getResourceAsStream(resource)
+                ?.bufferedReader()
+                ?.use { it.readText() }
+                ?: error("$resource is missing from the test classpath")
+            return parse(json)
+        }
+
+        fun parse(json: String): List<CorpusPair> =
+            Json.parseToJsonElement(json).jsonObject
+                .getValue("pairs").jsonArray
+                .map { element ->
+                    val fields = element.jsonObject
+                    CorpusPair(
+                        a = fields.getValue("a").jsonPrimitive.content,
+                        b = fields.getValue("b").jsonPrimitive.content,
+                        shouldMatch = fields.getValue("shouldMatch").jsonPrimitive.content.toBoolean(),
+                        category = fields.getValue("category").jsonPrimitive.content,
+                    )
+                }
     }
 }
 

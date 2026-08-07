@@ -143,7 +143,13 @@ SemanticCache(embedder)                                        // MatchGuards.st
 SemanticCache(embedder, guards = MatchGuards.strict())         // trades hit rate for margin
 SemanticCache(embedder, guards = MatchGuards.none())           // the naive similarity-only baseline
 SemanticCache(embedder, guards = MatchGuards.responseAware())  // standard(), plus reads the cached answer
+SemanticCache(embedder, guards = MatchGuards.longPrompts())    // for prompts carrying retrieved context
 ```
+
+`longPrompts()` is `standard()` with one guard bounded, and it exists because of a measurement rather
+than a preference: see [what prompt length does to the guards](#what-prompt-length-does-to-the-guards).
+Reach for it when your prompts carry retrieved passages. On prompts of a dozen content words or fewer
+it is byte-for-byte the same chain, so it costs nothing to pick if you are not sure.
 
 Every guard in `standard()` compares two prompts, which leaves one near miss structurally invisible:
 two honest paraphrases whose answers differ by something neither question contains. "What is the
@@ -535,6 +541,43 @@ Reproduce them with:
 
 ```bash
 python tools/external-corpus/fetch.py && ./gradlew :kmemo-core:jvmTest --tests '*ExternalCorpusTest*'
+```
+
+### What prompt length does to the guards
+
+Most of the gap between the external row and the other three is prompt length, not subject matter.
+The four figures above each average over whatever lengths their split happens to contain, and the
+splits contain very different ones: the three written here run from 19 to 85 characters, PAWS runs
+from 32 to 214. Filing every pair by the mean length of its two prompts and measuring each band
+separately says so directly. `substitution` rejects genuine paraphrases at 0% below 48 characters,
+12% between 48 and 95, and 15% from 96 characters up. The validation split is 76% shorter than 48
+characters and PAWS is 69% longer than 96, so the two averages that looked like 4% against 14% were
+describing different lengths. In the one band where they overlap they read 10% and 12%.
+
+The mechanism is the guard's own arithmetic. It rejects when two prompts have the same content words
+in the same order and differ in exactly one position. One differing word out of five is a term
+somebody swapped; one out of forty is a word somebody chose differently, and the guard cannot tell
+those apart because it counts differing positions and never asks what share of the prompt one position
+is. `MatchGuards.longPrompts()` is the bound that says so: past twelve content words it abstains. On
+the external split that gives up 12 of 647 catches and keeps 125 more of 3,536 paraphrases, about ten
+kept for each one lost, and it changes nothing at all on the three written splits because none of
+their prompts is that long.
+
+There is no cliff further up. Wrapping both sides of every PAWS pair in an identical retrieval
+envelope, which leaves the difference between them untouched and only buries it, holds `substitution`
+at 15% at 512, 1024 and 2048 characters. What does move is a different pair of guards, and no preset
+can bound it away: `entity` goes from 6% to 10% and `direction` from 0% to 4%, because both treat the
+first word of the text they are handed as a sentence opener and stop exempting it once a question has
+passages in front of it. Fixing that needs a way to tell a guard where the question starts, which this
+API does not have.
+
+Two limits on all of the above. The envelope splits are derived from PAWS rather than written, so they
+measure dilution and cannot be read as a fifth independent score. And **nothing here measures a
+written prompt longer than 214 characters**: every long figure comes from wrapping short pairs, which
+is why the report prints its empty bands instead of stopping at the last one with data in it.
+
+```bash
+python tools/external-corpus/fetch.py && ./gradlew :kmemo-core:jvmTest --tests '*GuardLengthTest*'
 ```
 
 ## Roadmap
