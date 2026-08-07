@@ -95,7 +95,7 @@ class SavingsTest {
      * discovered from a total that looks too small.
      */
     @Test
-    fun `hits whose entries carry no token counts are reported, not hidden`() = runTest {
+    fun `hits whose entries carry no token counts are reported rather than hidden`() = runTest {
         val cache = cache()
         cache.getOrPut("q", scope = "gpt-4o", metadata = mapOf("prompt_tokens" to "500")) { "a" }
         cache.getOrPut("q", scope = "gpt-4o") { error("hit") }

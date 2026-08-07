@@ -110,7 +110,7 @@ class EncryptedStoreTest {
      * is arithmetic this library cannot do for them; the count is the part it can state exactly.
      */
     @Test
-    fun `the read path decrypts once per candidate, not once per lookup`() = runTest {
+    fun `the read path decrypts once per candidate rather than once per lookup`() = runTest {
         val cipher = ToyCipher()
         val cache = SemanticCache(
             HashingEmbedder(),
@@ -154,7 +154,7 @@ class EncryptedStoreTest {
     }
 
     @Test
-    fun `tags still invalidate, because tags are not user input`() = runTest {
+    fun `tags still invalidate because tags are not user input`() = runTest {
         val cache = SemanticCache(HashingEmbedder(), EncryptedStore(InMemoryStore(), ToyCipher()))
         cache.getOrPut("what does the policy say", emptyList(), setOf("policy-2026")) { "it says this" }
 

@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
 class AdmissionPolicyTest {
 
     @Test
-    fun `off by default, so every miss still writes`() = runTest {
+    fun `off by default so every miss still writes`() = runTest {
         val cache = SemanticCache(HashingEmbedder(), InMemoryStore())
         cache.getOrPut("asked exactly once") { "an answer" }
 
@@ -32,7 +32,7 @@ class AdmissionPolicyTest {
     }
 
     @Test
-    fun `a prompt asked once is not stored, and the same prompt asked twice is`() = runTest {
+    fun `a prompt asked once is not stored and the same prompt asked twice is`() = runTest {
         val cache = SemanticCache(
             HashingEmbedder(),
             InMemoryStore(),
@@ -136,7 +136,7 @@ class AdmissionPolicyTest {
     }
 
     @Test
-    fun `minSightings of one admits everything, like no policy at all`() = runTest {
+    fun `minSightings of one admits everything like no policy at all`() = runTest {
         val cache = SemanticCache(
             HashingEmbedder(),
             InMemoryStore(),

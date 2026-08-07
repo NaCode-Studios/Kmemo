@@ -380,6 +380,41 @@ indistinguishable from a miss. Kmemo ships the seam and no detector, for the sam
 `Verifier` are seams. Isolation *between* tenants is a different problem and is already `scope`, which
 the store TCK has enforced on every store since M4.
 
+### On a phone or in a browser, the embedder is a network call
+
+`Embedder`'s documentation names four places to get an implementation, and three of them are network
+providers while the fourth runs only on the JVM. The consequence had never been stated: on the native
+targets and on wasm, embedding is always a round trip. A semantic cache exists to avoid a round trip to
+a model, so a cache that needs one to decide whether to serve saves the difference between two network
+calls rather than the difference between one and none. The token-cost argument survives; the latency
+argument does not.
+
+The alternative was measured rather than assumed. One forward pass at `all-MiniLM-L6-v2` shape,
+arithmetic only, in ordinary Kotlin, on `macosArm64`:
+
+| | |
+| --- | --- |
+| Work per call | 679 MFLOP over a 32-token sequence |
+| Fastest of three runs | **2.5 seconds** |
+| Throughput | 274 MFLOP/s |
+| Encoder weights | 42 MB fp32, 10 MB int8 |
+| Vocabulary table | 46 MB fp32 on top |
+
+An embedding API answers in 50 to 200 ms, and it does so from a phone, which is slower hardware than
+the machine that produced this number. So a pure-Kotlin on-device embedder is an order of magnitude
+slower than the call it exists to avoid, and no amount of tuning closes a gap that size.
+
+**The decision that follows: no separate library.** A viable on-device embedder is a wrapper around a
+platform inference runtime, which means per-platform native binaries, a model format, a tokenizer and a
+licence conversation for the weights. That is a different project from a cache, and shipping it under
+this repository's name would put provider SDKs and native artifacts inside a library whose argument is
+that it has neither. `Embedder`'s documentation now says plainly that on-device embedding is
+unavailable on those targets, which is the honest correction to the silence.
+
+```bash
+./gradlew :kmemo-core:macosArm64Test
+```
+
 ### Prompts a regulated team is allowed to store
 
 `CachePolicy` answers "must this never be written". It does not help a clinical, legal or financial

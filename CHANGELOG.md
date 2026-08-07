@@ -79,6 +79,21 @@ All notable changes to this project are documented here. The format follows
   carry no token counts are reported as `hitsMissingTokenCounts` next to the amount, since that is the
   one way the figure can be quietly wrong and a total that is too small should say why.
 
+- **On-device embedding, measured and ruled out (M41).** `Embedder` names four places to get an
+  implementation. Three are network providers and the fourth runs only on the JVM, and the consequence
+  had never been written down: on the native targets and on wasm an embedder is always a network call,
+  so a cache that exists to avoid a round trip to a model needs one to decide whether to serve. That is
+  the specific thing that made this library not worth having on a phone.
+  `OnDeviceEmbeddingTest` measures the alternative on `macosArm64` rather than arguing about it: one
+  forward pass at `all-MiniLM-L6-v2` shape, arithmetic only, in ordinary Kotlin. **2.5 seconds per
+  call** at 274 MFLOP/s, 42 MB of encoder weights fp32 and a 46 MB vocabulary table beside them. An
+  embedding API answers in 50 to 200 ms from hardware slower than the machine that produced this, so a
+  pure-Kotlin on-device embedder is an order of magnitude slower than the call it exists to avoid.
+  The decision is that no separate library follows. A viable on-device embedder wraps a platform
+  inference runtime, which means per-platform native binaries, a model format, a tokenizer and a licence
+  conversation about weights: a different project from a cache, and one that would put native artifacts
+  and provider SDKs under the name of a library whose argument is that it has neither. `Embedder`'s
+  documentation is corrected to say so, which is what the silence needed.
 - **`EntryCipher` and `EncryptedStore` (M33).** `CacheEntry.prompt` is stored verbatim and has to be:
   the guards re-read it on every hit and reading it as text is the whole mechanism. `kmemo-slf4j`
   redacts prompts by default because prompts are user input and routinely carry personal data, which is
