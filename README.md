@@ -390,13 +390,23 @@ the store TCK has enforced on every store since M4.
 | `kmemo-store-hnsw` | no | no | JVM |
 | `kmemo-store-postgres` | yes | yes | JVM |
 | `kmemo-store-redis` | yes | yes | JVM |
+| `kmemo-store-qdrant` | yes | yes | JVM and seven native targets |
 
 Read it down the first column. One process that can start cold wants `InMemoryStore`. One process that
 cannot, which is every phone, desktop and edge deployment, wants `kmemo-store-file`. More than one
-process wants a server, and then the choice is between Postgres, which you probably already run and
-which reaches filtered lookup through pgvector, and Redis, which is faster and remembers less.
-`kmemo-store-hnsw` is the different axis: it is in-memory like the first, and it is for a single store
-large enough that the exact scan has become the cost.
+process wants a server, and there the first question is what you already run: **if that is Qdrant,
+pick `kmemo-store-qdrant` and operate nothing new**, because a cache holds embeddings and a vector
+database is what you already have for holding embeddings. Otherwise the choice is between Postgres,
+which you probably already run and which reaches filtered lookup through pgvector, and Redis, which is
+faster and remembers less. `kmemo-store-hnsw` is a different axis: in-memory like the first, and for a
+single store large enough that the exact scan has become the cost.
+
+Two things the Qdrant row does not say. It is a fourth store written by the authors of the conformance
+suite, so it proves what the other three prove and no more: the argument for it is adoption friction,
+not validation. And it has no `js` or `wasmJs`, which is Kdrant's decision rather than an omission, on
+the grounds that a Qdrant reachable from a browser is reachable from anyone who opens the developer
+tools and an API key shipped to a browser is a published key. That argument holds at least as well for
+a cache, so this repository states the gap rather than working around it. Use `kmemo-store-file` there.
 
 ### A cache that survives the process, on every target
 
@@ -589,6 +599,7 @@ build that spends a model call per run is a build nobody keeps.
 | `kmemo-store-postgres` | A durable `CacheStore` on Postgres / pgvector. |
 | `kmemo-store-hnsw` | An opt-in in-process approximate (HNSW) `CacheStore` that scales past the exact scan. |
 | `kmemo-store-file` | A persistent `CacheStore` on an append-only journal. **Multiplatform**: every target `kmemo-core` has. |
+| `kmemo-store-qdrant` | A `CacheStore` on Qdrant, through the Kdrant client. JVM and seven native targets. |
 | `kmemo-micrometer` / `kmemo-slf4j` | A Micrometer `MeterBinder` and an SLF4J logging listener. |
 | `kmemo-spring-boot-starter` / `kmemo-spring-ai` | Auto-config for a `SemanticCache` bean, and a caching `Advisor` for Spring AI's `ChatClient`. |
 | `kmemo-langchain4j` / `kmemo-ktor` | A caching `ChatModel` wrapper, and a Ktor server plugin. |

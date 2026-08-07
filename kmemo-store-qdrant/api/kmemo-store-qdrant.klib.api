@@ -1,0 +1,23 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, iosX64, linuxX64, macosArm64, macosX64, mingwX64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <io.github.nacode-studios:kmemo-store-qdrant>
+final class dev.kmemo.store.qdrant/QdrantStore : dev.kmemo/CacheStore { // dev.kmemo.store.qdrant/QdrantStore|null[0]
+    constructor <init>(dev.kdrant/QdrantClient, kotlin/Int, kotlin/String = ..., kotlin.time/Duration? = ..., kotlin.time/Clock = ...) // dev.kmemo.store.qdrant/QdrantStore.<init>|<init>(dev.kdrant.QdrantClient;kotlin.Int;kotlin.String;kotlin.time.Duration?;kotlin.time.Clock){}[0]
+
+    final suspend fun clear(kotlin/String?) // dev.kmemo.store.qdrant/QdrantStore.clear|clear(kotlin.String?){}[0]
+    final suspend fun invalidateByTag(kotlin/String, kotlin/String?): kotlin/Int // dev.kmemo.store.qdrant/QdrantStore.invalidateByTag|invalidateByTag(kotlin.String;kotlin.String?){}[0]
+    final suspend fun put(dev.kmemo/CacheEntry) // dev.kmemo.store.qdrant/QdrantStore.put|put(dev.kmemo.CacheEntry){}[0]
+    final suspend fun remove(kotlin/String): kotlin/Boolean // dev.kmemo.store.qdrant/QdrantStore.remove|remove(kotlin.String){}[0]
+    final suspend fun search(kotlin/String, kotlin/FloatArray, kotlin/Int): kotlin.collections/List<dev.kmemo/ScoredEntry> // dev.kmemo.store.qdrant/QdrantStore.search|search(kotlin.String;kotlin.FloatArray;kotlin.Int){}[0]
+    final suspend fun size(kotlin/String?): kotlin/Int // dev.kmemo.store.qdrant/QdrantStore.size|size(kotlin.String?){}[0]
+
+    final object Companion { // dev.kmemo.store.qdrant/QdrantStore.Companion|null[0]
+        final const val DEFAULT_COLLECTION // dev.kmemo.store.qdrant/QdrantStore.Companion.DEFAULT_COLLECTION|{}DEFAULT_COLLECTION[0]
+            final fun <get-DEFAULT_COLLECTION>(): kotlin/String // dev.kmemo.store.qdrant/QdrantStore.Companion.DEFAULT_COLLECTION.<get-DEFAULT_COLLECTION>|<get-DEFAULT_COLLECTION>(){}[0]
+    }
+}

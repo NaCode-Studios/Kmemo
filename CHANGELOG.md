@@ -79,6 +79,26 @@ All notable changes to this project are documented here. The format follows
   carry no token counts are reported as `hitsMissingTokenCounts` next to the amount, since that is the
   one way the figure can be quietly wrong and a total that is too small should say why.
 
+- **`kmemo-store-qdrant` (M39).** `CacheStore` had three implementations and none of them is a vector
+  database, while the teams most likely to want a semantic cache are already running one. A team doing
+  retrieval-augmented generation already operates Qdrant, because that is where their documents are, and
+  adding a cache meant adding Redis or Postgres as well: a second store for something that holds
+  embeddings, which is what the store they already have exists to hold.
+  It is built on [Kdrant](https://github.com/NaCode-Studios/Kdrant), and it takes a `QdrantClient`
+  rather than connection settings, so the wire, the credential, the trust anchors and the lifecycle stay
+  with the caller and the module depends on the client interface rather than on a transport. The
+  collection is created on first use, single unnamed vector at `COSINE`, with payload indexes on
+  `scope`, `tags` and `expiresAt`, because filtering an unindexed payload field in Qdrant is a full scan
+  and every lookup filters on scope. Qdrant has no TTL, so expiry is a payload field and a filter,
+  exactly as it is on Postgres.
+  Two things are worth knowing before adopting it. It is a fourth store written by the authors of the
+  conformance suite, so it proves what the other three prove: the argument for it is adoption friction,
+  not validation. And **it has no `js` or `wasmJs` target**, which is Kdrant's stated decision rather
+  than an omission, because a Qdrant reachable from a browser is reachable from anyone who opens the
+  developer tools. M39's exit criterion asked for every target `kmemo-core` publishes, and that is not
+  reachable; `kmemo-store-file` covers those two.
+  `QdrantStoreConformanceTest` runs the whole shared suite against a real Qdrant in Docker, the way the
+  Postgres and Redis stores are tested, and skips rather than fails where Docker is absent.
 - **`kmemo-store-file`, a persistent store on every target `kmemo-core` publishes (M30).** The reach
   shipped in `2.0.0` and the benefit did not follow it. A phone pays for every call over a mobile
   network, a browser has no server to cache on, an edge deployment may have no reliable uplink, and all

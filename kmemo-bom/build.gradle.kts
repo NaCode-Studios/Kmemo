@@ -12,6 +12,7 @@ dependencies {
         api(project(":kmemo-store-postgres"))
         api(project(":kmemo-store-hnsw"))
         api(project(":kmemo-store-file"))
+        api(project(":kmemo-store-qdrant"))
         api(project(":kmemo-micrometer"))
         api(project(":kmemo-slf4j"))
         api(project(":kmemo-spring-boot-starter"))
