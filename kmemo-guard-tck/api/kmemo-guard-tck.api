@@ -1,10 +1,12 @@
 public final class dev/kmemo/guard/tck/CorpusScore {
 	public fun <init> (Ljava/lang/String;IIIII)V
 	public final fun getCatchRate ()D
+	public final fun getCatchRateInterval ()Ldev/kmemo/guard/tck/ScoreInterval;
 	public final fun getCaught ()I
 	public final fun getCorpus ()Ljava/lang/String;
 	public final fun getDirectionDisagreements ()I
 	public final fun getFalseRejectionRate ()D
+	public final fun getFalseRejectionRateInterval ()Ldev/kmemo/guard/tck/ScoreInterval;
 	public final fun getFalseRejections ()I
 	public final fun getNearMisses ()I
 	public final fun getParaphrases ()I
@@ -70,5 +72,26 @@ public abstract class dev/kmemo/guard/tck/MatchGuardContract {
 	public final fun the guard is deterministic ()V
 	public final fun the guard never throws, whatever it is handed ()V
 	public final fun the name is present and stable ()V
+}
+
+public final class dev/kmemo/guard/tck/ScoreInterval {
+	public static final field Companion Ldev/kmemo/guard/tck/ScoreInterval$Companion;
+	public static final field Z_95 D
+	public fun <init> (IIDD)V
+	public final fun getHalfWidthPoints ()D
+	public final fun getHigh ()D
+	public final fun getLow ()D
+	public final fun getRate ()Ljava/lang/Double;
+	public final fun getSuccesses ()I
+	public final fun getTrials ()I
+	public final fun separatedFrom (Ldev/kmemo/guard/tck/ScoreInterval;)Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/tck/ScoreInterval$Companion {
+	public final fun trialsToSeparate (DD)I
+	public static synthetic fun trialsToSeparate$default (Ldev/kmemo/guard/tck/ScoreInterval$Companion;DDILjava/lang/Object;)I
+	public final fun wilson (IID)Ldev/kmemo/guard/tck/ScoreInterval;
+	public final fun wilson95 (II)Ldev/kmemo/guard/tck/ScoreInterval;
 }
 

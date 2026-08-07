@@ -47,12 +47,25 @@ public class CorpusScore(
     public val falseRejectionRate: Double
         get() = if (paraphrases == 0) 0.0 else falseRejections.toDouble() / paraphrases
 
+    /**
+     * [catchRate] with the range the corpus supports.
+     *
+     * A rate from a hundred pairs and a rate from ten thousand are not the same kind of number, and
+     * printing them in the same column says they are. See [ScoreInterval].
+     */
+    public val catchRateInterval: ScoreInterval get() = ScoreInterval.wilson95(caught, nearMisses)
+
+    /** [falseRejectionRate] with the range the corpus supports. */
+    public val falseRejectionRateInterval: ScoreInterval
+        get() = ScoreInterval.wilson95(falseRejections, paraphrases)
+
     override fun toString(): String = String.format(
         Locale.ROOT,
-        "%-12s near misses caught %3d/%-3d (%3.0f%%), false rejections %3d/%-3d (%3.0f%%), " +
+        "%-12s near misses caught %3d/%-3d (%3.0f%% ±%.1f), false rejections %3d/%-3d (%3.0f%% ±%.1f), " +
             "direction disagreements %3d",
-        corpus, caught, nearMisses, 100.0 * catchRate,
+        corpus, caught, nearMisses, 100.0 * catchRate, catchRateInterval.halfWidthPoints,
         falseRejections, paraphrases, 100.0 * falseRejectionRate,
+        falseRejectionRateInterval.halfWidthPoints,
         directionDisagreements,
     )
 }
@@ -82,6 +95,12 @@ public class GuardComplianceReport(
                     put("caught", score.caught)
                     put("falseRejections", score.falseRejections)
                     put("directionDisagreements", score.directionDisagreements)
+                    // The interval, not only the rate. A number diffed across commits without one
+                    // reads as a change every time the corpus is small and the pairs move by two.
+                    put("catchRateLow", score.catchRateInterval.low)
+                    put("catchRateHigh", score.catchRateInterval.high)
+                    put("falseRejectionRateLow", score.falseRejectionRateInterval.low)
+                    put("falseRejectionRateHigh", score.falseRejectionRateInterval.high)
                 }
             }
         }

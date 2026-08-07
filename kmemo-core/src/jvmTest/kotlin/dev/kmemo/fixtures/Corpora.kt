@@ -22,9 +22,14 @@ data class CorpusPair(
  * three rounds of fitting produced a 96% catch rate that fell to 26% the first time anyone tried
  * prompts from outside it.
  */
-class Corpus private constructor(val name: String, private val loader: () -> List<CorpusPair>) {
+class Corpus private constructor(
+    val name: String,
+    val standing: CorpusStanding,
+    private val loader: () -> List<CorpusPair>,
+) {
 
-    constructor(resource: String, name: String) : this(name, { fromResource(resource) })
+    constructor(resource: String, name: String, standing: CorpusStanding) :
+        this(name, standing, { fromResource(resource) })
 
     val pairs: List<CorpusPair> by lazy { loader() }
 
@@ -47,7 +52,11 @@ class Corpus private constructor(val name: String, private val loader: () -> Lis
          * report as the three committed splits, or the report would describe the short prompts and
          * call itself a measurement of the guards.
          */
-        fun of(name: String, pairs: List<CorpusPair>): Corpus = Corpus(name) { pairs }
+        fun of(
+            name: String,
+            pairs: List<CorpusPair>,
+            standing: CorpusStanding = CorpusStanding.BLIND,
+        ): Corpus = Corpus(name, standing) { pairs }
 
         fun fromResource(resource: String): List<CorpusPair> {
             val json = Corpus::class.java.getResourceAsStream(resource)
@@ -79,7 +88,7 @@ class Corpus private constructor(val name: String, private val loader: () -> Lis
  * be read as a measure of quality. It is a regression test: it catches the day a change breaks
  * something that used to work.
  */
-val TUNED_CORPUS: Corpus = Corpus("/near-miss-corpus.json", "tuned")
+val TUNED_CORPUS: Corpus = Corpus("/near-miss-corpus.json", "tuned", CorpusStanding.IN_SAMPLE)
 
 /**
  * The held-out set — 128 pairs, no overlap with [TUNED_CORPUS], covering domains it never touches:
@@ -90,11 +99,12 @@ val TUNED_CORPUS: Corpus = Corpus("/near-miss-corpus.json", "tuned")
  * break them, then spot-checked by hand. It found the chain rejecting 22 of 86 near misses where the
  * tuned corpus reported 96%, and that gap is the reason this file exists.
  *
- * **Rule for using it: never tune against it.** The moment a guard is adjusted to make a pair here
- * pass, this stops being a held-out set and the project is back to grading its own homework. Tune on
- * [TUNED_CORPUS]; report both.
+ * **Retired, and still enforced.** Its failures were read while guards were being fixed, and there is
+ * no way to un-see them, so it stopped being out-of-sample evidence long before M54 named the state.
+ * It keeps its floors and stays in every report, because a spent split is a perfectly good regression
+ * gate. What it no longer is, is a number to quote as blind. `docs/CORPUS.md` states the policy.
  */
-val HELD_OUT_CORPUS: Corpus = Corpus("/held-out-corpus.json", "held-out")
+val HELD_OUT_CORPUS: Corpus = Corpus("/held-out-corpus.json", "held-out", CorpusStanding.RETIRED)
 
 /**
  * The validation set — 153 pairs across cooking, gardening, home repair, insurance, travel, pets,
@@ -108,7 +118,13 @@ val HELD_OUT_CORPUS: Corpus = Corpus("/held-out-corpus.json", "held-out")
  * measurement showed capitalization was silently carrying a third of the entity catches — a corpus
  * written in tidy prose hides exactly that.
  *
- * **This one is never tuned against, not once.** [HELD_OUT_CORPUS] stopped being a clean measure the
- * moment its failures were used to guide fixes. This is the number to quote.
+ * **Retired, and the reason is this project's own tooling.** `CorpusTest` printed this split's
+ * residual in full on every run, so its failures were in front of anybody who ran the suite, and they
+ * were read while M51's substitution floor was being investigated. That is the act `docs/CORPUS.md`
+ * prohibits, and the report was doing it by default. M53 stopped the printing and M54 retired the
+ * split rather than pretending the reading did not happen.
+ *
+ * It keeps its floors and stays in every report as a regression gate. The blind evidence now lives in
+ * the two fetched splits, which are larger by an order of magnitude and which nobody here can touch.
  */
-val VALIDATION_CORPUS: Corpus = Corpus("/validation-corpus.json", "validation")
+val VALIDATION_CORPUS: Corpus = Corpus("/validation-corpus.json", "validation", CorpusStanding.RETIRED)

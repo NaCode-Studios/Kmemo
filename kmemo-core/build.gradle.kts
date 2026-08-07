@@ -36,6 +36,16 @@ kotlin {
                     "kmemo.externalCorpus.required",
                     providers.gradleProperty("externalCorpusRequired").getOrElse("false"),
                 )
+                // The question split (M54), fetched under the same policy and for the same reason.
+                systemProperty(
+                    "kmemo.qqpCorpus",
+                    rootProject.layout.buildDirectory
+                        .file("qqp-corpus/qqp-questions.json").get().asFile.path,
+                )
+                systemProperty(
+                    "kmemo.qqpCorpus.required",
+                    providers.gradleProperty("qqpCorpusRequired").getOrElse("false"),
+                )
                 testLogging {
                     events("passed", "skipped", "failed")
                     exceptionFormat = TestExceptionFormat.FULL
