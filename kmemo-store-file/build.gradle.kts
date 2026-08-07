@@ -56,6 +56,13 @@ kotlin {
         commonMain.dependencies {
             api(project(":kmemo-core"))
         }
+        // iOS, macOS and Linux share one copy of the raw file calls; Windows needs its own, because
+        // the C library declares `ftell` and `fwrite` with narrower integers there and a source set
+        // shared across both cannot hold an expression whose type depends on which one it is.
+        val posixMain by creating { dependsOn(nativeMain.get()) }
+        appleMain.get().dependsOn(posixMain)
+        linuxMain.get().dependsOn(posixMain)
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
