@@ -37,10 +37,12 @@ class QdrantStoreConformanceTest : CacheStoreContract() {
 
     companion object {
         /**
-         * The contract writes short vectors, and a Qdrant collection has one width. Four is the widest
-         * the suite uses and a collection wider than its vectors would refuse them.
+         * A Qdrant collection has one vector width and the contract writes two-dimensional vectors, so
+         * this is that width and not one more. Qdrant refuses a vector that does not match the
+         * collection rather than padding it, which is the right behaviour and is how the first run of
+         * this suite against a real server found the number here was a guess.
          */
-        private const val DIMENSIONS = 4
+        private const val DIMENSIONS = 2
 
         private const val REST_PORT = 6333
 
