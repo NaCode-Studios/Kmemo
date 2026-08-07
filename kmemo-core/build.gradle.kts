@@ -36,6 +36,22 @@ kotlin {
                     "kmemo.externalCorpus.required",
                     providers.gradleProperty("externalCorpusRequired").getOrElse("false"),
                 )
+                // The question split (M54), fetched under the same policy and for the same reason.
+                systemProperty(
+                    "kmemo.qqpCorpus",
+                    rootProject.layout.buildDirectory
+                        .file("qqp-corpus/qqp-questions.json").get().asFile.path,
+                )
+                systemProperty(
+                    "kmemo.qqpCorpus.required",
+                    providers.gradleProperty("qqpCorpusRequired").getOrElse("false"),
+                )
+                // The published specification is generated from these guards and committed, the way
+                // the API dumps are. -PupdateGuardSpec=true rewrites it; without it a drift fails.
+                systemProperty(
+                    "kmemo.updateGuardSpec",
+                    providers.gradleProperty("updateGuardSpec").getOrElse("false"),
+                )
                 testLogging {
                     events("passed", "skipped", "failed")
                     exceptionFormat = TestExceptionFormat.FULL
@@ -84,6 +100,10 @@ kotlin {
             // the artifact a third party downloads, not to a private copy of it. See
             // StandardGuardComplianceTest.
             implementation(project(":kmemo-guard-tck"))
+            // The concurrency model checker (M49). JVM-only, which is a real limitation and an
+            // acceptable one: the code it checks is commonMain, and a data race there is a data race
+            // on every target even though the exploration runs on one.
+            implementation(libs.lincheck)
         }
     }
 }

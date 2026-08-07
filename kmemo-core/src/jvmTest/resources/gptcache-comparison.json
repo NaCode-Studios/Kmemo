@@ -20,7 +20,7 @@
   "corpora": [
     {
       "corpus": "held-out",
-      "corpusSha256": "8abb4e8cffd0413e445d705fc2c0d5ab8dfd2dddf8884f15fa59cdaf68471d4d",
+      "corpusSha256": "d753e96345c4f6f6748a2dc82a97dc736ab1ee62242e65f8519b58891610d15e",
       "precision": 0.5128,
       "recall": 0.4762,
       "f1": 0.4938,
@@ -32,7 +32,7 @@
     },
     {
       "corpus": "validation",
-      "corpusSha256": "3da55050d3cef99fae1fcd74f2966eecd34205ad3b15cba216d7366fea261a40",
+      "corpusSha256": "a872393450dd23c4797d54777262a77fe6d1063caddeb6de150b187d2b36b4d3",
       "precision": 0.6765,
       "recall": 0.451,
       "f1": 0.5412,

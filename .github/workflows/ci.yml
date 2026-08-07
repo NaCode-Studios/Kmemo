@@ -56,6 +56,13 @@ jobs:
           python -m pip install -r tools/external-corpus/requirements.txt
           python tools/external-corpus/fetch.py
 
+      # The question split, fetched and enforced the same way. It is the larger of the two blind
+      # splits and the only one in the register the guards were built for.
+      - name: Fetch the question corpus split
+        run: |
+          python -m pip install -r tools/qqp-corpus/requirements.txt
+          python tools/qqp-corpus/fetch.py
+
       # The retrieval corpus is fetched for the same reason and enforced the same way: without the flag
       # a missing file skips the measurement, and a measurement nobody notices has stopped running reads
       # as a passing one.
@@ -66,15 +73,39 @@ jobs:
 
       # `build` runs the tests, the public-API check, ktlint and detekt.
       - name: Build, test, lint and verify public API
-        run: ./gradlew build -PexternalCorpusRequired=true -PragCorpusRequired=true --no-daemon --stacktrace
+        run: >-
+          ./gradlew build
+          -PexternalCorpusRequired=true -PqqpCorpusRequired=true -PragCorpusRequired=true
+          --no-daemon --stacktrace
 
       # The corpus report is this project's headline claim. Keeping it in the build log means the
       # numbers in the README can always be checked against a real run.
-      - name: Corpus report (four splits)
+      - name: Corpus report (five splits)
         run: >-
           ./gradlew :kmemo-core:jvmTest
-          --tests '*CorpusTest*' --tests '*ExternalCorpusTest*'
-          -PexternalCorpusRequired=true --rerun-tasks --no-daemon
+          --tests '*CorpusTest*' --tests '*ExternalCorpusTest*' --tests '*QqpCorpusTest*'
+          -PexternalCorpusRequired=true -PqqpCorpusRequired=true --rerun-tasks --no-daemon
+
+      # The published documents against the measurements, with no Gradle involved. The corpus floors
+      # catch a guard whose rate slips; this catches a sentence that stopped being true.
+      - name: Check the published figures
+        run: python tools/figures/check.py
+
+      # The specification, implemented from its own prose, reproducing every vector and every corpus
+      # figure. A specification nobody has implemented is one whose gaps nobody has found.
+      - name: Score the corpora outside the JVM
+        working-directory: tools/corpus-runner
+        run: >-
+          python score.py --vectors
+          --corpus ../../kmemo-core/src/jvmTest/resources/near-miss-corpus.json
+          --corpus ../../kmemo-core/src/jvmTest/resources/held-out-corpus.json
+          --corpus ../../kmemo-core/src/jvmTest/resources/validation-corpus.json
+          --corpus ../../build/external-corpus/paws-wiki-test.json
+          --corpus ../../build/qqp-corpus/qqp-questions.json
+
+      # The archive a reader downloads instead of cloning this repository.
+      - name: Build the corpus bundle
+        run: ./gradlew corpusBundle --no-daemon
 
       - name: Upload test reports
         if: failure()

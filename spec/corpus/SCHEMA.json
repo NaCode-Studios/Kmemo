@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/NaCode-Studios/Kmemo/spec/corpus/SCHEMA.json",
+  "title": "Near-miss corpus",
+  "description": "A labelled set of prompt pairs for measuring how often a semantic cache serves an answer to a question that was not asked. The metric this data is scored with is defined in METRIC.md, and a corpus published without the discipline in that document is a corpus somebody will tune against and then quote.",
+  "type": "object",
+  "required": ["pairs"],
+  "properties": {
+    "about": {
+      "type": "string",
+      "description": "Free prose naming who wrote the pairs, when, and for what. Read by a person deciding what the number is worth."
+    },
+    "standing": {
+      "type": "string",
+      "enum": ["in-sample", "retired", "blind"],
+      "description": "What a rate measured on this split may be quoted as. 'in-sample' means the system under test was fitted with these pairs in view, so the score measures the fitting. 'retired' means it was out of sample once and its failures have since been read, which spends it: it stays a regression gate and stops being evidence. 'blind' means no failure from it has been read and nobody on the measuring side can add to it. Absent means unknown, which a reader should treat as 'in-sample'.",
+      "default": "in-sample"
+    },
+    "dataset": {
+      "type": "string",
+      "description": "Upstream dataset identifier, when the pairs were fetched rather than written."
+    },
+    "revision": {
+      "type": "string",
+      "description": "The upstream revision the pairs were taken from. A dataset pinned to a moving reference can be re-uploaded underneath a published figure."
+    },
+    "file": {
+      "type": "string",
+      "description": "The upstream file within the dataset."
+    },
+    "sourceSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the upstream bytes the published figure was measured against."
+    },
+    "selection": {
+      "type": "object",
+      "description": "The rule applied to reduce an upstream dataset to these pairs, when one was. Publishing it is what separates a filtered corpus from a curated one.",
+      "properties": {
+        "rule": { "type": "string" },
+        "gram": { "type": "integer", "minimum": 1 },
+        "minOverlap": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": true
+    },
+    "pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["a", "b", "shouldMatch"],
+        "properties": {
+          "a": {
+            "type": "string",
+            "description": "One prompt."
+          },
+          "b": {
+            "type": "string",
+            "description": "The other. The order of a and b carries no meaning: the metric evaluates every pair in both directions."
+          },
+          "shouldMatch": {
+            "type": "boolean",
+            "description": "true for a paraphrase, meaning one answer serves both prompts, so refusing the pair costs a cache hit. false for a near miss, meaning the two need different answers, so serving the pair returns a wrong answer."
+          },
+          "category": {
+            "type": "string",
+            "description": "Free-form grouping label, such as 'dosage' or 'pets'. Used to report a distribution without exposing pairs.",
+            "default": "uncategorised"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -181,6 +181,22 @@ def versions() -> dict[str, str]:
     }
 
 
+def pairs_digest(pairs) -> str:
+    """The digest of the labels, not of the file.
+
+    It exists to catch a corpus that grew or was relabelled while a committed measurement stayed put.
+    Hashing the file bytes also fired on an edited `about` field and on a provenance key being added,
+    which is a change to the prose around the data rather than to the data, and re-running a model
+    download to record that is a cost with nothing on the other side of it.
+    """
+    separator = chr(0)
+    body = "\n".join(
+        f"{p['a']}{separator}{p['b']}{separator}{str(bool(p['shouldMatch'])).lower()}"
+        for p in pairs
+    )
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
 def main() -> None:
     evaluator = OnnxModelEvaluation()
     evaluator.tokenizer = EncodePlusShim(evaluator.tokenizer)
@@ -197,7 +213,7 @@ def main() -> None:
         print(f"{name}: {result}")
         corpora.append({
             "corpus": name,
-            "corpusSha256": hashlib.sha256(raw).hexdigest(),
+            "corpusSha256": pairs_digest(pairs),
             **result,
         })
 

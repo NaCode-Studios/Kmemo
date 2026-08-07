@@ -6,6 +6,102 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+Tier 11 and Tier 12: the evidence leaves the repository, and the third that gets through.
+
+### Added
+
+- **The corpora and the guard rules published as a standard (M43, M44).** Everything this project knew
+  was knowable only by running this repository: the corpora lived in a test resource directory in a
+  shape invented here, read by a class that exists nowhere else, and the eleven guards were rules about
+  text with only their Kotlin written down. A library is judged on what it does and a standard on what
+  other people can do with it, and the thing worth standardising is the metric and the data rather than
+  the Kotlin.
+  `spec/` carries the corpus schema, the false-hit metric with its both-directions rule and its tuning
+  prohibition, each guard's rule stated so it can be implemented without reading this code, 1,122
+  conformance vectors, and the English markers as data. It ships as `kmemo-corpus-<version>.zip` with a
+  SHA-256 per file, built by `./gradlew corpusBundle`.
+  **`tools/corpus-runner` is the proof that the specification is enough**: a Python implementation
+  written from `spec/guards/SPEC.md`, importing nothing from the JVM, reproducing every vector and
+  every corpus figure to the pair. Writing it is what surfaced the three marker lists the rules read
+  and the vocabulary pack does not carry, now named in the specification as implementation-defined
+  rather than left to be discovered.
+- **A blind question corpus large enough to see a change (M54).** The blind evidence was 86 and 102
+  near misses, which supports a rate about nine points wide in each direction, so a real five-point
+  improvement and a lucky run were the same measurement. Every question-register figure also came from
+  a corpus written here, since PAWS is declarative Wikipedia prose.
+  Quora Question Pairs closes both. Typed by the public, labelled by Quora, years before this project
+  existed, filtered to the pairs a similarity threshold would surface by a character 4-gram rule fixed
+  before a guard was run against the result: 5,296 pairs, 2,500 of them near misses. Fetched and never
+  committed, under the policy the PAWS split already carries.
+  **Every rate now carries its 95% Wilson interval**, in the printed reports and in the JSON artifact,
+  and every split carries a standing: `in-sample`, `retired` or `blind`.
+- **`kmemo-otel` (M46).** OpenTelemetry metrics, and one span per lookup with a child per stage that
+  ran, recorded with explicit timestamps from the durations the cache already measured. The listener
+  runs inline on the calling coroutine, so a lookup lands under whatever span the caller was already
+  in and a verifier call appears in their trace as the model call it is. `kmemo-core` gains no
+  dependency. The attribute names are proposed as a convention under `gen_ai.cache.*`, argued in
+  `docs/OTEL-CONVENTIONS.md`. JVM-only, because there is no OpenTelemetry API on Maven Central a
+  multiplatform module can depend on, and the module says so in its own build file.
+- **A threat model (M48).** `EntryCipher` shipped so a regulated deployment could cache and the
+  document their reviewer asks for did not exist. `docs/THREAT-MODEL.md` names the assets, the
+  adversaries and the trust boundaries, and its residual-disclosure section is the part worth reading:
+  the embedding is not encrypted and cannot be, tags and metadata pass through in the clear, the
+  exact-match layer holds plaintext in memory, a `CachePolicy` runs before the write and not before the
+  embedding, and a hosted verifier sends both prompts out of the process.
+- **`ConfidenceVerifier` (M56).** The verifier takes paraphrases kept from 88% to 45% on one split, and
+  until now the only dial was off. A cross-encoder produces a probability and throws it away at a
+  threshold somebody else chose; this returns it, with a threshold the caller sets. Fail-closed is
+  unchanged and asserted: a check that could not complete still rejects.
+- **`MatchGuards.shortQuestions()` (M51).** `SubstitutionGuard.withHeadFloor` applies the old floor
+  only to a difference in the first content word, which is where a question keeps its verb. Against
+  `standard()` it costs the tuned split nothing, gains catches on both retired splits for no paraphrase
+  at all, and on the external question split trades 65 catches for 36.
+- **Marginal contribution per guard (M52).** `GuardReport` reports what the chain would lose without
+  each guard, alongside the isolation figures it has carried since `1.0`, and the chain's per-candidate
+  cost is measured for the first time.
+- **Every published figure checked against the prose (M45).** `docs/figures.json` records each number
+  with the command that produces it and, where the build can render it, the exact line the document
+  must carry. A measurement that moves fails the build until the sentence around it is edited.
+  `tools/figures/check.py` re-runs that check with no Gradle involved.
+
+### Changed
+
+- **The corpus reports no longer spend the split they print (M53).** `CorpusTest` printed the whole
+  validation residual on every run, which is the act `docs/CORPUS.md` prohibits, performed by the
+  tooling on behalf of everybody who ran the suite. The reports now print counts and category
+  distributions, which guide nothing, and the pairs sit behind `-PspendABlindSplit=true`, a flag named
+  for what passing it costs.
+- **`held-out` and `validation` are retired (M54).** Their failures have been read and there is no way
+  to un-see them. They keep their floors and stay in every report as regression gates, and they stop
+  being quoted as blind evidence. The blind evidence is now the two fetched splits, which nobody here
+  can add to and which are larger by an order of magnitude.
+- **The GPTCache coupling digests the pairs rather than the file.** Adding a provenance field to a
+  corpus document is a change to the prose around the data, and re-running a model download to record
+  it is a cost with nothing on the other side.
+
+### Internal
+
+- **The concurrency claims are explored rather than asserted (M49).** The coalescing lock, the shared
+  stream and the write-behind queue are checked with a model checker over interleavings instead of the
+  single schedule `runTest` produces. None of the three is linearizable against a sequential
+  specification, so the invariants are checked inside the operations and in validation functions.
+  Nothing was found, which is evidence rather than proof, and two limits are recorded rather than
+  worked around.
+- **Two things the guard chain might have become, measured and declined (M47, M55).** A relation-slot
+  reader adds zero unique catches on 6,964 blind pairs. A linear classifier over cheap features refuses
+  nearly three quarters of genuine paraphrases, worse than the cross-encoder already priced. A scoring
+  chain that sums what each guard nearly concluded is the more conservative decision everywhere and
+  cannot name the guard that fired. `MatchGuards.standard()` and `GuardVerdict` are unchanged, and
+  `docs/MEASUREMENTS.md` publishes all of it.
+- **The substitution floor stays at four, and now for a measured reason (M51).** Three buys 77 catches
+  on the question split and pays 63 paraphrases for them, a ratio worse than one this project already
+  declined. The hypothesis came from reading the validation residual, which is exactly what the larger
+  blind splits exist to check.
+- **`lexical-divergence` stays, with the reason written where somebody proposing to remove it will read
+  it (M52).** It has never caught anything on any split and has cost five paraphrases in 6,471, and
+  that zero is not evidence: no corpus here can contain the case it exists for, because every pair was
+  written or selected as a pair.
+
 ## [2.2.0] - 2026-08-07
 
 Tier 9 and Tier 10 together: reach, cost and the regulated buyer, and the gap PAWS measured.

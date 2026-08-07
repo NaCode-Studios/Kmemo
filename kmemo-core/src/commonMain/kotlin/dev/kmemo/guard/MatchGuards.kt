@@ -118,6 +118,42 @@ public object MatchGuards {
         }
 
     /**
+     * [standard] with [SubstitutionGuard] reading three-word questions, for traffic that is mostly
+     * short.
+     *
+     * M51 measured what the substitution floor costs on short prompts, which is most of what real
+     * question traffic is made of: on the external question split the median near miss has four
+     * content words after stopword removal and a fifth have fewer, and at a floor of four the guard
+     * never sees them.
+     *
+     * Lowering the floor outright was measured and declined. What this chain sets instead is
+     * [SubstitutionGuard.withHeadFloor], which applies the old floor only to a difference in the
+     * first content word, because the head is where a question keeps its verb and a verb is what the
+     * floor was written about.
+     *
+     * **The trade, published rather than implied.** Against [standard] it costs the tuned split
+     * nothing, gains catches on both retired splits for no paraphrase, and on the external question
+     * split takes the chain from 65.4% to 68.0% of near misses caught while taking paraphrases kept
+     * from 78.9% to 77.6%. Sixty-five wrong answers stopped for thirty-six extra API calls. Whether
+     * that is worth it is a question about your domain, which is why it is a preset and
+     * [standard] is untouched. `SubstitutionFloorTest` holds the numbers.
+     */
+    public fun shortQuestions(): List<MatchGuard> = shortQuestions(GuardVocabulary.ENGLISH)
+
+    /** [shortQuestions], reading every marker from [vocabulary]. */
+    public fun shortQuestions(vocabulary: GuardVocabulary): List<MatchGuard> =
+        standard(vocabulary).map { guard ->
+            if (guard is SubstitutionGuard) {
+                SubstitutionGuard.withHeadFloor(
+                    stopwords = vocabulary.stopwords,
+                    units = vocabulary.units,
+                )
+            } else {
+                guard
+            }
+        }
+
+    /**
      * [standard] for traffic that is **declarative prose** rather than questions.
      *
      * Register is a property of a deployment, not of a benchmark. A support assistant sees questions, a

@@ -1,4 +1,7 @@
 {
+  "about": "The pairs the guards were written and tuned against. In sample by construction: the score measures the fitting rather than the guards. A regression test, never evidence.",
+  "standing": "in-sample",
+  "schema": "spec/corpus/SCHEMA.json",
   "pairs": [
     {
       "a": "whats the capital of Australia",

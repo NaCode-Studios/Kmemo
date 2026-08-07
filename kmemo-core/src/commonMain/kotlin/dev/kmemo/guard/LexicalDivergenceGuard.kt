@@ -21,6 +21,30 @@ import dev.kmemo.internal.Format
  * overlap by about a quarter — so a threshold tuned to catch entity swaps on its own would reject
  * real hits. The specialised guards handle the precise cases; this one only fires when two prompts
  * have almost nothing in common and the embedding still claimed a match.
+ *
+ * ### It has never caught anything, and it stays. Read this before proposing to remove it.
+ *
+ * M52 measured every guard's marginal contribution inside the chain, and this is the only one that
+ * scores zero unique catches on all five splits while costing paraphrases: one on held-out, four on
+ * validation, none anywhere else. On the face of it that is a guard to delete.
+ *
+ * The zero is not evidence, and the reason is structural rather than a matter of sample size. **No
+ * corpus this project has can contain the case this guard exists for.** Every pair in every split is
+ * two prompts somebody wrote down, or selected, *as a pair*: the written splits are near misses
+ * somebody composed, PAWS is built by scrambling one sentence into another, and the question split is
+ * filtered to pairs sharing at least 60% of their character 4-grams. Two prompts with almost nothing
+ * in common are not a near miss anybody would write; they are two unrelated questions, and the only
+ * way they ever arrive at a guard is when an embedder proposes one as a candidate for the other.
+ * That is precisely the event this guard is the backstop for, and precisely the event a corpus of
+ * hand-paired prompts cannot produce.
+ *
+ * So what the measurement actually establishes is the cost, and the cost is five paraphrases in 6,471
+ * across every split, with the guard staying silent on the other 6,466. A backstop that fires almost
+ * never is a backstop behaving correctly. Removing it would trade a measured cost of five for an
+ * unmeasured protection, on evidence that by construction cannot speak to it.
+ *
+ * What would change this decision is a corpus whose pairs come from an embedder's candidate list
+ * rather than from an author, which is the only place the evidence could come from.
  */
 public class LexicalDivergenceGuard(
     private val minOverlap: Double = DEFAULT_MIN_OVERLAP,

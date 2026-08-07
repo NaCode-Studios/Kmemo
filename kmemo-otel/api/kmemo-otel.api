@@ -1,0 +1,34 @@
+public final class dev/kmemo/otel/Conventions {
+	public static final field INSTANCE Ldev/kmemo/otel/Conventions;
+	public static final field METRIC_DURATION Ljava/lang/String;
+	public static final field METRIC_EVICTIONS Ljava/lang/String;
+	public static final field METRIC_LOOKUPS Ljava/lang/String;
+	public static final field METRIC_SAVED Ljava/lang/String;
+	public static final field METRIC_WRITES Ljava/lang/String;
+	public static final field STAGE_EMBED Ljava/lang/String;
+	public static final field STAGE_SEARCH Ljava/lang/String;
+	public static final field STAGE_VERIFY Ljava/lang/String;
+	public final fun getCURRENCY ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getDEGRADED_OPERATION ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getEMBEDDER_EXPECTED ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getEMBEDDER_FOUND ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getENTRY_ID ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getEVICTION_CAUSE ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getGUARD ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getHIT ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getMISS_REASON ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getOUTCOME ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getSCOPE ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getSIMILARITY ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getSTAGE ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getSYSTEM ()Lio/opentelemetry/api/common/AttributeKey;
+	public final fun getVETO_REASON ()Lio/opentelemetry/api/common/AttributeKey;
+}
+
+public final class dev/kmemo/otel/KmemoTelemetry : dev/kmemo/CacheListener {
+	public fun <init> (Lio/opentelemetry/api/OpenTelemetry;)V
+	public fun <init> (Lio/opentelemetry/api/OpenTelemetry;Z)V
+	public synthetic fun <init> (Lio/opentelemetry/api/OpenTelemetry;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun onEvent (Ldev/kmemo/CacheEvent;)V
+}
+

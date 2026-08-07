@@ -4,20 +4,34 @@ import dev.kmemo.fixtures.Corpus
 import dev.kmemo.fixtures.CorpusPair
 import dev.kmemo.fixtures.Register
 import dev.kmemo.fixtures.Registers
+import dev.kmemo.guard.tck.ScoreInterval
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 
-/** How one guard fares on one corpus, measured **in isolation** from the rest of the chain. */
+/**
+ * How one guard fares on one corpus, in isolation and inside the chain.
+ *
+ * The two measurements answer different questions and M52 exists because only the first was ever
+ * reported. [caught] is what the guard finds when it is the only guard running, which is what a
+ * third party installing it alone would get. [uniqueCatches] is what the chain would lose if this
+ * guard were removed from it, which is the number that decides whether it earns its place. A guard
+ * can be excellent on the first and worth nothing on the second, and eight of the eleven are.
+ */
 data class GuardStat(
     val guard: String,
     /** Near misses this guard alone rejects — its contribution to the chain's protection. */
     val caught: Int,
     /** Paraphrases this guard alone rejects — the hits it would cost. Must be read next to [caught]. */
     val falseRejections: Int,
+    /** Near misses this guard catches that no other guard in the chain also catches. */
+    val uniqueCatches: Int = 0,
+    /** Paraphrases lost to this guard alone: the chain would keep them without it. */
+    val uniqueFalseRejections: Int = 0,
 ) {
     /**
      * Of everything this guard rejected, the share that deserved it.
@@ -128,6 +142,13 @@ data class BucketReport(
 /** The guard chain measured against one [Corpus], as data rather than as a printed line. */
 data class CorpusReport(
     val corpus: String,
+    /**
+     * What this corpus's number is worth: `IN_SAMPLE`, `RETIRED` or `BLIND`.
+     *
+     * Carried in the artifact rather than left to whoever reads it, because a rate from a fitted
+     * split and a rate from an untouched one are two different claims and JSON has no tone of voice.
+     */
+    val standing: String,
     val pairs: Int,
     val nearMisses: Int,
     val paraphrases: Int,
@@ -168,6 +189,25 @@ data class CorpusReport(
  * Both directions of every pair are evaluated, because either prompt could be the one already cached
  * when the other arrives — the same rule the corpus regression tests use.
  */
+/** One guard's numbers, both measurements and both intervals, in the shape the artifact carries. */
+private fun JsonObjectBuilder.putStat(stat: GuardStat, nearMisses: Int) {
+    put("guard", stat.guard)
+    put("caught", stat.caught)
+    put("falseRejections", stat.falseRejections)
+    put("uniqueCatches", stat.uniqueCatches)
+    put("uniqueFalseRejections", stat.uniqueFalseRejections)
+    stat.precision()?.let { put("precision", it) }
+    stat.recall(nearMisses)?.let { put("recall", it) }
+}
+
+/** A rate with the range the sample supports, so a diff of the artifact can tell noise from movement. */
+private fun JsonObjectBuilder.putInterval(name: String, successes: Int, trials: Int) {
+    val interval = ScoreInterval.wilson95(successes, trials)
+    interval.rate?.let { put(name, it) }
+    put("${name}Low", interval.low)
+    put("${name}High", interval.high)
+}
+
 data class GuardReport(val corpora: List<CorpusReport>) {
 
     /** The report as a `JsonObject`, ready to encode or assert on. */
@@ -181,13 +221,12 @@ data class GuardReport(val corpora: List<CorpusReport>) {
                     put("paraphrases", corpus.paraphrases)
                     put("nearMissesRejected", corpus.nearMissesRejected)
                     put("paraphrasesKept", corpus.paraphrasesKept)
+                    put("standing", corpus.standing)
+                    putInterval("catchRate", corpus.nearMissesRejected, corpus.nearMisses)
+                    putInterval("paraphrasesKeptRate", corpus.paraphrasesKept, corpus.paraphrases)
                     putJsonArray("perGuard") {
                         for (stat in corpus.perGuard) {
-                            addJsonObject {
-                                put("guard", stat.guard)
-                                put("caught", stat.caught)
-                                put("falseRejections", stat.falseRejections)
-                            }
+                            addJsonObject { putStat(stat, corpus.nearMisses) }
                         }
                     }
                     putJsonArray("byRegister") {
@@ -202,13 +241,7 @@ data class GuardReport(val corpora: List<CorpusReport>) {
                                 put("readable", band.readable)
                                 putJsonArray("perGuard") {
                                     for (stat in band.perGuard) {
-                                        addJsonObject {
-                                            put("guard", stat.guard)
-                                            put("caught", stat.caught)
-                                            put("falseRejections", stat.falseRejections)
-                                            stat.precision()?.let { put("precision", it) }
-                                            stat.recall(band.nearMisses)?.let { put("recall", it) }
-                                        }
+                                        addJsonObject { putStat(stat, band.nearMisses) }
                                     }
                                 }
                             }
@@ -226,11 +259,7 @@ data class GuardReport(val corpora: List<CorpusReport>) {
                                 put("readable", bucket.readable)
                                 putJsonArray("perGuard") {
                                     for (stat in bucket.perGuard) {
-                                        addJsonObject {
-                                            put("guard", stat.guard)
-                                            put("caught", stat.caught)
-                                            put("falseRejections", stat.falseRejections)
-                                        }
+                                        addJsonObject { putStat(stat, bucket.nearMisses) }
                                     }
                                 }
                             }
@@ -253,6 +282,7 @@ data class GuardReport(val corpora: List<CorpusReport>) {
         private fun corpusReport(guards: List<MatchGuard>, corpus: Corpus): CorpusReport =
             CorpusReport(
                 corpus = corpus.name,
+                standing = corpus.standing.name,
                 pairs = corpus.pairs.size,
                 nearMisses = corpus.nearMisses.size,
                 paraphrases = corpus.paraphrases.size,
@@ -287,15 +317,27 @@ data class GuardReport(val corpora: List<CorpusReport>) {
                 },
             )
 
+        /**
+         * Every guard scored alone and again as a member, in chain order.
+         *
+         * The marginal half is computed by holding the pair against the chain with this guard taken
+         * out, which is the only construction that answers "what would removing it cost". Counting
+         * the pairs where a guard fires first would answer "what does chain order do", and chain
+         * order is an optimisation.
+         */
         private fun perGuard(
             guards: List<MatchGuard>,
             nearMisses: List<CorpusPair>,
             paraphrases: List<CorpusPair>,
         ): List<GuardStat> = guards.map { guard ->
+            val rest = guards.filter { it !== guard }
             GuardStat(
                 guard = guard.name,
                 caught = nearMisses.count { rejects(listOf(guard), it) },
                 falseRejections = paraphrases.count { rejects(listOf(guard), it) },
+                uniqueCatches = nearMisses.count { rejects(listOf(guard), it) && !rejects(rest, it) },
+                uniqueFalseRejections =
+                paraphrases.count { rejects(listOf(guard), it) && !rejects(rest, it) },
             )
         }
 

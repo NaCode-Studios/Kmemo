@@ -12,9 +12,14 @@ plugins {
     alias(libs.plugins.detekt) apply false
 }
 
+// One version for the whole build, at the root, because the corpus bundle is a root artifact and a
+// second copy of the number is a second thing to forget on a release.
+group = "io.github.nacode-studios"
+version = "2.2.0"
+
 subprojects {
-    group = "io.github.nacode-studios"
-    version = "2.2.0"
+    group = rootProject.group
+    version = rootProject.version
 
     // Lint every Kotlin module — this skips the java-platform BOM, which has no sources. ktlint and
     // detekt each wire their check task into `check`, so `./gradlew build` (and CI) gates on both.
@@ -200,4 +205,88 @@ plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
         resolution("serialize-javascript", "7.0.5")
         resolution("diff", "8.0.3")
     }
+}
+
+
+// --- the published corpus and guard specification (M43, M44) --------------------------------------
+//
+// The corpora and the rules that grade them are this project's real asset, and until 2.3.0 they were
+// reachable only by cloning a Kotlin repository: the data lived in a test resource directory, in a
+// shape invented here, read by a class that exists nowhere else. A library is judged by what it does;
+// a standard is judged by what other people can do with it, and the thing worth standardising here is
+// the metric and the data rather than the Kotlin.
+//
+// So they ship as one versioned archive: the schema, the metric definition, the rules written
+// independently of this implementation, the conformance vectors, the marker packs, the three
+// committed splits, and a runner that scores a cache without a JVM anywhere near it. The manifest
+// carries a SHA-256 per file, so a figure quoted against "kmemo-corpus 2.3.0" names bytes.
+//
+// The two fetched splits are not in it, and cannot be: they are somebody else's data under somebody
+// else's licence, and the fetch scripts that reproduce them are.
+val corpusManifest by tasks.registering {
+    val sources = listOf(
+        rootProject.file("spec"),
+        rootProject.file("kmemo-core/src/jvmTest/resources"),
+        rootProject.file("tools/corpus-runner"),
+    )
+    val out = layout.buildDirectory.file("corpus-bundle/MANIFEST.json")
+    val bundleVersion = version.toString()
+    inputs.files(sources.map { fileTree(it) })
+    outputs.file(out)
+    doLast {
+        val entries = sources.flatMap { root ->
+            fileTree(root).files
+                .filter { it.extension in setOf("json", "md", "py") }
+                .sortedBy { it.path }
+                .map { file ->
+                    val digest = java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(file.readBytes())
+                        .joinToString("") { byte -> "%02x".format(byte) }
+                    val name = "${root.name}/${file.relativeTo(root).invariantSeparatorsPath}"
+                    """    { "path": "$name", "bytes": ${file.length()}, "sha256": "$digest" }"""
+                }
+        }
+        val file = out.get().asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            """
+            {
+              "name": "kmemo-corpus",
+              "version": "$bundleVersion",
+              "about": "Labelled near-miss corpora, the metric that scores them, the guard rules that produce this project's published figures, and a runner that reproduces them outside the JVM. Schema in spec/corpus/SCHEMA.json, metric in spec/corpus/METRIC.md, rules in spec/guards/SPEC.md.",
+              "files": [
+            ${entries.joinToString(",\n")}
+              ]
+            }
+
+            """.trimIndent(),
+        )
+    }
+}
+
+val corpusBundle by tasks.registering(Zip::class) {
+    group = "distribution"
+    description = "Packages the corpora, the metric, the guard rules, the vectors and the runner."
+    archiveBaseName.set("kmemo-corpus")
+    archiveVersion.set(version.toString())
+    destinationDirectory.set(layout.buildDirectory.dir("distributions"))
+    from(corpusManifest)
+    from(rootProject.file("spec")) { into("spec") }
+    from(rootProject.file("kmemo-core/src/jvmTest/resources")) {
+        into("corpora")
+        include("near-miss-corpus.json", "held-out-corpus.json", "validation-corpus.json")
+    }
+    from(rootProject.file("tools/corpus-runner")) {
+        into("runner")
+        exclude("__pycache__/**", "*.pyc")
+    }
+    from(rootProject.file("tools/external-corpus")) {
+        into("fetch/external-corpus")
+        include("fetch.py", "requirements.txt", "README.md")
+    }
+    from(rootProject.file("tools/qqp-corpus")) {
+        into("fetch/qqp-corpus")
+        include("fetch.py", "requirements.txt", "README.md")
+    }
+    from(rootProject.file("LICENSE"))
 }
