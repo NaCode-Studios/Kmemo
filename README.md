@@ -297,6 +297,12 @@ Against a threshold-only cache on the blind splits, `standard()` cuts the false-
 0.291 and 0.324 while keeping 88% of paraphrases. Against GPTCache the result is a trade rather than a
 win, and both halves are published.
 
+On a retrieval pipeline over SQuAD, a second run of the same questions makes **no model calls at all**,
+and the guards **halve** the wrong answers a threshold-only cache serves there. Folding the retrieved
+document into the key takes it from 12 to 2. That workload is the one this library is most often put in
+front of and the one its own corpora cannot measure, because a RAG false hit needs two prompts that are
+the same and two documents that are not.
+
 An optional `Verifier` stops about four fifths of what the guards still serve, and **its price is
 published beside its catch rate**: 22 tokens per avoided false hit on the measured residual, with the
 invocation rates stated as the upper bounds they are, because the corpora are two thirds near misses and

@@ -272,6 +272,42 @@ distribution than this one it is worth less.
 ./gradlew :kmemo-core:jvmTest --tests '*AdmissionWorkloadTest*'
 ```
 
+## What a cache removes from a retrieval pipeline, and what it gets wrong there
+
+Every other number here comes from a benchmark this repository wrote for itself, against corpora chosen
+to exercise the guards. None of them answers the question a reader arrives with: on a
+retrieval-augmented pipeline, how much does this remove, and how much of what it serves is wrong because
+the retrieved context differed while the question did not. That second failure is one this project's own
+corpora are **structurally unable to produce**, because their pairs are two prompts and a verdict and a
+RAG false hit needs two prompts that are the same and two documents that are not.
+
+SQuAD v1.1 dev: 400 Wikipedia paragraphs, 2,410 questions asked about them, with the answer marked inside
+the paragraph, so whether a generated answer was right is a lookup rather than a judgement and no model
+has to be trusted or paid. Retrieval is nearest-paragraph, generation returns the labelled answer for
+whatever it retrieved, and the cache sits in front of generation at a threshold of 0.90.
+
+| Keyed on | Model calls, cold | Model calls, warm | Removed | Wrong answers served |
+| --- | --- | --- | --- | --- |
+| the question, no guards | 2,360 | 0 | **100%** | 12 |
+| the question, guarded | 2,374 | 0 | **100%** | 6 |
+| the question and the retrieved document | 2,380 | 0 | **100%** | **2** |
+
+Two findings, and the second is the more valuable one.
+
+**The saving on this workload is the whole generation step.** A second run of the same questions makes no
+model calls at all, which is the shape an evaluation suite, a regression run or any replayed traffic has.
+
+**The guards survive contact with retrieved context, and halve the wrong answers.** That was unknown, and
+the worry was specific: a threshold tuned on bare questions is wrong when the retrieved context is what
+makes two near-identical questions into different prompts. It turns out the guards help there rather than
+hurt. Folding the retrieved document into the key, which is what `context` is for, takes it to 2, and
+those last two are the residual nothing prompt-side can reach: questions that are word for word identical,
+asked of different paragraphs.
+
+```bash
+python tools/rag-corpus/fetch.py && ./gradlew :examples:test --tests '*RagPipelineTest*'
+```
+
 ## What a cached evaluation suite saves
 
 An evaluation suite replays identical prompts by construction, so the hit rate is high and the false-hit

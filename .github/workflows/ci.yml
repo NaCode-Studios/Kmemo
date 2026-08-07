@@ -56,9 +56,17 @@ jobs:
           python -m pip install -r tools/external-corpus/requirements.txt
           python tools/external-corpus/fetch.py
 
+      # The retrieval corpus is fetched for the same reason and enforced the same way: without the flag
+      # a missing file skips the measurement, and a measurement nobody notices has stopped running reads
+      # as a passing one.
+      - name: Fetch the retrieval corpus
+        run: |
+          python -m pip install -r tools/rag-corpus/requirements.txt
+          python tools/rag-corpus/fetch.py
+
       # `build` runs the tests, the public-API check, ktlint and detekt.
       - name: Build, test, lint and verify public API
-        run: ./gradlew build -PexternalCorpusRequired=true --no-daemon --stacktrace
+        run: ./gradlew build -PexternalCorpusRequired=true -PragCorpusRequired=true --no-daemon --stacktrace
 
       # The corpus report is this project's headline claim. Keeping it in the build log means the
       # numbers in the README can always be checked against a real run.
