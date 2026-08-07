@@ -628,6 +628,7 @@ final class dev.kmemo.guard/SubSpanGuard : dev.kmemo.guard/MatchGuard { // dev.k
 }
 
 final class dev.kmemo.guard/SubstitutionGuard : dev.kmemo.guard/MatchGuard { // dev.kmemo.guard/SubstitutionGuard|null[0]
+    constructor <init>() // dev.kmemo.guard/SubstitutionGuard.<init>|<init>(){}[0]
     constructor <init>(kotlin/Int = ..., kotlin.collections/Set<kotlin/String> = ..., kotlin.collections/Map<kotlin/String, dev.kmemo.guard/MeasurementUnit> = ..., kotlin/Int? = ...) // dev.kmemo.guard/SubstitutionGuard.<init>|<init>(kotlin.Int;kotlin.collections.Set<kotlin.String>;kotlin.collections.Map<kotlin.String,dev.kmemo.guard.MeasurementUnit>;kotlin.Int?){}[0]
 
     final val name // dev.kmemo.guard/SubstitutionGuard.name|{}name[0]
@@ -640,6 +641,10 @@ final class dev.kmemo.guard/SubstitutionGuard : dev.kmemo.guard/MatchGuard { // 
             final fun <get-DEFAULT_MIN_TOKENS>(): kotlin/Int // dev.kmemo.guard/SubstitutionGuard.Companion.DEFAULT_MIN_TOKENS.<get-DEFAULT_MIN_TOKENS>|<get-DEFAULT_MIN_TOKENS>(){}[0]
         final const val LONG_PROMPT_MAX_TOKENS // dev.kmemo.guard/SubstitutionGuard.Companion.LONG_PROMPT_MAX_TOKENS|{}LONG_PROMPT_MAX_TOKENS[0]
             final fun <get-LONG_PROMPT_MAX_TOKENS>(): kotlin/Int // dev.kmemo.guard/SubstitutionGuard.Companion.LONG_PROMPT_MAX_TOKENS.<get-LONG_PROMPT_MAX_TOKENS>|<get-LONG_PROMPT_MAX_TOKENS>(){}[0]
+        final const val SHORT_QUESTION_MIN_TOKENS // dev.kmemo.guard/SubstitutionGuard.Companion.SHORT_QUESTION_MIN_TOKENS|{}SHORT_QUESTION_MIN_TOKENS[0]
+            final fun <get-SHORT_QUESTION_MIN_TOKENS>(): kotlin/Int // dev.kmemo.guard/SubstitutionGuard.Companion.SHORT_QUESTION_MIN_TOKENS.<get-SHORT_QUESTION_MIN_TOKENS>|<get-SHORT_QUESTION_MIN_TOKENS>(){}[0]
+
+        final fun withHeadFloor(kotlin/Int = ..., kotlin/Int = ..., kotlin.collections/Set<kotlin/String> = ..., kotlin.collections/Map<kotlin/String, dev.kmemo.guard/MeasurementUnit> = ..., kotlin/Int? = ...): dev.kmemo.guard/SubstitutionGuard // dev.kmemo.guard/SubstitutionGuard.Companion.withHeadFloor|withHeadFloor(kotlin.Int;kotlin.Int;kotlin.collections.Set<kotlin.String>;kotlin.collections.Map<kotlin.String,dev.kmemo.guard.MeasurementUnit>;kotlin.Int?){}[0]
     }
 }
 
@@ -1221,6 +1226,8 @@ final object dev.kmemo.guard/MatchGuards { // dev.kmemo.guard/MatchGuards|null[0
     final fun prose(dev.kmemo.guard/GuardVocabulary): kotlin.collections/List<dev.kmemo.guard/MatchGuard> // dev.kmemo.guard/MatchGuards.prose|prose(dev.kmemo.guard.GuardVocabulary){}[0]
     final fun responseAware(): kotlin.collections/List<dev.kmemo.guard/MatchGuard> // dev.kmemo.guard/MatchGuards.responseAware|responseAware(){}[0]
     final fun responseAware(dev.kmemo.guard/GuardVocabulary): kotlin.collections/List<dev.kmemo.guard/MatchGuard> // dev.kmemo.guard/MatchGuards.responseAware|responseAware(dev.kmemo.guard.GuardVocabulary){}[0]
+    final fun shortQuestions(): kotlin.collections/List<dev.kmemo.guard/MatchGuard> // dev.kmemo.guard/MatchGuards.shortQuestions|shortQuestions(){}[0]
+    final fun shortQuestions(dev.kmemo.guard/GuardVocabulary): kotlin.collections/List<dev.kmemo.guard/MatchGuard> // dev.kmemo.guard/MatchGuards.shortQuestions|shortQuestions(dev.kmemo.guard.GuardVocabulary){}[0]
     final fun standard(): kotlin.collections/List<dev.kmemo.guard/MatchGuard> // dev.kmemo.guard/MatchGuards.standard|standard(){}[0]
     final fun standard(dev.kmemo.guard/GuardVocabulary): kotlin.collections/List<dev.kmemo.guard/MatchGuard> // dev.kmemo.guard/MatchGuards.standard|standard(dev.kmemo.guard.GuardVocabulary){}[0]
     final fun standard(kotlin/String): kotlin.collections/List<dev.kmemo.guard/MatchGuard> // dev.kmemo.guard/MatchGuards.standard|standard(kotlin.String){}[0]

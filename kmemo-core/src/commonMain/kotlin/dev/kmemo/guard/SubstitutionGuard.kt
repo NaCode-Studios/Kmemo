@@ -46,15 +46,48 @@ package dev.kmemo.guard
  * this guard's catches are worth more than its false rejections on the traffic the defaults were
  * measured for. [MatchGuards.longPrompts] is the chain that sets it, and the README carries the cost.
  */
-public class SubstitutionGuard(
-    private val minTokens: Int = DEFAULT_MIN_TOKENS,
-    private val stopwords: Set<String> = Vocabulary.STOPWORDS,
-    private val units: Map<String, MeasurementUnit> = Vocabulary.UNITS,
-    private val maxTokens: Int? = null,
+public class SubstitutionGuard private constructor(
+    private val minTokens: Int,
+    private val stopwords: Set<String>,
+    private val units: Map<String, MeasurementUnit>,
+    private val maxTokens: Int?,
+    /**
+     * `null` means "the same floor everywhere", which is the shape the public constructor has always
+     * had. Nullable rather than defaulted so that this constructor and the public one do not collide
+     * on one JVM signature.
+     */
+    private val headFloor: Int?,
 ) : MatchGuard {
+
+    /**
+     * The guard as it has always been constructed: one floor, applied wherever the difference sits.
+     *
+     * Kept as the only public constructor so that the head floor could be added without changing a
+     * signature somebody has already compiled against. Reach it through [withHeadFloor].
+     */
+    public constructor(
+        minTokens: Int = DEFAULT_MIN_TOKENS,
+        stopwords: Set<String> = Vocabulary.STOPWORDS,
+        units: Map<String, MeasurementUnit> = Vocabulary.UNITS,
+        maxTokens: Int? = null,
+    ) : this(minTokens, stopwords, units, maxTokens, null)
+
+    /**
+     * The defaults, as a constructor a caller can already have compiled against.
+     *
+     * Spelled out because a secondary constructor whose parameters all have defaults does not get the
+     * no-argument overload a primary one gets, and dropping it would break `new SubstitutionGuard()`
+     * for a Java caller who never asked for any of this.
+     */
+    public constructor() : this(DEFAULT_MIN_TOKENS, Vocabulary.STOPWORDS, Vocabulary.UNITS, null, null)
+
+    private val headMinTokens: Int get() = headFloor ?: minTokens
 
     init {
         require(minTokens >= 2) { "minTokens must be at least 2, was $minTokens" }
+        require(headFloor == null || headFloor >= minTokens) {
+            "headMinTokens must be at least minTokens ($minTokens), was $headFloor"
+        }
         require(maxTokens == null || maxTokens >= minTokens) {
             "maxTokens must be at least minTokens ($minTokens), was $maxTokens"
         }
@@ -76,6 +109,11 @@ public class SubstitutionGuard(
             substituted = index
         }
         if (substituted < 0) return GuardVerdict.Accept
+        // The head carries its own floor. In a question the first content word is usually the verb,
+        // and a verb is what the floor was written about: `define recursion` against `explain
+        // recursion` is a synonym, not a swap. Everywhere else the two floors are the same number and
+        // this costs nothing.
+        if (substituted == 0 && queryTokens.size < headMinTokens) return GuardVerdict.Accept
 
         return GuardVerdict.Reject(
             "one term substituted: query says '${queryTokens[substituted]}' " +
@@ -98,7 +136,56 @@ public class SubstitutionGuard(
     }
 
     public companion object {
-        /** Content words needed on both sides before a single difference is treated as a swap. */
+
+        /**
+         * This guard with a separate, higher floor for a difference in the **first** content word.
+         *
+         * The shape M51's measurement pointed at. The floor's stated reason has always been the verb,
+         * and in a question the verb is at or near the head, so a floor on the head is the reason
+         * applied to the quantity it was about instead of to prompt length. Below [headMinTokens]
+         * content words a difference in the first position is treated as a synonym and the guard
+         * abstains; a difference anywhere else needs only [minTokens].
+         *
+         * At `minTokens = 3, headMinTokens = 4` it costs the tuned split nothing, gains catches on
+         * both retired splits for no paraphrase at all, and on the external question split trades 65
+         * catches for 36 paraphrases. That last figure is why [MatchGuards.standard] does not carry
+         * it: this project counts a paraphrase given up as a cost rather than as a rounding error, and
+         * the ratio is worse than one it has already declined. [MatchGuards.shortQuestions] is the
+         * chain that opts in, and `docs/MEASUREMENTS.md` publishes the trade on every split.
+         *
+         * @throws IllegalArgumentException if [headMinTokens] is below [minTokens].
+         */
+        public fun withHeadFloor(
+            minTokens: Int = SHORT_QUESTION_MIN_TOKENS,
+            headMinTokens: Int = DEFAULT_MIN_TOKENS,
+            stopwords: Set<String> = Vocabulary.STOPWORDS,
+            units: Map<String, MeasurementUnit> = Vocabulary.UNITS,
+            maxTokens: Int? = null,
+        ): SubstitutionGuard =
+            SubstitutionGuard(minTokens, stopwords, units, maxTokens, headMinTokens)
+
+        /** The floor [withHeadFloor] uses off the head: two agreeing content words in order. */
+        public const val SHORT_QUESTION_MIN_TOKENS: Int = 3
+
+        /**
+         * Content words needed on both sides before a single difference is treated as a swap.
+         *
+         * Four, and M51 is the argument for why it stays there rather than the argument that put it
+         * there. Read from the mechanism, the floor is a crossover: the guard's evidence is the
+         * *agreeing* part, which grows with every extra word, against the risk that the one differing
+         * position is a synonym somebody chose rather than a term somebody swapped, which does not
+         * shrink with length. The mechanism fixes that a floor must exist and that two is below it,
+         * because one agreeing word is no agreement at all. It does not fix three against four:
+         * where the two quantities cross is an empirical property of the language, not a structural
+         * one.
+         *
+         * So it was measured, on splits nobody here can tune. Three buys 77 more catches on the
+         * external question split and pays 63 genuine paraphrases for them, and costs the tuned split
+         * a paraphrase it has never lost. A trade at a ratio of 1.2 to 1 is the boundary case this
+         * project already declined once at 2.9 to 1: it moves cost from the wrong-answer column to
+         * the API-bill column, and those two are not interchangeable. `SubstitutionFloorTest` carries
+         * the ladder and `docs/MEASUREMENTS.md` publishes it.
+         */
         public const val DEFAULT_MIN_TOKENS: Int = 4
 
         /**
