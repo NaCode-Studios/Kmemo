@@ -845,6 +845,8 @@ public final class dev/kmemo/guard/MatchGuards {
 	public final fun longPrompts ()Ljava/util/List;
 	public final fun longPrompts (Ldev/kmemo/guard/GuardVocabulary;)Ljava/util/List;
 	public final fun none ()Ljava/util/List;
+	public final fun prose ()Ljava/util/List;
+	public final fun prose (Ldev/kmemo/guard/GuardVocabulary;)Ljava/util/List;
 	public final fun responseAware ()Ljava/util/List;
 	public final fun responseAware (Ldev/kmemo/guard/GuardVocabulary;)Ljava/util/List;
 	public final fun standard ()Ljava/util/List;

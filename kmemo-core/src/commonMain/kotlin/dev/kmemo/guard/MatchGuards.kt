@@ -118,6 +118,33 @@ public object MatchGuards {
         }
 
     /**
+     * [standard] for traffic that is **declarative prose** rather than questions.
+     *
+     * Register is a property of a deployment, not of a benchmark. A support assistant sees questions, a
+     * command palette sees imperatives, a documentation search sees noun phrases, and a
+     * retrieval-augmented pipeline compares retrieved passages, which are prose. The chain was tuned on
+     * the first of those, and M35 scored every guard per register to find out what that cost.
+     *
+     * One guard is responsible for almost all of it. On declarative prose [SubstitutionGuard] rejects
+     * 493 genuine paraphrases to catch 42 near misses, a precision of 8%, where on the written question
+     * corpora it runs at 98 to 100% and is the strongest guard in the chain. That is not a tuning
+     * problem, it is a mechanism that does not hold on the register: the guard rejects when two prompts
+     * have the same content words in the same order and differ in exactly one position, which in a
+     * question means a swapped term and in prose means a synonym. So this chain is [standard] without
+     * it, and nothing else changes, because a preset that moved several things at once could not be
+     * read.
+     *
+     * **The cost is real and it is published rather than implied.** On the written corpora, which are
+     * questions, this gives up protection and buys nothing, which is exactly why it is a preset and not
+     * a new default. `RegisterPresetTest` holds the trade and the README carries the numbers.
+     */
+    public fun prose(): List<MatchGuard> = prose(GuardVocabulary.ENGLISH)
+
+    /** [prose], reading every marker from [vocabulary]. */
+    public fun prose(vocabulary: GuardVocabulary): List<MatchGuard> =
+        standard(vocabulary).filterNot { it is SubstitutionGuard }
+
+    /**
      * [standard] with the tolerant edges pulled in: prompts must share meaningfully more wording,
      * and a large length gap is enough to refuse on its own.
      *

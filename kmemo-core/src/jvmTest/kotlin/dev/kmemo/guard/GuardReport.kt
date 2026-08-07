@@ -2,6 +2,8 @@ package dev.kmemo.guard
 
 import dev.kmemo.fixtures.Corpus
 import dev.kmemo.fixtures.CorpusPair
+import dev.kmemo.fixtures.Register
+import dev.kmemo.fixtures.Registers
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
@@ -16,7 +18,23 @@ data class GuardStat(
     val caught: Int,
     /** Paraphrases this guard alone rejects — the hits it would cost. Must be read next to [caught]. */
     val falseRejections: Int,
-)
+) {
+    /**
+     * Of everything this guard rejected, the share that deserved it.
+     *
+     * `null` when the guard rejected nothing, which is not a precision of zero: a guard that abstains
+     * has made no claim to be right or wrong about, and printing 0% for it would read as a failure
+     * rather than as a silence.
+     */
+    fun precision(): Double? {
+        val rejected = caught + falseRejections
+        return if (rejected == 0) null else caught.toDouble() / rejected
+    }
+
+    /** Of the near misses in front of it, the share this guard caught. */
+    fun recall(nearMisses: Int): Double? =
+        if (nearMisses == 0) null else caught.toDouble() / nearMisses
+}
 
 /**
  * One band of prompt length, in characters.
@@ -74,6 +92,25 @@ data class LengthBucket(val label: String, val from: Int, val untilExclusive: In
     }
 }
 
+/**
+ * The guard chain measured against one register of one corpus.
+ *
+ * Same shape as [BucketReport] and a different axis. Length is a property of a prompt; register is a
+ * property of a deployment, which is why this one can end in a preset and the other one did.
+ */
+data class RegisterReport(
+    val register: String,
+    val pairs: Int,
+    val nearMisses: Int,
+    val paraphrases: Int,
+    val nearMissesRejected: Int,
+    val paraphrasesKept: Int,
+    val perGuard: List<GuardStat>,
+) {
+    /** Whether this band holds enough pairs for its rates to mean anything. See [LengthBucket]. */
+    val readable: Boolean get() = pairs >= LengthBucket.MIN_PAIRS_FOR_A_RATE
+}
+
 /** The guard chain measured against one band of one corpus. */
 data class BucketReport(
     val bucket: String,
@@ -110,6 +147,14 @@ data class CorpusReport(
      * has measured.
      */
     val byLength: List<BucketReport> = emptyList(),
+    /**
+     * The same measurement again, split by register.
+     *
+     * The four splits do not overlap on this axis: the three written here are questions and PAWS is
+     * declarative prose. That is the point of reporting it, because a single figure over a corpus that
+     * is 99% one register describes that register and is read as describing the guards.
+     */
+    val byRegister: List<RegisterReport> = emptyList(),
 )
 
 /**
@@ -142,6 +187,30 @@ data class GuardReport(val corpora: List<CorpusReport>) {
                                 put("guard", stat.guard)
                                 put("caught", stat.caught)
                                 put("falseRejections", stat.falseRejections)
+                            }
+                        }
+                    }
+                    putJsonArray("byRegister") {
+                        for (band in corpus.byRegister) {
+                            addJsonObject {
+                                put("register", band.register)
+                                put("pairs", band.pairs)
+                                put("nearMisses", band.nearMisses)
+                                put("paraphrases", band.paraphrases)
+                                put("nearMissesRejected", band.nearMissesRejected)
+                                put("paraphrasesKept", band.paraphrasesKept)
+                                put("readable", band.readable)
+                                putJsonArray("perGuard") {
+                                    for (stat in band.perGuard) {
+                                        addJsonObject {
+                                            put("guard", stat.guard)
+                                            put("caught", stat.caught)
+                                            put("falseRejections", stat.falseRejections)
+                                            stat.precision()?.let { put("precision", it) }
+                                            stat.recall(band.nearMisses)?.let { put("recall", it) }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -190,6 +259,19 @@ data class GuardReport(val corpora: List<CorpusReport>) {
                 nearMissesRejected = corpus.nearMisses.count { rejects(guards, it) },
                 paraphrasesKept = corpus.paraphrases.count { !rejects(guards, it) },
                 perGuard = perGuard(guards, corpus.nearMisses, corpus.paraphrases),
+                byRegister = Register.entries.map { register ->
+                    val near = corpus.nearMisses.filter { Registers.of(it) == register }
+                    val para = corpus.paraphrases.filter { Registers.of(it) == register }
+                    RegisterReport(
+                        register = register.name.lowercase(),
+                        pairs = near.size + para.size,
+                        nearMisses = near.size,
+                        paraphrases = para.size,
+                        nearMissesRejected = near.count { rejects(guards, it) },
+                        paraphrasesKept = para.count { !rejects(guards, it) },
+                        perGuard = perGuard(guards, near, para),
+                    )
+                },
                 byLength = LengthBucket.DEFAULT.map { bucket ->
                     val near = corpus.nearMisses.filter { bucket.holds(it) }
                     val para = corpus.paraphrases.filter { bucket.holds(it) }
