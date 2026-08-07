@@ -17,6 +17,7 @@ springAi = "2.0.0"
 langchain4j = "1.18.0"
 ktor = "3.5.1"
 kdrant = "2.2.0"
+dokimos = "0.26.0"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -55,6 +56,9 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 assertj-core = { module = "org.assertj:assertj-core", version = "3.27.7" }
 # Test-only: property-based testing for the Vectors maths and the text tokenizer invariants.
 kotest-property = { module = "io.kotest:kotest-property", version = "6.2.3" }
+
+# Test-only, in the examples module: the evaluation framework M40 measures a cached suite against.
+dokimos-kotlin = { module = "dev.dokimos:dokimos-kotlin", version.ref = "dokimos" }
 
 # Ecosystem integrations (opt-in modules; never on the kmemo-core classpath).
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure", version.ref = "springBoot" }

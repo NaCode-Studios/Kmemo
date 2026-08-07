@@ -449,6 +449,37 @@ Node, WasmJS, `macosArm64` and the iOS simulator on every build. That is what th
 multiplatform was for: a store that is conformant on the JVM and untested on iOS is a store that will
 serve a wrong answer on a phone first.
 
+### Caching an evaluation suite
+
+An evaluation suite runs the same prompts against the same model on every push. A golden set of five
+hundred cases is five hundred model calls per run, and the bill grows with the team rather than with the
+product, which is why evaluation suites get moved to a nightly job, then to a manual one, then stop
+running. It is also the workload a semantic cache is best at: an evaluation replays **identical**
+prompts by construction, so the hit rate is high and the false-hit risk this library exists to guard
+against is at its lowest.
+
+There is no adapter to install, and that is the finding rather than an omission.
+[Dokimos](https://github.com/dokimos-dev/dokimos), the evaluation framework for the JVM, plugs in at a
+Spring AI `ChatModel`, a LangChain4j model, a Koog agent or a plain lambda, and `kmemo-spring-ai` and
+`kmemo-langchain4j` already sit at exactly those seams. The system under test is your own code, so the
+cache goes in front of your own model client:
+
+```kotlin
+val cache = semanticCache(embedder)
+
+// The system under test, cached. The suite is unchanged.
+val answer = cache.getOrPut(example.input()) { model.complete(it) }
+```
+
+Measured on a golden set run twice through one cache: every case is a model call on the first run and
+**none of them is on the second**, with the suite reaching the same verdict either way. The judge is the
+second place it pays and has the same shape, because `JudgeLM` is a lambda: judging the same input and
+output pair on every run is the same identical work the task is.
+
+```bash
+./gradlew :examples:test --tests '*Dokimos*'
+```
+
 ### On a phone or in a browser, the embedder is a network call
 
 `Embedder`'s documentation names four places to get an implementation, and three of them are network

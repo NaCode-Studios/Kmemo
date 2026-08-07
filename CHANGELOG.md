@@ -127,6 +127,21 @@ All notable changes to this project are documented here. The format follows
   conformant on the JVM and untested on iOS is a store that will serve a wrong answer on a phone first.
   `InMemoryStore.entries()` is new and public: the file store compacts by writing the live set out, and
   without it would have to keep a second copy of everything to know what to write.
+- **Caching an evaluation suite, measured, with no adapter (M40).** An evaluation suite runs the same
+  prompts against the same model on every push, so a golden set of five hundred cases is five hundred
+  model calls per run and the bill grows with the team rather than with the product. That is why
+  evaluation suites get moved to a nightly job, then to a manual one, then stop running.
+  The shape needed deciding rather than assuming, and the answer is the third option the milestone
+  listed: a documented recipe that needs no code. Dokimos plugs in at a Spring AI `ChatModel`, a
+  LangChain4j model, a Koog agent or a plain lambda, and `kmemo-spring-ai` and `kmemo-langchain4j`
+  already sit at exactly those seams. The system under test is the caller's own code, so the cache goes
+  in front of the caller's own model client and an adapter in either repository would wrap a seam that
+  is already wrapped. The judge is the second place it pays and has the same shape, because `JudgeLM` is
+  a lambda.
+  `DokimosEvaluationCacheTest` measures it against the real framework rather than asserting it: a golden
+  set run twice through one cache is a model call per case on the first run and **none on the second**,
+  with the suite reaching the same verdict either way. That second clause is the one that matters, since
+  a suite whose verdicts moved because a cache was added would be worse than a suite that costs money.
 - **On-device embedding, measured and ruled out (M41).** `Embedder` names four places to get an
   implementation. Three are network providers and the fourth runs only on the JVM, and the consequence
   had never been written down: on the native targets and on wasm an embedder is always a network call,
