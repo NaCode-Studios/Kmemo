@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-08-07
+
+Tier 9 and Tier 10 together: reach, cost and the regulated buyer, and the gap PAWS measured.
+
+**This release contains two tiers, which is a deliberate exception to how this project versions.** A tag
+normally closes exactly one tier, so that "when did that land" always has an answer the board can give.
+Tier 9 and Tier 10 were finished within days of each other and neither is separable from the other in
+practice: Tier 10's register and length work is what explains the figure Tier 9's guards produce, and
+Tier 9's `longPrompts()` preset and Tier 10's `prose()` preset are two halves of one finding about one
+guard. Cutting them apart would have published half of an argument twice. Traceability is preserved the
+other way instead: every entry below carries its milestone id, and the board reads `2.2.0` on both tiers.
+
 ### Added
 
 - **The PAWS number attacked, against a target registered first (M34).** `2.1.0` published a figure this
@@ -285,16 +297,32 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- `CacheStats` and `CacheEvent.Hit` gain fields (`savings`, `writesNotAdmitted`; `saved` and
-  `currency`). Source compatible,
-  and code compiled against `2.1.0` must be recompiled.
-- `SubstitutionGuard` takes a fourth constructor parameter, `maxTokens`, defaulting to `null`. Source
-  compatible, and code compiled against `2.1.0` must be recompiled. `MatchGuards.standard()` is
-  unchanged and every published corpus figure with it, which is why the bound ships as a preset rather
-  than as a new default.
+- **Four types gain constructor parameters or fields, so code compiled against `2.1.0` must be
+  recompiled.** Source compatible throughout, which `STABILITY.md` allows at a minor and names here so a
+  recompile is never a surprise. `git diff v2.1.0 v2.2.0 -- '*/api/*.api'` reports 14 removed lines and
+  every one of them is a constructor or `copy` signature that gained a parameter with a default.
+  - `SemanticCache` gains `prices`, `admissionPolicy` and `requireTenant`.
+  - `CacheStats` gains `savings` and `writesNotAdmitted`.
+  - `CacheEvent.Hit` gains `saved` and `currency`.
+  - `SubstitutionGuard` gains `maxTokens`.
+- `MatchGuards.standard()` is unchanged, and every published corpus figure with it. Both new presets and
+  both new guards ship without touching it, which is why nothing measured before this release moved.
+- **The README is a third of its former length.** It had grown to 964 lines and become a manual with a
+  changelog in it, and its Roadmap section was five release-by-release narratives restating this file and
+  the board. The measurements moved to `docs/MEASUREMENTS.md`, where the methodology sits beside the
+  figures instead of being cut for length; the per-option rationale stays in the KDoc, where somebody
+  reading about that option finds it. What is left is the argument, one code sample per shape of the API,
+  the module table, the headline numbers, and a roadmap that points at the board rather than competing
+  with it.
 
 ### Internal
 
+- CI fetches a second corpus. `tools/rag-corpus/fetch.py` writes the retrieval corpus M42 measures on,
+  and every Gradle call in CI now passes `-PragCorpusRequired=true` beside the external corpus flag, for
+  the same reason: without it a missing file skips the measurement, and a measurement nobody notices has
+  stopped running reads as a passing one.
+- `actions/setup-python` 6 to 7. A major bump of a workflow action, recorded because a change that ships
+  no API still changes how this project builds and releases.
 - The release workflow now publishes rather than uploading. Every module called
   `publishToMavenCentral()` with no arguments, and the plugin's default is
   `automaticRelease = false`, so the job uploaded the bundle to the Central Portal as `USER_MANAGED`
@@ -958,7 +986,8 @@ First release. Core semantic cache, provider-agnostic, one transitive dependency
 - Published to Maven Central and GitHub Packages under `io.github.nacode-studios` (package
   `dev.kmemo`), with the public API tracked by binary-compatibility-validator (`./gradlew apiCheck`).
 
-[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/NaCode-Studios/Kmemo/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/NaCode-Studios/Kmemo/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/NaCode-Studios/Kmemo/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/NaCode-Studios/Kmemo/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/NaCode-Studios/Kmemo/compare/v1.0.0...v1.1.0
