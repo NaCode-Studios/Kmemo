@@ -75,6 +75,19 @@ public data class CacheStats(
      * declares no identity.
      */
     public val embedderMismatches: Long = 0,
+    /**
+     * What the hits in each scope did not cost, for every scope the caller declared [TokenPrices] for.
+     *
+     * Empty unless prices are declared, and it stays empty rather than guessing: the library ships no
+     * table of provider prices, because one would be wrong the month after it shipped and a cache that
+     * reports the wrong saving is worse than one that reports none.
+     *
+     * Keyed by scope, and never summed across scopes here. Two scopes may declare different currencies
+     * and adding those together would be arithmetic on units that do not share a meaning. Each
+     * [Savings] carries the prices it was computed from, so no total can be read without its
+     * assumption.
+     */
+    public val savings: Map<String, Savings> = emptyMap(),
 ) {
     /** Fraction of lookups served from cache, in `[0.0, 1.0]`. `0.0` when nothing has been looked up. */
     public val hitRate: Double

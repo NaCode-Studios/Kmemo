@@ -140,6 +140,12 @@ import kotlin.time.TimeSource
  *   adaptation lowers the threshold as well as raising it, and the only thing that makes lowering safe
  *   is something above the threshold that can tell a right answer from a wrong one. Pass the same object
  *   in [listeners] so it can see the outcomes it adapts on. See [AdaptiveThresholds].
+ * @param prices what a model call costs, per scope, so the cache can report what its hits saved rather
+ *   than leaving a hit count to be multiplied by an average nobody has. Empty by default and empty is
+ *   honest: this library ships no table of provider prices, because one would be wrong the month after
+ *   it shipped. The token counts are read from the served entry's [CacheEntry.metadata] by the keys
+ *   [TokenPrices] names, so a saving is the cost of the call that was actually avoided. Reported in
+ *   [CacheStats.savings] and on [CacheEvent.Hit.saved]. See [TokenPrices].
  * @param cachePolicy vetoes writes of data that must never be persisted, consulted once per write on
  *   every write path including [warm]. `null` (the default) caches everything the cache decides to
  *   cache. A vetoed write is a policy decision, not a failure: the call still returns its response.
@@ -191,6 +197,7 @@ public class SemanticCache(
     private val reranker: CandidateReranker? = null,
     private val deduplicateWrites: Double? = null,
     private val adaptiveThresholds: AdaptiveThresholds? = null,
+    private val prices: Map<String, TokenPrices> = emptyMap(),
 ) {
 
     init {
@@ -302,6 +309,59 @@ public class SemanticCache(
     // name (unusual) share a counter, which keeps the per-guard sum equal to [guardRejectionCount].
     private val guardRejectionCountersByName: Map<String, AtomicLong> =
         guards.associate { it.name to AtomicLong(0) }
+
+    // One accumulator per priced scope, fixed at construction for the same reason the guard counters
+    // are: nothing is ever inserted concurrently, so the hot path is an atomic add on a key that
+    // already exists. A scope with no declared price has no accumulator and costs a single map lookup.
+    private val savingsByScope: Map<String, ScopeSavings> = prices.mapValues { ScopeSavings(it.value) }
+
+    /**
+     * Running totals behind one scope's [Savings].
+     *
+     * Tokens are accumulated and money is computed on read, never the other way round. Token counts are
+     * integers and adding a rounded currency amount a million times would drift; multiplying an exact
+     * count once cannot.
+     */
+    private class ScopeSavings(val prices: TokenPrices) {
+        val hits = AtomicLong(0)
+        val inputTokens = AtomicLong(0)
+        val outputTokens = AtomicLong(0)
+        val missingCounts = AtomicLong(0)
+
+        /** Records one hit on [metadata] and returns what that hit alone did not cost. */
+        fun record(metadata: Map<String, String>): Double {
+            val input = metadata[prices.inputTokensKey]?.toLongOrNull()
+            val output = metadata[prices.outputTokensKey]?.toLongOrNull()
+            hits.addAndFetch(1)
+            input?.let { inputTokens.addAndFetch(it) }
+            output?.let { outputTokens.addAndFetch(it) }
+            // Both absent, not either: an entry carrying only an output count is being measured, just
+            // not completely, and calling that a missing measurement would hide the working half.
+            if (input == null && output == null) missingCounts.addAndFetch(1)
+            return (input ?: 0L) * prices.perInputToken +
+                (output ?: 0L) * prices.perOutputToken +
+                prices.perCall
+        }
+
+        fun snapshot(): Savings = Savings(
+            prices = prices,
+            hits = hits.load(),
+            inputTokens = inputTokens.load(),
+            outputTokens = outputTokens.load(),
+            hitsMissingTokenCounts = missingCounts.load(),
+        )
+    }
+
+    /**
+     * Adds one served hit to its scope's saving, and reports what it was worth.
+     *
+     * Only a hit ever adds. A write is a call somebody made, not a call somebody avoided, and counting
+     * one would report a saving for a call that was always going to happen.
+     */
+    private fun recordSaving(scope: String, metadata: Map<String, String>, counted: Boolean): Double {
+        if (!counted) return 0.0
+        return savingsByScope[scope]?.record(metadata) ?: 0.0
+    }
 
     /**
      * Looks up [prompt] and reports the full outcome, including why a miss was a miss.
@@ -863,6 +923,7 @@ public class SemanticCache(
             writesVetoed = writeVetoCount.load(),
             exactHits = exactHitCount.load(),
             embedderMismatches = embedderMismatchCount.load(),
+            savings = savingsByScope.mapValues { it.value.snapshot() },
         )
     }
 
@@ -890,11 +951,15 @@ public class SemanticCache(
             hitCount.addAndFetch(1)
             exactHitCount.addAndFetch(1)
         }
+        // A byte-for-byte repeat answered without embedding or searching is still a model call that was
+        // not made, and it saved exactly what the entry it resolved to would have cost.
+        val saved = recordSaving(scope, recalled.entry.metadata, counted)
         store.touch(recalled.entry.id)
         if (observed) {
             emit(
                 CacheEvent.Hit(
                     scope, prompt, recalled.entry.prompt, 1.0, recalled.entry.id, EventTimings.NONE,
+                    saved, prices[scope]?.currency,
                 ),
             )
         }
@@ -1065,8 +1130,9 @@ public class SemanticCache(
                 continue
             }
 
+            val saved = recordSaving(scope, scored.entry.metadata, counted)
             return hit(scored, counted)
-                .also { emitHit(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted) }
+                .also { emitHit(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted, saved) }
         }
 
         if (refusal == null) {
@@ -1098,6 +1164,7 @@ public class SemanticCache(
             .also { emitMiss(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted, guardName) }
     }
 
+    @Suppress("LongParameterList")
     private fun emitHit(
         scope: String,
         prompt: String,
@@ -1106,12 +1173,14 @@ public class SemanticCache(
         searchNanos: Long,
         verifierNanos: Long,
         counted: Boolean,
+        saved: Double,
     ) {
         if (!observed || !counted) return
         emit(
             CacheEvent.Hit(
                 scope, prompt, hit.matchedPrompt, hit.similarity, hit.entryId,
                 EventTimings(embedNanos, searchNanos, verifierNanos),
+                saved, prices[scope]?.currency,
             ),
         )
     }

@@ -31,6 +31,23 @@ public sealed interface CacheEvent {
         public val entryId: String,
         /** How long each stage of the lookup took. */
         public val timings: EventTimings,
+        /**
+         * What this one hit did not cost, in [currency], or `0.0` when the scope declares no
+         * [TokenPrices].
+         *
+         * Per hit rather than cumulative, because that is what an event is: a subscriber that wants the
+         * running total reads [CacheStats.savings], and one that wants a counter to add to adds this.
+         * It is the cost of the *specific* call that was avoided, computed from the token counts on the
+         * entry that was served, so a hit on a long answer is worth more than a hit on a short one.
+         */
+        public val saved: Double = 0.0,
+        /**
+         * The unit [saved] is in, or `null` when the scope declares no prices.
+         *
+         * On the event rather than left to be looked up, so a meter can be tagged by it without the
+         * subscriber holding the price table. A number without its unit is not a measurement.
+         */
+        public val currency: String? = null,
     ) : CacheEvent {
         override fun toString(): String = "CacheEvent.Hit(scope=$scope, similarity=$similarity)"
     }

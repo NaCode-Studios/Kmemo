@@ -60,10 +60,13 @@ public final class dev/kmemo/CacheEvent$Eviction : dev/kmemo/CacheEvent {
 }
 
 public final class dev/kmemo/CacheEvent$Hit : dev/kmemo/CacheEvent {
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;DLjava/lang/String;Ldev/kmemo/EventTimings;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;DLjava/lang/String;Ldev/kmemo/EventTimings;DLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;DLjava/lang/String;Ldev/kmemo/EventTimings;DLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCurrency ()Ljava/lang/String;
 	public final fun getEntryId ()Ljava/lang/String;
 	public final fun getMatchedPrompt ()Ljava/lang/String;
 	public final fun getPrompt ()Ljava/lang/String;
+	public final fun getSaved ()D
 	public fun getScope ()Ljava/lang/String;
 	public final fun getSimilarity ()D
 	public final fun getTimings ()Ldev/kmemo/EventTimings;
@@ -162,12 +165,13 @@ public abstract interface class dev/kmemo/CachePolicy {
 }
 
 public final class dev/kmemo/CacheStats {
-	public fun <init> (JJJJJJJLjava/util/Map;JJJJ)V
-	public synthetic fun <init> (JJJJJJJLjava/util/Map;JJJJILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (JJJJJJJLjava/util/Map;JJJJLjava/util/Map;)V
+	public synthetic fun <init> (JJJJJJJLjava/util/Map;JJJJLjava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()J
 	public final fun component10 ()J
 	public final fun component11 ()J
 	public final fun component12 ()J
+	public final fun component13 ()Ljava/util/Map;
 	public final fun component2 ()J
 	public final fun component3 ()J
 	public final fun component4 ()J
@@ -176,8 +180,8 @@ public final class dev/kmemo/CacheStats {
 	public final fun component7 ()J
 	public final fun component8 ()Ljava/util/Map;
 	public final fun component9 ()J
-	public final fun copy (JJJJJJJLjava/util/Map;JJJJ)Ldev/kmemo/CacheStats;
-	public static synthetic fun copy$default (Ldev/kmemo/CacheStats;JJJJJJJLjava/util/Map;JJJJILjava/lang/Object;)Ldev/kmemo/CacheStats;
+	public final fun copy (JJJJJJJLjava/util/Map;JJJJLjava/util/Map;)Ldev/kmemo/CacheStats;
+	public static synthetic fun copy$default (Ldev/kmemo/CacheStats;JJJJJJJLjava/util/Map;JJJJLjava/util/Map;ILjava/lang/Object;)Ldev/kmemo/CacheStats;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBelowThreshold ()J
 	public final fun getDegradedLookups ()J
@@ -190,6 +194,7 @@ public final class dev/kmemo/CacheStats {
 	public final fun getHits ()J
 	public final fun getLookups ()J
 	public final fun getMisses ()J
+	public final fun getSavings ()Ljava/util/Map;
 	public final fun getVerifierRejections ()J
 	public final fun getWrites ()J
 	public final fun getWritesVetoed ()J
@@ -387,6 +392,28 @@ public final class dev/kmemo/RetryingEmbedderKt {
 	public static synthetic fun retrying-DIOjvaQ$default (Ldev/kmemo/Embedder;IJJDDLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/kmemo/RetryingEmbedder;
 }
 
+public final class dev/kmemo/Savings {
+	public fun <init> (Ldev/kmemo/TokenPrices;JJJJ)V
+	public synthetic fun <init> (Ldev/kmemo/TokenPrices;JJJJILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ldev/kmemo/TokenPrices;
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun component4 ()J
+	public final fun component5 ()J
+	public final fun copy (Ldev/kmemo/TokenPrices;JJJJ)Ldev/kmemo/Savings;
+	public static synthetic fun copy$default (Ldev/kmemo/Savings;Ldev/kmemo/TokenPrices;JJJJILjava/lang/Object;)Ldev/kmemo/Savings;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAmount ()D
+	public final fun getCurrency ()Ljava/lang/String;
+	public final fun getHits ()J
+	public final fun getHitsMissingTokenCounts ()J
+	public final fun getInputTokens ()J
+	public final fun getOutputTokens ()J
+	public final fun getPrices ()Ldev/kmemo/TokenPrices;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/kmemo/ScoredEntry {
 	public fun <init> (Ldev/kmemo/CacheEntry;D)V
 	public final fun getEntry ()Ldev/kmemo/CacheEntry;
@@ -400,8 +427,8 @@ public final class dev/kmemo/SemanticCache {
 	public static final field DEFAULT_SCOPE Ljava/lang/String;
 	public static final field DEFAULT_THRESHOLD D
 	public static final field DEFAULT_WRITE_BEHIND_CAPACITY I
-	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLdev/kmemo/EmbedFailurePolicy;ILkotlin/time/Duration;Ljava/util/List;Lkotlinx/coroutines/CoroutineScope;ILkotlin/time/Clock;Ldev/kmemo/CachePolicy;ILkotlin/time/Duration;Ljava/util/Map;Ljava/util/List;Ldev/kmemo/CandidateReranker;Ljava/lang/Double;Ldev/kmemo/AdaptiveThresholds;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLdev/kmemo/EmbedFailurePolicy;ILkotlin/time/Duration;Ljava/util/List;Lkotlinx/coroutines/CoroutineScope;ILkotlin/time/Clock;Ldev/kmemo/CachePolicy;ILkotlin/time/Duration;Ljava/util/Map;Ljava/util/List;Ldev/kmemo/CandidateReranker;Ljava/lang/Double;Ldev/kmemo/AdaptiveThresholds;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLdev/kmemo/EmbedFailurePolicy;ILkotlin/time/Duration;Ljava/util/List;Lkotlinx/coroutines/CoroutineScope;ILkotlin/time/Clock;Ldev/kmemo/CachePolicy;ILkotlin/time/Duration;Ljava/util/Map;Ljava/util/List;Ldev/kmemo/CandidateReranker;Ljava/lang/Double;Ldev/kmemo/AdaptiveThresholds;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/kmemo/Embedder;Ldev/kmemo/CacheStore;DLjava/util/List;Ldev/kmemo/Verifier;Lkotlin/time/Duration;IZLdev/kmemo/EmbedFailurePolicy;ILkotlin/time/Duration;Ljava/util/List;Lkotlinx/coroutines/CoroutineScope;ILkotlin/time/Clock;Ldev/kmemo/CachePolicy;ILkotlin/time/Duration;Ljava/util/Map;Ljava/util/List;Ldev/kmemo/CandidateReranker;Ljava/lang/Double;Ldev/kmemo/AdaptiveThresholds;Ljava/util/Map;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun clear$default (Ldev/kmemo/SemanticCache;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun explain (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -452,6 +479,7 @@ public final class dev/kmemo/SemanticCacheBuilder {
 	public final fun getListeners ()Ljava/util/List;
 	public final fun getNegativeCacheSize ()I
 	public final fun getNegativeCacheTtl-FghU774 ()Lkotlin/time/Duration;
+	public final fun getPrices ()Ljava/util/Map;
 	public final fun getReranker ()Ldev/kmemo/CandidateReranker;
 	public final fun getShadowThresholds ()Ljava/util/List;
 	public final fun getStore ()Ldev/kmemo/CacheStore;
@@ -474,6 +502,7 @@ public final class dev/kmemo/SemanticCacheBuilder {
 	public final fun setListeners (Ljava/util/List;)V
 	public final fun setNegativeCacheSize (I)V
 	public final fun setNegativeCacheTtl-BwNAW2A (Lkotlin/time/Duration;)V
+	public final fun setPrices (Ljava/util/Map;)V
 	public final fun setReranker (Ldev/kmemo/CandidateReranker;)V
 	public final fun setShadowThresholds (Ljava/util/List;)V
 	public final fun setStore (Ldev/kmemo/CacheStore;)V
@@ -515,6 +544,34 @@ public final class dev/kmemo/StreamReplay : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/kmemo/StreamReplay;
 	public static fun values ()[Ldev/kmemo/StreamReplay;
+}
+
+public final class dev/kmemo/TokenPrices {
+	public static final field Companion Ldev/kmemo/TokenPrices$Companion;
+	public static final field DEFAULT_INPUT_TOKENS_KEY Ljava/lang/String;
+	public static final field DEFAULT_OUTPUT_TOKENS_KEY Ljava/lang/String;
+	public fun <init> (Ljava/lang/String;DDDLjava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;DDDLjava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4 ()D
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;DDDLjava/lang/String;Ljava/lang/String;)Ldev/kmemo/TokenPrices;
+	public static synthetic fun copy$default (Ldev/kmemo/TokenPrices;Ljava/lang/String;DDDLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/kmemo/TokenPrices;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCurrency ()Ljava/lang/String;
+	public final fun getInputTokensKey ()Ljava/lang/String;
+	public final fun getOutputTokensKey ()Ljava/lang/String;
+	public final fun getPerCall ()D
+	public final fun getPerInputToken ()D
+	public final fun getPerOutputToken ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/TokenPrices$Companion {
 }
 
 public final class dev/kmemo/Vectors {

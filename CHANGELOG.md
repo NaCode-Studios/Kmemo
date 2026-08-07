@@ -59,8 +59,30 @@ All notable changes to this project are documented here. The format follows
   since there is one live stream and `StreamReplay` describes how a *stored* answer is cut up.
   `coalesceConcurrentMisses = false` restores a provider stream per caller.
 
+- **The cache reports what it saved (M31).** The README did arithmetic that turns a hit rate into
+  money, by hand, in prose, with numbers the reader had to supply from their own invoice. That is the
+  calculation anybody deciding whether to adopt this library actually cares about, and the library
+  could not do it: `CacheStats` counted lookups, hits, misses and rejections, and none of that is
+  money. A hit on a two hundred token answer from a cheap model and a hit on a four thousand token
+  answer from an expensive one were one increment each.
+  `TokenPrices` is what a caller declares per scope, and `CacheStats.savings` is what comes back:
+  amount, currency, hits, token counts, and the prices the figure was computed from. The token counts
+  are read from the served entry's `metadata` by keys the caller names, so a saving is the cost of the
+  *specific* call that was avoided rather than an average applied to a hit count. `CacheEvent.Hit`
+  carries `saved` and `currency` for the one hit, and `kmemo-micrometer` publishes
+  `kmemo.cache.saved`, tagged by currency and not by scope, for the reason that adapter tags nothing
+  by scope.
+  Three things it deliberately does not do. It ships no table of provider prices: they change weekly, a
+  vendored list is wrong the month after it ships, and a cache that quietly reports the wrong saving is
+  worse than one that reports none. It never counts a write, because a write is a call somebody made
+  rather than a call somebody avoided. And it never adds two currencies together. Hits whose entries
+  carry no token counts are reported as `hitsMissingTokenCounts` next to the amount, since that is the
+  one way the figure can be quietly wrong and a total that is too small should say why.
+
 ### Changed
 
+- `CacheStats` and `CacheEvent.Hit` gain fields (`savings`; `saved` and `currency`). Source compatible,
+  and code compiled against `2.1.0` must be recompiled.
 - `SubstitutionGuard` takes a fourth constructor parameter, `maxTokens`, defaulting to `null`. Source
   compatible, and code compiled against `2.1.0` must be recompiled. `MatchGuards.standard()` is
   unchanged and every published corpus figure with it, which is why the bound ships as a preset rather

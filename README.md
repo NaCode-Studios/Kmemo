@@ -486,12 +486,40 @@ own configurations.
 
 ### Is it worth it
 
-The arithmetic whoever approves this is already doing, with the measured numbers in it.
+The cache does this arithmetic itself. Declare what a call costs in a scope and `stats()` reports what
+the hits in it did not cost, from the token counts on the entries that were actually served rather than
+from an average applied to a hit count:
 
-At **Q** queries a day, a hit rate of **H**, and a model call costing **C**:
+```kotlin
+val cache = semanticCache(embedder) {
+    prices["gpt-4o"] = TokenPrices(
+        currency = "USD",
+        perInputToken = 2.50 / 1_000_000,
+        perOutputToken = 10.00 / 1_000_000,
+    )
+}
+
+cache.getOrPut(prompt, scope = "gpt-4o", metadata = mapOf(
+    "inputTokens" to usage.input.toString(),
+    "outputTokens" to usage.output.toString(),
+)) { llm.complete(it) }
+
+cache.stats().savings["gpt-4o"]        // amount, currency, hits, tokens, and the prices behind them
+```
+
+The price comes from you. Kmemo ships no table of provider prices, because prices change weekly, a
+vendored list is wrong the month after it ships, and a library that quietly reports the wrong saving is
+worse than one that reports none. Only hits ever add to the figure, never writes: a write is a call
+somebody made, not a call somebody avoided. `Savings` carries the prices it was computed from and the
+count of hits whose entries had no token counts, so a total that is too small says why instead of
+looking like a disappointing result. The same number reaches Micrometer as `kmemo.cache.saved`, tagged
+by currency.
+
+The rest of the arithmetic is not something the cache can do for you, because it needs an input no
+library has. At **Q** queries a day, a hit rate of **H**, and a model call costing **C**:
 
 ```
-saved per day     = Q × H × C
+saved per day      = Q × H × C
 false hits per day = Q × H × (near-miss share of your traffic) × false-hit rate
 ```
 

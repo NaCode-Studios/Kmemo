@@ -2,6 +2,7 @@ package dev.kmemo.micrometer
 
 import dev.kmemo.Embedder
 import dev.kmemo.SemanticCache
+import dev.kmemo.TokenPrices
 import dev.kmemo.store.InMemoryStore
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.test.runTest
@@ -34,6 +35,50 @@ class KmemoMetricsTest {
         assertEquals(2.0, registry.get("kmemo.cache.lookups").counter().count())
         assertEquals(1.0, registry.get("kmemo.cache.hits").counter().count())
         assertEquals(1.0, registry.get("kmemo.cache.writes").counter().count())
+    }
+
+    /**
+     * The counter that answers the only question a finance approval asks. It is tagged by currency and
+     * not by scope: scope is caller-defined and often unbounded, while a service runs one currency or
+     * two, and an unbounded tag is how a metrics bill blows up.
+     */
+    @Test
+    fun `savings are counted in the currency the caller declared`() = runTest {
+        val registry = SimpleMeterRegistry()
+        val metrics = KmemoMetrics()
+        metrics.bindTo(registry)
+        val prices = TokenPrices(currency = "USD", perOutputToken = 10.0 / 1_000_000)
+        val cache = SemanticCache(
+            embedder,
+            threshold = 0.5,
+            listeners = listOf(metrics),
+            prices = mapOf("gpt-4o" to prices),
+        )
+
+        cache.getOrPut("How do I reverse a list?", scope = "gpt-4o", metadata = mapOf("outputTokens" to "2000")) {
+            "use reversed()"
+        }
+        cache.getOrPut("How do I reverse a list?", scope = "gpt-4o") { error("must not be called") }
+
+        val saved = registry.get("kmemo.cache.saved").tag("currency", "USD").counter()
+        assertEquals(2_000 * prices.perOutputToken, saved.count())
+    }
+
+    /**
+     * A saving of zero with no price behind it is the cache saying it does not know what the call would
+     * have cost. Publishing that as a number would put a wrong figure on a dashboard rather than none.
+     */
+    @Test
+    fun `a cache with no declared prices registers no savings series at all`() = runTest {
+        val registry = SimpleMeterRegistry()
+        val metrics = KmemoMetrics()
+        metrics.bindTo(registry)
+        val cache = SemanticCache(embedder, threshold = 0.5, listeners = listOf(metrics))
+
+        cache.put("How do I reverse a list?", "use reversed()")
+        cache.lookup("How do I reverse a list?")
+
+        assertTrue(registry.find("kmemo.cache.saved").counters().isEmpty())
     }
 
     @Test

@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit
  * | `kmemo.cache.writes.vetoed` | counter | `reason` | writes refused by a [dev.kmemo.CachePolicy] |
  * | `kmemo.cache.shadow` | counter | `threshold`, `outcome` | shadow-mode decisions per threshold |
  * | `kmemo.cache.embedder.mismatches` | counter | `expected`, `found` | candidates refused because another embedding model wrote them |
+ * | `kmemo.cache.saved` | counter | `currency` | what the hits would have cost, at the caller's declared [dev.kmemo.TokenPrices] |
  * | `kmemo.cache.hit.ratio` | gauge | — | hits / lookups |
  * | `kmemo.cache.embed` | timer | — | [dev.kmemo.Embedder] latency per lookup |
  * | `kmemo.cache.search` | timer | — | [dev.kmemo.CacheStore] search latency per lookup |
@@ -83,11 +84,7 @@ public class KmemoMetrics @JvmOverloads constructor(
     override fun onEvent(event: CacheEvent) {
         val m = meters ?: return
         when (event) {
-            is CacheEvent.Hit -> {
-                m.lookups.increment()
-                m.hits.increment()
-                recordTimings(m, event.timings)
-            }
+            is CacheEvent.Hit -> recordHit(m, event)
             is CacheEvent.Miss -> {
                 m.lookups.increment()
                 m.missReason(event.reason).increment()
@@ -116,6 +113,16 @@ public class KmemoMetrics @JvmOverloads constructor(
         }
     }
 
+    private fun recordHit(m: Meters, event: CacheEvent.Hit) {
+        m.lookups.increment()
+        m.hits.increment()
+        // Only when a price was declared for the scope. A saving of 0.0 with no currency is the cache
+        // saying it does not know what the call would have cost, and publishing a zero for that would
+        // put a wrong number on a dashboard rather than no number.
+        event.currency?.let { m.saved(it).increment(event.saved) }
+        recordTimings(m, event.timings)
+    }
+
     private fun recordTimings(m: Meters, timings: dev.kmemo.EventTimings) {
         m.embed.record(timings.embedNanos, TimeUnit.NANOSECONDS)
         m.search.record(timings.searchNanos, TimeUnit.NANOSECONDS)
@@ -141,6 +148,7 @@ public class KmemoMetrics @JvmOverloads constructor(
         private val writeVetoes = ConcurrentHashMap<String, Counter>()
         private val shadowOutcomes = ConcurrentHashMap<String, Counter>()
         private val embedderMismatches = ConcurrentHashMap<String, Counter>()
+        private val savings = ConcurrentHashMap<String, Counter>()
 
         init {
             Gauge.builder("kmemo.cache.hit.ratio") { hitRatio() }
@@ -191,6 +199,23 @@ public class KmemoMetrics @JvmOverloads constructor(
                     .description("Candidates refused because a different embedding model wrote them.")
                     .register(registry)
             }
+
+        /**
+         * Money the cache did not spend, tagged by the currency the caller declared.
+         *
+         * Tagged by currency and not by scope, for the reason the class documents: scope is
+         * caller-defined and often unbounded, while a service runs one currency or two. Not
+         * pre-registered, because there is no fixed set of currencies and a service that declares no
+         * prices should have no series here rather than a series reading zero.
+         */
+        fun saved(currency: String): Counter = savings.getOrPut(currency) {
+            Counter.builder("kmemo.cache.saved")
+                .tags(tags)
+                .tag("currency", currency)
+                .baseUnit(currency)
+                .description("What the served hits would have cost, at the prices the caller declared.")
+                .register(registry)
+        }
 
         fun degraded(operation: DegradedOperation): Counter = degradedOperations.getOrPut(operation) {
             Counter.builder("kmemo.cache.degraded")
