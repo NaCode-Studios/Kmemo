@@ -141,6 +141,10 @@ import kotlin.time.TimeSource
  *   adaptation lowers the threshold as well as raising it, and the only thing that makes lowering safe
  *   is something above the threshold that can tell a right answer from a wrong one. Pass the same object
  *   in [listeners] so it can see the outcomes it adapts on. See [AdaptiveThresholds].
+ * @param requireTenant refuses any read or write that did not come through [forTenant]. Off by default,
+ *   because a single-tenant cache has nothing to isolate. On, it turns "somebody forgot the tenant" from
+ *   a hit belonging to another customer into a failure at the call site, which is the only form in which
+ *   an isolation property is worth having. See [TenantedCache].
  * @param admissionPolicy when non-null, makes a prompt earn its place before its answer is stored:
  *   entries are written on the second sighting of the exact prompt rather than the first, so a store in
  *   front of real traffic stops filling with questions asked once at three in the morning. Off by
@@ -206,6 +210,7 @@ public class SemanticCache(
     private val adaptiveThresholds: AdaptiveThresholds? = null,
     private val prices: Map<String, TokenPrices> = emptyMap(),
     private val admissionPolicy: AdmissionPolicy? = null,
+    private val requireTenant: Boolean = false,
 ) {
 
     init {
@@ -912,6 +917,42 @@ public class SemanticCache(
     public suspend fun size(scope: String? = null): Int = store.size(scope)
 
     /**
+     * A view of this cache bound to [tenant], through which nothing can reach another tenant's entries.
+     *
+     * The cache key carries the prompt, the conversation and the embedder, and until this it did not
+     * carry who was asking, so a deployment serving more than one customer had one key space shared
+     * between all of them. See [TenantedCache] for what that let through and why this is a view rather
+     * than a parameter.
+     *
+     * Cheap: a view holds this cache and a string, and every call goes to the same store, the same
+     * counters and the same in-flight registries. Build one per request without thinking about it.
+     */
+    public fun forTenant(tenant: String): TenantedCache {
+        require(tenant.isNotBlank()) { "tenant must not be blank; a blank tenant is a shared key space" }
+        require(!tenant.contains(TENANT_SEPARATOR)) {
+            "tenant must not contain the partition separator, or one tenant could spell another's scope"
+        }
+        return TenantedCache(this, tenant)
+    }
+
+    /**
+     * Refuses a read or a write that did not come through [forTenant], when [requireTenant] is on.
+     *
+     * A partitioned scope is recognised by the separator the view puts in it, which is a character no
+     * scope name has any business containing. The administrative methods, [clear], [size] and
+     * [invalidateByTag], are deliberately not guarded: clearing across tenants is an operator action,
+     * and the leak this exists to stop is on the read and write paths.
+     */
+    private fun requireTenanted(scope: String) {
+        if (!requireTenant) return
+        require(scope.contains(TENANT_SEPARATOR)) {
+            "this cache requires a tenant and scope '$scope' has none. Call forTenant(...) and use the " +
+                "view it returns. A missing tenant is refused rather than defaulted, because a default " +
+                "is what silently puts two customers back in one key space."
+        }
+    }
+
+    /**
      * Coalesced streams in flight right now.
      *
      * Not public API: the registry is reference counted and a leak in it is invisible from outside,
@@ -965,6 +1006,10 @@ public class SemanticCache(
      * its embedding back so the caller can skip the network call and go through the ordinary path.
      */
     private suspend fun exactHit(prompt: String, scope: String, counted: Boolean): ExactCache.Recalled? {
+        // Checked here as well as in `lookup`, because this path answers before `lookup` runs and
+        // skipping similarity, the guards and the verifier is exactly what it is for. An unguarded fast
+        // path over a shared key space is the leak in its worst form.
+        requireTenanted(scope)
         val recalled = exactCache?.get(scope, prompt) ?: return null
         if (!recalled.fresh) return recalled
         if (counted) {
@@ -1066,6 +1111,8 @@ public class SemanticCache(
         counted: Boolean = true,
         embedNanos: Long = 0,
     ): CacheLookup {
+        requireTenanted(scope)
+
         // `counted = false` is the coalescing re-check: the same caller's single lookup, resumed
         // after waiting. Counting it a second time reported more misses than there were calls and
         // halved the hit rate of the very workload coalescing exists to improve.
@@ -1380,6 +1427,7 @@ public class SemanticCache(
      * not something an adopter can put in front of an auditor.
      */
     private suspend fun putEntry(entry: CacheEntry) {
+        requireTenanted(entry.scope)
         val verdict = cachePolicy?.evaluate(entry.prompt, entry.response, entry.scope)
         if (verdict is PolicyVerdict.Veto) {
             writeVetoCount.addAndFetch(1)
@@ -1500,5 +1548,15 @@ public class SemanticCache(
 
         /** Pending write-behind writes buffered before a write falls through synchronously. */
         public const val DEFAULT_WRITE_BEHIND_CAPACITY: Int = 1_024
+
+        /**
+         * What [TenantedCache] puts between a tenant and a scope.
+         *
+         * A character no scope name has any business containing, for the reason every key in this
+         * library is separated this way: a tenant and a scope joined by an ordinary character would let
+         * one pair of them spell another, and a tenant that can spell another tenant's partition is the
+         * failure this whole mechanism exists to close.
+         */
+        internal const val TENANT_SEPARATOR: Char = '\u0000'
     }
 }

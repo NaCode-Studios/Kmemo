@@ -30,6 +30,8 @@ dependencies {
     // here rather than asserted. Test-only, in the examples module, because nothing in the library
     // depends on Dokimos and the finding is that nothing should.
     testImplementation(libs.dokimos.kotlin)
+    // M42 reads the retrieval corpus that tools/rag-corpus/fetch.py writes.
+    testImplementation(libs.kotlinx.serialization.json)
 }
 
 application {
@@ -38,6 +40,17 @@ application {
 
 tasks.test {
     useJUnitPlatform()
+    // The retrieval corpus is fetched, never committed: the licence stays with the dataset. The test
+    // finds it here, skips with a sentence when it is absent, and fails when `-PragCorpusRequired=true`
+    // says absence is not acceptable, which is what CI passes.
+    systemProperty(
+        "kmemo.ragCorpus",
+        rootProject.layout.buildDirectory.file("rag-corpus/squad-dev.json").get().asFile.path,
+    )
+    systemProperty(
+        "kmemo.ragCorpus.required",
+        providers.gradleProperty("ragCorpusRequired").getOrElse("false"),
+    )
     testLogging {
         events("passed", "skipped", "failed")
         exceptionFormat = TestExceptionFormat.FULL

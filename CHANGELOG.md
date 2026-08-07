@@ -8,6 +8,75 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **The PAWS number attacked, against a target registered first (M34).** `2.1.0` published a figure this
+  project had to answer for: PAWS rejects 14% of its near misses where the blind internal splits reach
+  68%. The explanation shipped with it is sound and is not a defence, because deliberately high lexical
+  overlap is the precise case this library exists for.
+  The target, the boundary case and the failure case were written into `docs/MEASUREMENTS.md` in a commit
+  that changed no guard, because a number chosen after seeing the result is a description rather than a
+  target. `WordOrderGuard` was the attempt, chosen from how PAWS is built rather than from what its pairs
+  contain: its near misses carry the same words in a different arrangement, which is the one shape the
+  chain is blind to, because every guard in it but one compares sets and that one requires the order to
+  match.
+  **It cleared the target and failed the constraint.** Rejection went from 14.5% to 39.7%, past the 25%
+  registered, and it was paid for with 390 paraphrases on PAWS and one on held-out. That is the boundary
+  case as defined before the attempt, so the guard ships and **no preset carries it**: `standard()` is
+  byte-for-byte what it was and every figure above it still holds. The line this draws is the deliverable:
+  Kmemo catches near misses that arise in traffic and does not catch adversarially constructed ones at a
+  price worth paying.
+- **The guards scored per register (M35).** The catch rates differ between the written splits and PAWS by
+  a factor of nearly five, and how much of that is register and how much is difficulty was unanswerable,
+  because no guard had ever been scored per register on any corpus. Every pair is now filed by register,
+  by published rules rather than by hand, and `GuardReport` carries precision and recall per guard per
+  register across all four splits.
+  **Register does not explain the gap.** The written splits are 72% to 90% questions and PAWS is 99%
+  declarative prose, and where they overlap PAWS has 43 questions on which the chain catches 9% against
+  65% on validation's. What it does explain is one guard: on declarative prose `substitution` rejects 493
+  paraphrases to catch 42, a precision of 8%, where on questions it runs at 98 to 100%.
+  `MatchGuards.prose()` is `standard()` without it, twelve paraphrases kept per catch lost on prose and
+  two thirds of the protection given up on questions, which is why it is a preset.
+- **The verifier's price, beside its catch rate (M36).** A cache sold on saving model calls owes the
+  reader the cost of its safety net, and the catch rate alone let a reader construct the worst case with
+  no way to rule it out. Invocations per lookup, tokens per invocation and tokens per avoided false hit
+  are now reported across all four splits: on the residual the reference verifier was shown, 116
+  invocations caught 91 false hits for 1,996 tokens, **22 tokens each**. Every invocation rate is
+  published as the upper bound it is, because these corpora are 56% to 67% near misses by construction
+  and real traffic is not.
+- **The guard TCK held to a guard unlike the ones it came from (M38).** Nothing had been written against
+  `kmemo-guard-tck`, so what it proved was that it accepts the guards it was extracted from. A stateful,
+  case-sensitive guard on its own tokenizer passes ten of its eleven properties unmodified, which is the
+  reassuring half: the suite is about verdicts rather than about how a verdict is reached. The one it
+  fails is the false-rejection ceiling, whose default is zero because kmemo's guards were tuned until they
+  met it; the knob to declare a different trade existed and the failure message did not name it, and now
+  does. Three rules that were real and unwritten are in the suite's documentation: asynchrony is refused
+  by the type, state is allowed as long as remembering changes no verdict, and thread safety is required
+  by `MatchGuard` and checked by nothing here.
+- **What a cache removes from a retrieval pipeline (M42).** Every other figure here comes from a benchmark
+  this repository wrote for itself. On SQuAD v1.1 dev, fetched rather than vendored: 400 paragraphs, 2,410
+  questions, retrieval by nearest paragraph, generation returning the labelled answer. A second run of the
+  same questions makes **no model calls at all**. And the guards survive contact with retrieved context,
+  which was the specific worry: a threshold-only cache serves 12 wrong answers there, the guards halve
+  that to 6, and folding the retrieved document into the key takes it to 2. Those two are the residual
+  nothing prompt-side can reach.
+- **`forTenant`, and a key space per customer (M37).** The cache key carried the prompt, the conversation
+  and, since `2.1.0`, the embedder. It did not carry who was asking, so a deployment serving more than one
+  customer had one key space shared between all of them. Two tenants asking a byte-identical question got
+  one entry, and on the exact-match fast path the second was served the first one's answer **without
+  similarity, without guards and without the verifier**, because skipping all three is what that path is
+  for. Every safety layer in this library sat downstream of a key collision it could not see. The
+  identical-prompt case is the obvious one; the dangerous one is a prompt carrying retrieved context, where
+  two tenants ask the same question of different documents and the answer belongs to somebody else's data.
+  `SemanticCache.forTenant(id)` returns a `TenantedCache` through which nothing can reach another tenant's
+  entries, on every path including the fast one, and `requireTenant = true` refuses any read or write that
+  did not come through one. A view rather than a parameter, because a parameter is something somebody can
+  omit, and an isolation property that depends on nobody making a mistake later is the thing this library
+  refuses to accept anywhere else. A missing tenant is a distinct state rather than a default, since a
+  default is what silently reintroduces the shared space.
+  The tenant is folded into the scope the `CacheStore` sees, which puts the isolation inside the library
+  rather than in the wiring: every store partitions by scope already, including one somebody else wrote, so
+  nothing is re-implemented per backend and nothing can be configured wrongly. Both are additive and off by
+  default, so a single-tenant cache is unchanged.
+
 - **The guards measured against prompt length (M28).** `2.1.0` shipped an external split whose
   breakdown said something nobody followed up: `substitution` rejected 498 of 3,536 PAWS paraphrases
   against 2 of 51 on validation, from a guard that had not changed. The release notes called it a
