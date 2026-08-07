@@ -1,0 +1,18 @@
+public final class dev/kmemo/store/file/FileStore : dev/kmemo/CacheStore {
+	public static final field Companion Ldev/kmemo/store/file/FileStore$Companion;
+	public static final field DEFAULT_COMPACT_AFTER I
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/time/Duration;Ljava/lang/Long;ILkotlin/time/Clock;Ldev/kmemo/CacheListener;Ldev/kmemo/Quantization;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/time/Duration;Ljava/lang/Long;ILkotlin/time/Clock;Ldev/kmemo/CacheListener;Ldev/kmemo/Quantization;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun destroy (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun invalidateByTag (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun put (Ldev/kmemo/CacheEntry;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun remove (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun search (Ljava/lang/String;[FILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun size (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun touch (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/kmemo/store/file/FileStore$Companion {
+}
+

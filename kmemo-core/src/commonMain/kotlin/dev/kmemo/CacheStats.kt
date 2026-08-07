@@ -75,6 +75,31 @@ public data class CacheStats(
      * declares no identity.
      */
     public val embedderMismatches: Long = 0,
+    /**
+     * What the hits in each scope did not cost, for every scope the caller declared [TokenPrices] for.
+     *
+     * Empty unless prices are declared, and it stays empty rather than guessing: the library ships no
+     * table of provider prices, because one would be wrong the month after it shipped and a cache that
+     * reports the wrong saving is worse than one that reports none.
+     *
+     * Keyed by scope, and never summed across scopes here. Two scopes may declare different currencies
+     * and adding those together would be arithmetic on units that do not share a meaning. Each
+     * [Savings] carries the prices it was computed from, so no total can be read without its
+     * assumption.
+     */
+    public val savings: Map<String, Savings> = emptyMap(),
+    /**
+     * Writes an [AdmissionPolicy] held back because the prompt had not been asked often enough yet.
+     *
+     * Not a failure, not a miss and not a [writesVetoed]: the call returned its response and the cache
+     * decided the question was not worth a slot yet. Stays `0` without an admission policy, which is
+     * the default.
+     *
+     * There is deliberately no [CacheEvent] for this. `CacheEvent` is a sealed interface, so a new
+     * subtype would break every exhaustive `when` over it, and that is a source break `2.x` does not
+     * take for a counter that can be read from here.
+     */
+    public val writesNotAdmitted: Long = 0,
 ) {
     /** Fraction of lookups served from cache, in `[0.0, 1.0]`. `0.0` when nothing has been looked up. */
     public val hitRate: Double

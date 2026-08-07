@@ -1,0 +1,25 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, iosX64, js, linuxX64, macosArm64, macosX64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <io.github.nacode-studios:kmemo-store-file>
+final class dev.kmemo.store.file/FileStore : dev.kmemo/CacheStore { // dev.kmemo.store.file/FileStore|null[0]
+    constructor <init>(kotlin/String, kotlin/Int = ..., kotlin.time/Duration? = ..., kotlin/Long? = ..., kotlin/Int = ..., kotlin.time/Clock = ..., dev.kmemo/CacheListener? = ..., dev.kmemo/Quantization = ...) // dev.kmemo.store.file/FileStore.<init>|<init>(kotlin.String;kotlin.Int;kotlin.time.Duration?;kotlin.Long?;kotlin.Int;kotlin.time.Clock;dev.kmemo.CacheListener?;dev.kmemo.Quantization){}[0]
+
+    final suspend fun clear(kotlin/String?) // dev.kmemo.store.file/FileStore.clear|clear(kotlin.String?){}[0]
+    final suspend fun destroy() // dev.kmemo.store.file/FileStore.destroy|destroy(){}[0]
+    final suspend fun invalidateByTag(kotlin/String, kotlin/String?): kotlin/Int // dev.kmemo.store.file/FileStore.invalidateByTag|invalidateByTag(kotlin.String;kotlin.String?){}[0]
+    final suspend fun put(dev.kmemo/CacheEntry) // dev.kmemo.store.file/FileStore.put|put(dev.kmemo.CacheEntry){}[0]
+    final suspend fun remove(kotlin/String): kotlin/Boolean // dev.kmemo.store.file/FileStore.remove|remove(kotlin.String){}[0]
+    final suspend fun search(kotlin/String, kotlin/FloatArray, kotlin/Int): kotlin.collections/List<dev.kmemo/ScoredEntry> // dev.kmemo.store.file/FileStore.search|search(kotlin.String;kotlin.FloatArray;kotlin.Int){}[0]
+    final suspend fun size(kotlin/String?): kotlin/Int // dev.kmemo.store.file/FileStore.size|size(kotlin.String?){}[0]
+    final suspend fun touch(kotlin/String) // dev.kmemo.store.file/FileStore.touch|touch(kotlin.String){}[0]
+
+    final object Companion { // dev.kmemo.store.file/FileStore.Companion|null[0]
+        final const val DEFAULT_COMPACT_AFTER // dev.kmemo.store.file/FileStore.Companion.DEFAULT_COMPACT_AFTER|{}DEFAULT_COMPACT_AFTER[0]
+            final fun <get-DEFAULT_COMPACT_AFTER>(): kotlin/Int // dev.kmemo.store.file/FileStore.Companion.DEFAULT_COMPACT_AFTER.<get-DEFAULT_COMPACT_AFTER>|<get-DEFAULT_COMPACT_AFTER>(){}[0]
+    }
+}

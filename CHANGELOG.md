@@ -6,6 +6,224 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **The guards measured against prompt length (M28).** `2.1.0` shipped an external split whose
+  breakdown said something nobody followed up: `substitution` rejected 498 of 3,536 PAWS paraphrases
+  against 2 of 51 on validation, from a guard that had not changed. The release notes called it a
+  register difference, which is a label covering at least three things that would each need a different
+  answer. It was mostly length. Filing every pair in every split by the mean length of its two prompts
+  and measuring each band separately, `substitution` rejects paraphrases at 0% below 48 characters, 12%
+  between 48 and 95, and 15% from 96 characters up. The written splits are almost entirely below 48 and
+  PAWS is almost entirely above 96, so the two averages were describing different lengths. Where the
+  bands overlap they read 10% and 12%.
+  `GuardReport` now carries a `byLength` breakdown across all four splits, written to
+  `build/reports/guards/guard-length-report.json` beside the existing report, with the bands that
+  contain nothing kept rather than dropped: an axis that stops at the last measurement reads as
+  coverage. `GuardLengthTest` prints the table and asserts that banding partitions a corpus rather than
+  sampling it.
+  Past 214 characters there was nothing to measure at all, so the report derives one: both sides of
+  every PAWS pair wrapped in an identical retrieved-context envelope at 512, 1024 and 2048 characters,
+  which leaves the difference between them untouched and only buries it. `substitution` holds at 15%
+  across all three, so there is no cliff further up. `entity` and `direction` do move, from 6% to 10%
+  and 0% to 4%, because both treat the first word of the text they are handed as a sentence opener and
+  a question with passages in front of it no longer has one. That is documented rather than fixed: it
+  needs a way to tell a guard where the question starts, which this API does not have. The derived
+  splits measure dilution and are not a fifth independent score.
+- **`MatchGuards.longPrompts()`**, the chain for traffic whose prompts carry retrieved context. It is
+  `standard()` with `SubstitutionGuard` bounded at `LONG_PROMPT_MAX_TOKENS`, so past a dozen content
+  words the guard abstains instead of rejecting on one differing word. On the external split it gives
+  up 12 of 647 catches and keeps 125 more of 3,536 paraphrases, roughly ten kept per catch lost; on the
+  derived envelope splits, between 6 and 8 given up for between 57 and 61 kept. It changes nothing on
+  the three written splits, because none of their prompts reaches the bound. The bound was placed on
+  the tuned corpus, which is the split that exists to be fitted, and measured everywhere else;
+  `SubstitutionBoundTest` holds all of that.
+
+- **Concurrent-miss coalescing on the streaming path (M29).** M26 put the cache on a streaming path and
+  named the hole it left: coalescing did not apply to `getOrPutStreaming`. That hole is where the
+  traffic is. A cold cache under load is the case coalescing exists for, and streaming is the path a
+  chat product serves users on, so the cache was coalescing the calls that cost least and letting
+  through the ones that cost most.
+  Fifty concurrent `getOrPutStreaming` calls for one new prompt in one scope now make **one** provider
+  call. The first collector opens the stream; the rest attach, are replayed whatever has already
+  arrived, and then follow it live. Attaching rather than waiting for completion is the whole point: a
+  streaming caller made to wait for the end is paying the latency they streamed to avoid.
+  M26's rules hold to the letter. A provider that throws after n chunks fails **every** attached
+  collector and writes nothing. The provider never runs more than one chunk ahead of the fastest
+  collector, which is what an uncoalesced collection did implicitly by driving the provider from the
+  caller's own coroutine, so a caller who walks away still stops the stream rather than leaving a
+  complete answer to be written behind their back. What did change is who the stream belongs to: it is
+  stopped when the **last** collector leaves rather than the first, because dropping fifty people's
+  answer when one of them closes a tab is a behaviour nobody would choose deliberately.
+  An attached caller sees the provider's own chunk boundaries whatever `StreamReplay` it asked for,
+  since there is one live stream and `StreamReplay` describes how a *stored* answer is cut up.
+  `coalesceConcurrentMisses = false` restores a provider stream per caller.
+
+- **The cache reports what it saved (M31).** The README did arithmetic that turns a hit rate into
+  money, by hand, in prose, with numbers the reader had to supply from their own invoice. That is the
+  calculation anybody deciding whether to adopt this library actually cares about, and the library
+  could not do it: `CacheStats` counted lookups, hits, misses and rejections, and none of that is
+  money. A hit on a two hundred token answer from a cheap model and a hit on a four thousand token
+  answer from an expensive one were one increment each.
+  `TokenPrices` is what a caller declares per scope, and `CacheStats.savings` is what comes back:
+  amount, currency, hits, token counts, and the prices the figure was computed from. The token counts
+  are read from the served entry's `metadata` by keys the caller names, so a saving is the cost of the
+  *specific* call that was avoided rather than an average applied to a hit count. `CacheEvent.Hit`
+  carries `saved` and `currency` for the one hit, and `kmemo-micrometer` publishes
+  `kmemo.cache.saved`, tagged by currency and not by scope, for the reason that adapter tags nothing
+  by scope.
+  Three things it deliberately does not do. It ships no table of provider prices: they change weekly, a
+  vendored list is wrong the month after it ships, and a cache that quietly reports the wrong saving is
+  worse than one that reports none. It never counts a write, because a write is a call somebody made
+  rather than a call somebody avoided. And it never adds two currencies together. Hits whose entries
+  carry no token counts are reported as `hitsMissingTokenCounts` next to the amount, since that is the
+  one way the figure can be quietly wrong and a total that is too small should say why.
+
+- **`kmemo-store-qdrant` (M39).** `CacheStore` had three implementations and none of them is a vector
+  database, while the teams most likely to want a semantic cache are already running one. A team doing
+  retrieval-augmented generation already operates Qdrant, because that is where their documents are, and
+  adding a cache meant adding Redis or Postgres as well: a second store for something that holds
+  embeddings, which is what the store they already have exists to hold.
+  It is built on [Kdrant](https://github.com/NaCode-Studios/Kdrant), and it takes a `QdrantClient`
+  rather than connection settings, so the wire, the credential, the trust anchors and the lifecycle stay
+  with the caller and the module depends on the client interface rather than on a transport. The
+  collection is created on first use, single unnamed vector at `COSINE`, with payload indexes on
+  `scope`, `tags` and `expiresAt`, because filtering an unindexed payload field in Qdrant is a full scan
+  and every lookup filters on scope. Qdrant has no TTL, so expiry is a payload field and a filter,
+  exactly as it is on Postgres.
+  Two things are worth knowing before adopting it. It is a fourth store written by the authors of the
+  conformance suite, so it proves what the other three prove: the argument for it is adoption friction,
+  not validation. And **it has no `js` or `wasmJs` target**, which is Kdrant's stated decision rather
+  than an omission, because a Qdrant reachable from a browser is reachable from anyone who opens the
+  developer tools. M39's exit criterion asked for every target `kmemo-core` publishes, and that is not
+  reachable; `kmemo-store-file` covers those two.
+  `QdrantStoreConformanceTest` runs the whole shared suite against a real Qdrant in Docker, the way the
+  Postgres and Redis stores are tested, and skips rather than fails where Docker is absent.
+- **`kmemo-store-file`, a persistent store on every target `kmemo-core` publishes (M30).** The reach
+  shipped in `2.0.0` and the benefit did not follow it. A phone pays for every call over a mobile
+  network, a browser has no server to cache on, an edge deployment may have no reliable uplink, and all
+  three lost the entire cache every time the process ended, because `InMemoryStore` was the only store
+  that built off the JVM. An iOS app cached for the length of one session.
+  It is an append-only journal over the in-memory index, and the shape was argued rather than assumed. A
+  multiplatform SQLite driver would bring decades of somebody else's work on durability and does not
+  reach `wasmJs` at all, so it cannot satisfy a store that has to follow `kmemo-core` everywhere. A
+  hand-written index on disk is the wrong shape for a cache: an on-disk index exists so the working set
+  can exceed memory, and a cache's working set is bounded by `maxEntries` by construction. What was
+  missing was durability across a restart, which is a log. The log puts four operations on the platform
+  seam, read, append, replace and delete, instead of a driver.
+  The journal's format is length-prefixed rather than separated, so a prompt containing a newline, a
+  comma or a quote needs no escaping and escaping is where a parser silently corrupts one entry in ten
+  thousand. Records are self-delimiting, so a tail truncated by a process that died mid-append is
+  dropped and everything before it is still served: turning one lost write into a lost cache is the
+  wrong direction for a cache to fail in. Vectors are written as raw bits, because a float printed as a
+  decimal and parsed back is not guaranteed to be the same float on every platform. Compaction rewrites
+  the log as one record per live entry, through a temporary file that is moved into place.
+  Three costs, stated because they decide whether it suits you. Memory holds everything, so a cache
+  bigger than one process still wants Postgres or Redis. A write is a buffered append rather than an
+  fsync, so a power cut can lose the last writes. And a journal is one file with one tail, so two
+  processes must not share a path.
+  `kmemo-store-tck` became multiplatform to carry this, so `CacheStoreContract` now runs on the JVM,
+  Node, WasmJS, `macosArm64` and the iOS simulator instead of on the JVM alone. A store that is
+  conformant on the JVM and untested on iOS is a store that will serve a wrong answer on a phone first.
+  `InMemoryStore.entries()` is new and public: the file store compacts by writing the live set out, and
+  without it would have to keep a second copy of everything to know what to write.
+- **Caching an evaluation suite, measured, with no adapter (M40).** An evaluation suite runs the same
+  prompts against the same model on every push, so a golden set of five hundred cases is five hundred
+  model calls per run and the bill grows with the team rather than with the product. That is why
+  evaluation suites get moved to a nightly job, then to a manual one, then stop running.
+  The shape needed deciding rather than assuming, and the answer is the third option the milestone
+  listed: a documented recipe that needs no code. Dokimos plugs in at a Spring AI `ChatModel`, a
+  LangChain4j model, a Koog agent or a plain lambda, and `kmemo-spring-ai` and `kmemo-langchain4j`
+  already sit at exactly those seams. The system under test is the caller's own code, so the cache goes
+  in front of the caller's own model client and an adapter in either repository would wrap a seam that
+  is already wrapped. The judge is the second place it pays and has the same shape, because `JudgeLM` is
+  a lambda.
+  `DokimosEvaluationCacheTest` measures it against the real framework rather than asserting it: a golden
+  set run twice through one cache is a model call per case on the first run and **none on the second**,
+  with the suite reaching the same verdict either way. That second clause is the one that matters, since
+  a suite whose verdicts moved because a cache was added would be worse than a suite that costs money.
+- **On-device embedding, measured and ruled out (M41).** `Embedder` names four places to get an
+  implementation. Three are network providers and the fourth runs only on the JVM, and the consequence
+  had never been written down: on the native targets and on wasm an embedder is always a network call,
+  so a cache that exists to avoid a round trip to a model needs one to decide whether to serve. That is
+  the specific thing that made this library not worth having on a phone.
+  `OnDeviceEmbeddingTest` measures the alternative on `macosArm64` rather than arguing about it: one
+  forward pass at `all-MiniLM-L6-v2` shape, arithmetic only, in ordinary Kotlin. **2.5 seconds per
+  call** at 274 MFLOP/s, 42 MB of encoder weights fp32 and a 46 MB vocabulary table beside them. An
+  embedding API answers in 50 to 200 ms from hardware slower than the machine that produced this, so a
+  pure-Kotlin on-device embedder is an order of magnitude slower than the call it exists to avoid.
+  The decision is that no separate library follows. A viable on-device embedder wraps a platform
+  inference runtime, which means per-platform native binaries, a model format, a tokenizer and a licence
+  conversation about weights: a different project from a cache, and one that would put native artifacts
+  and provider SDKs under the name of a library whose argument is that it has neither. `Embedder`'s
+  documentation is corrected to say so, which is what the silence needed.
+- **`EntryCipher` and `EncryptedStore` (M33).** `CacheEntry.prompt` is stored verbatim and has to be:
+  the guards re-read it on every hit and reading it as text is the whole mechanism. `kmemo-slf4j`
+  redacts prompts by default because prompts are user input and routinely carry personal data, which is
+  the right instinct applied to the one surface where it was cheap; the store is the surface where it
+  matters and nothing was done there. A clinical, legal or financial deployment could veto the write
+  with a `CachePolicy`, which means not caching, or encrypt the database at rest, which protects nothing
+  from anyone who can read the database. So the cache did not reach the buyers whose wrong answers cost
+  the most, which is an odd place for a library whose whole argument is about not serving wrong answers.
+  `EntryCipher` is the seam and `EncryptedStore` is a decorator that applies it to any store. kmemo
+  ships no cryptography: the key is the caller's, the algorithm is the caller's, for the same reason it
+  ships no embedding model. A decorator rather than a step inside `SemanticCache`, because encryption is
+  about what is persisted and persistence is what a store owns, so one implementation covers Postgres,
+  Redis, HNSW and anything a third party writes. It passes `CacheStoreContract` unmodified.
+  **The read path costs one decryption per candidate**, not one per lookup: the guards read every
+  candidate's prompt as text, so a lookup with the default five candidates does five prompt decryptions
+  and one response decryption. That is stated as a count rather than a duration, because the duration
+  belongs to the cipher the caller supplies. The cheaper design, a tokenized keyed form the guards could
+  read without decrypting, was measured against it and does not survive the exit criterion: keyed tokens
+  are opaque, and `Text.isSameWord` absorbing typos and inflections, `NumericGuard` parsing numbers,
+  `UnitGuard` mapping `km` to `kilometers` and `EntityGuard` recognising an acronym's expansion all stop
+  working on them. The guard chain has to reach the verdicts it reached before or the encryption is
+  worth nothing, so the decryption is the price.
+  Deterministic encryption would remove the price and is refused rather than documented against:
+  `EncryptedStore` encrypts a probe twice on its first write and throws if the two agree. Identical
+  ciphertext means two users asked the same question, and equality across prompts is exactly what an
+  attacker holding the database wants.
+  Two things it does not cover, both deliberate. The embedding is stored as it is, because the store
+  finds entries by comparing vectors; it is a lossy view of the prompt and an attacker with the same
+  embedding model can compare a guess against it. Tags and metadata pass through, because a tag names a
+  source of truth and metadata is payload the cache never reads.
+- **`AdmissionPolicy`, opt-in and off by default (M32).** Every miss wrote. That is the right default
+  for a cache being filled deliberately and the wrong one for a cache in front of real traffic, where
+  most prompts are asked once and never again: the store fills with entries that will never be hit,
+  `search` scans them, and on the exact-scan stores the cost is linear in the store size and lands on
+  every request rather than on the ones that caused it. `CachePolicy` could not help, because it decides
+  on the content of one prompt and one response and answers "may this be stored", never "is this worth
+  storing".
+  The policy keeps a fixed-size count-min sketch of what has been asked, 64 KiB whatever the traffic,
+  and admits an entry on the second sighting of the exact prompt rather than the first. Counters halve
+  every 100,000 sightings so the estimate follows recent traffic instead of remembering a prompt asked
+  twice a year apart.
+  The measurement ships with it. On 20,000 requests over 4,000 distinct prompts drawn Zipf(s=1.0) over
+  rank, exact repeats only: hit rate 85.2% and 2,965 entries with no policy, 76.1% and 1,907 admitting
+  on the second sighting, 70.2% and 1,224 on the third. A third off the store for nine points of hit
+  rate, and it is worth less on a flatter distribution than this one.
+  Two constraints, both about what admission may look at. It can only ever suppress a **write**, never
+  a lookup, so a bad decision costs one future miss and can never produce a wrong answer. And the sketch
+  is keyed on exact prompt text within a scope, never on similarity, because a frequency estimate that
+  counted two different questions as one would be the false hit this library exists to prevent arriving
+  through the write path. It does not apply to `put` or `warm`, which are a caller saying "store this"
+  rather than traffic arriving, unlike `CachePolicy`, which covers every write path because a guarantee
+  with one path around it is not a guarantee.
+  Held-back writes are counted in `CacheStats.writesNotAdmitted`. There is deliberately no `CacheEvent`
+  for them: `CacheEvent` is a sealed interface, so a new subtype would break every exhaustive `when`
+  over it, and that is a source break the `2.x` line does not take for a counter that can be read from
+  `stats()`.
+
+### Changed
+
+- `CacheStats` and `CacheEvent.Hit` gain fields (`savings`, `writesNotAdmitted`; `saved` and
+  `currency`). Source compatible,
+  and code compiled against `2.1.0` must be recompiled.
+- `SubstitutionGuard` takes a fourth constructor parameter, `maxTokens`, defaulting to `null`. Source
+  compatible, and code compiled against `2.1.0` must be recompiled. `MatchGuards.standard()` is
+  unchanged and every published corpus figure with it, which is why the bound ships as a preset rather
+  than as a new default.
+
 ### Internal
 
 - The release workflow now publishes rather than uploading. Every module called

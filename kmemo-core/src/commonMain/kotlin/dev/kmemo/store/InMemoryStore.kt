@@ -265,6 +265,22 @@ public class InMemoryStore(
         dropExpired(clock.now())
     }
 
+    /**
+     * Every live entry, least recently used first.
+     *
+     * Exists for a store that keeps this one as its index and needs to write the live set out: the
+     * file store compacts its journal by replacing it with one write per entry, and without this it
+     * would have to keep a second copy of everything in order to know what to write.
+     *
+     * A snapshot, taken under the lock, so it is safe to iterate while the store carries on. Expired
+     * entries are excluded, which makes a compaction a purge as well. The order is the eviction order,
+     * so a replay in this order rebuilds the same recency the store had.
+     */
+    public suspend fun entries(): List<CacheEntry> = mutex.withLock {
+        val now = clock.now()
+        entries.values.filterNot { isExpired(it, now) }
+    }
+
     /** Current size and lifetime eviction counters. */
     public suspend fun stats(): InMemoryStoreStats = mutex.withLock {
         val now = clock.now()

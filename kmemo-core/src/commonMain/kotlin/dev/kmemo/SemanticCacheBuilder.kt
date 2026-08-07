@@ -95,6 +95,17 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
     /** @see SemanticCache */
     public var adaptiveThresholds: AdaptiveThresholds? = null
 
+    /**
+     * What a model call costs, per scope. A mutable map so a builder block can fill it in place:
+     * `prices["gpt-4o"] = TokenPrices(...)`.
+     *
+     * @see SemanticCache
+     */
+    public var prices: MutableMap<String, TokenPrices> = mutableMapOf()
+
+    /** @see SemanticCache */
+    public var admissionPolicy: AdmissionPolicy? = null
+
     /** Constructs the [SemanticCache] from the current settings. */
     public fun build(): SemanticCache = SemanticCache(
         embedder = embedder,
@@ -120,6 +131,8 @@ public class SemanticCacheBuilder(private val embedder: Embedder) {
         reranker = reranker,
         deduplicateWrites = deduplicateWrites,
         adaptiveThresholds = adaptiveThresholds,
+        prices = prices.toMap(),
+        admissionPolicy = admissionPolicy,
     )
 }
 

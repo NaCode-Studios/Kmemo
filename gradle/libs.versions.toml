@@ -16,6 +16,8 @@ springBoot = "4.1.0"
 springAi = "2.0.0"
 langchain4j = "1.18.1"
 ktor = "3.5.2"
+kdrant = "2.2.0"
+dokimos = "0.26.0"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -28,6 +30,10 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
 
 # Store adapters (opt-in modules; never on the kmemo-core classpath).
+# Kdrant is the Qdrant client: multiplatform, coroutine-first, and REST by default, so kmemo-store-qdrant
+# depends on the client interface alone and the caller picks the wire.
+kdrant-core = { module = "io.github.nacode-studios:kdrant-core", version.ref = "kdrant" }
+kdrant-transport-rest = { module = "io.github.nacode-studios:kdrant-transport-rest", version.ref = "kdrant" }
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 kotlinx-coroutines-jdk8 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8", version.ref = "coroutines" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
@@ -50,6 +56,9 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 assertj-core = { module = "org.assertj:assertj-core", version = "3.27.7" }
 # Test-only: property-based testing for the Vectors maths and the text tokenizer invariants.
 kotest-property = { module = "io.kotest:kotest-property", version = "6.2.3" }
+
+# Test-only, in the examples module: the evaluation framework M40 measures a cached suite against.
+dokimos-kotlin = { module = "dev.dokimos:dokimos-kotlin", version.ref = "dokimos" }
 
 # Ecosystem integrations (opt-in modules; never on the kmemo-core classpath).
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure", version.ref = "springBoot" }

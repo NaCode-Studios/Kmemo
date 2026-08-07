@@ -18,6 +18,76 @@ data class GuardStat(
     val falseRejections: Int,
 )
 
+/**
+ * One band of prompt length, in characters.
+ *
+ * The bands double, which is the only spacing that shows a cliff wherever it happens to be: a linear
+ * scale over prompts that run from twenty characters to two thousand spends most of its buckets on
+ * the range nothing lives in.
+ */
+data class LengthBucket(val label: String, val from: Int, val untilExclusive: Int) {
+
+    fun holds(pair: CorpusPair): Boolean = lengthOf(pair) in from until untilExclusive
+
+    companion object {
+
+        /**
+         * The length a pair is filed under: the mean of its two prompts, in characters.
+         *
+         * The mean rather than the longer of the two. Every guard here reads both prompts and most of
+         * them compare token counts, so a pair is only meaningfully "long" when both sides are, and
+         * filing a 20-character prompt paired with a 200-character one under 200 would report a length
+         * effect where what is really being measured is the gap between them — which is
+         * [LengthRatioGuard]'s subject and not this one.
+         *
+         * Characters rather than tokens, even though the guards tokenize. A caller deciding whether
+         * this library suits their traffic knows their prompts are two thousand characters; they do
+         * not know how many content words survive stopword removal.
+         */
+        fun lengthOf(pair: CorpusPair): Int = (pair.a.length + pair.b.length) / 2
+
+        /**
+         * The bands the reports use.
+         *
+         * They run to 1536+ rather than stopping where the committed corpora stop, so the table says
+         * out loud that the top bands are empty. An axis that ends at the last measurement reads as
+         * coverage; one that ends past it reads as the gap it is.
+         */
+        val DEFAULT: List<LengthBucket> = listOf(
+            LengthBucket("<48", 0, 48),
+            LengthBucket("48-95", 48, 96),
+            LengthBucket("96-191", 96, 192),
+            LengthBucket("192-383", 192, 384),
+            LengthBucket("384-767", 384, 768),
+            LengthBucket("768-1535", 768, 1536),
+            LengthBucket("1536+", 1536, Int.MAX_VALUE),
+        )
+
+        /**
+         * Pairs a band needs before its rates are worth reading.
+         *
+         * Below this the band is reported with its counts and no percentage. Two pairs out of two is
+         * not a hundred percent of anything, and a table that prints it as one is how a corpus with a
+         * thin tail turns into a claim about long prompts.
+         */
+        const val MIN_PAIRS_FOR_A_RATE: Int = 30
+    }
+}
+
+/** The guard chain measured against one band of one corpus. */
+data class BucketReport(
+    val bucket: String,
+    val pairs: Int,
+    val nearMisses: Int,
+    val paraphrases: Int,
+    val nearMissesRejected: Int,
+    val paraphrasesKept: Int,
+    val perGuard: List<GuardStat>,
+) {
+    /** Whether this band holds enough pairs for its rates to mean anything. See [LengthBucket]. */
+    val readable: Boolean get() = pairs >= LengthBucket.MIN_PAIRS_FOR_A_RATE
+}
+
 /** The guard chain measured against one [Corpus], as data rather than as a printed line. */
 data class CorpusReport(
     val corpus: String,
@@ -30,6 +100,16 @@ data class CorpusReport(
     val paraphrasesKept: Int,
     /** Every guard measured alone, in chain order, so a guard that never contributes is visible. */
     val perGuard: List<GuardStat>,
+    /**
+     * The same measurement again, split by prompt length.
+     *
+     * The headline numbers above average over whatever length distribution the corpus happens to
+     * have, and every corpus this project wrote is one narrow band of short prompts. A single figure
+     * over that says what the guards do to short prompts and is read as what the guards do. Bands
+     * with no pairs are kept rather than dropped: an empty row is the honest report of a length nobody
+     * has measured.
+     */
+    val byLength: List<BucketReport> = emptyList(),
 )
 
 /**
@@ -65,6 +145,28 @@ data class GuardReport(val corpora: List<CorpusReport>) {
                             }
                         }
                     }
+                    putJsonArray("byLength") {
+                        for (bucket in corpus.byLength) {
+                            addJsonObject {
+                                put("bucket", bucket.bucket)
+                                put("pairs", bucket.pairs)
+                                put("nearMisses", bucket.nearMisses)
+                                put("paraphrases", bucket.paraphrases)
+                                put("nearMissesRejected", bucket.nearMissesRejected)
+                                put("paraphrasesKept", bucket.paraphrasesKept)
+                                put("readable", bucket.readable)
+                                putJsonArray("perGuard") {
+                                    for (stat in bucket.perGuard) {
+                                        addJsonObject {
+                                            put("guard", stat.guard)
+                                            put("caught", stat.caught)
+                                            put("falseRejections", stat.falseRejections)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -87,14 +189,33 @@ data class GuardReport(val corpora: List<CorpusReport>) {
                 paraphrases = corpus.paraphrases.size,
                 nearMissesRejected = corpus.nearMisses.count { rejects(guards, it) },
                 paraphrasesKept = corpus.paraphrases.count { !rejects(guards, it) },
-                perGuard = guards.map { guard ->
-                    GuardStat(
-                        guard = guard.name,
-                        caught = corpus.nearMisses.count { rejects(listOf(guard), it) },
-                        falseRejections = corpus.paraphrases.count { rejects(listOf(guard), it) },
+                perGuard = perGuard(guards, corpus.nearMisses, corpus.paraphrases),
+                byLength = LengthBucket.DEFAULT.map { bucket ->
+                    val near = corpus.nearMisses.filter { bucket.holds(it) }
+                    val para = corpus.paraphrases.filter { bucket.holds(it) }
+                    BucketReport(
+                        bucket = bucket.label,
+                        pairs = near.size + para.size,
+                        nearMisses = near.size,
+                        paraphrases = para.size,
+                        nearMissesRejected = near.count { rejects(guards, it) },
+                        paraphrasesKept = para.count { !rejects(guards, it) },
+                        perGuard = perGuard(guards, near, para),
                     )
                 },
             )
+
+        private fun perGuard(
+            guards: List<MatchGuard>,
+            nearMisses: List<CorpusPair>,
+            paraphrases: List<CorpusPair>,
+        ): List<GuardStat> = guards.map { guard ->
+            GuardStat(
+                guard = guard.name,
+                caught = nearMisses.count { rejects(listOf(guard), it) },
+                falseRejections = paraphrases.count { rejects(listOf(guard), it) },
+            )
+        }
 
         private fun rejects(guards: List<MatchGuard>, pair: CorpusPair): Boolean = guards.any {
             it.evaluate(pair.b, pair.a) is GuardVerdict.Reject ||

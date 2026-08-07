@@ -5,11 +5,12 @@ package dev.kmemo.guard
  *
  * Pick by how much a wrong answer costs you:
  *
- * | Preset      | Use when                                                                          |
- * |-------------|-----------------------------------------------------------------------------------|
- * | [standard]  | Default. Every guard that pays for itself, tuned to reject no genuine paraphrase.  |
- * | [strict]    | A wrong answer is expensive. Trades hit rate for margin.                           |
- * | [none]      | Similarity alone. Only with a [dev.kmemo.Verifier], or a private benchmark. |
+ * | Preset        | Use when                                                                        |
+ * |---------------|---------------------------------------------------------------------------------|
+ * | [standard]    | Default. Every guard that pays for itself, tuned to reject no genuine paraphrase.|
+ * | [longPrompts] | Prompts carry retrieved context. Bounds the one guard that misfires on them.     |
+ * | [strict]      | A wrong answer is expensive. Trades hit rate for margin.                         |
+ * | [none]        | Similarity alone. Only with a [dev.kmemo.Verifier], or a private benchmark.      |
  *
  * [standard] takes an optional [GuardVocabulary] or language code, so the same guards run against another
  * language's markers — see [Vocabularies] for the packs that ship.
@@ -76,6 +77,45 @@ public object MatchGuards {
     /** [responseAware], reading every marker from [vocabulary]. */
     public fun responseAware(vocabulary: GuardVocabulary): List<MatchGuard> =
         standard(vocabulary) + AnswerAnchorGuard(vocabulary.stopwords)
+
+    /**
+     * [standard] with [SubstitutionGuard] bounded, for traffic whose prompts carry retrieved context.
+     *
+     * M28 measured every guard against prompt length and found one that moves with it.
+     * [SubstitutionGuard] rejects genuine paraphrases at 0% under 48 characters, 12% between 48 and
+     * 95, and 15% from 96 characters up — where it flattens and stays at 15% through 512-, 1024- and
+     * 2048-character prompts. The step is not a cliff and it is not a slow decay; it is a level change
+     * that has already happened by the time a prompt is one line long, and it happens because the
+     * guard counts differing positions without ever asking what share of the prompt one position is.
+     *
+     * This chain sets [SubstitutionGuard.LONG_PROMPT_MAX_TOKENS], so past a dozen content words the
+     * guard abstains rather than rejecting on a single word. Everything else is [standard].
+     *
+     * **What it costs, and what it does not fix.** The cost is the substitution catches on long
+     * prompts, which the README publishes per split. What it does not fix is the other length effect
+     * M28 found, because that one is not about length: [EntityGuard] and [DirectionGuard] read the
+     * first word of the text they are handed as a sentence opener, so a question with retrieved
+     * passages in front of it loses that exemption and its opening capital starts counting as an
+     * entity. Measured on prompts wrapped in an identical retrieval envelope, `entity` goes from 6% to
+     * 10% and `direction` from 0% to 4%. No preset can bound that away — it needs the guards to be
+     * told where the question starts, which no version of this API can currently say — so it is
+     * documented rather than papered over.
+     */
+    public fun longPrompts(): List<MatchGuard> = longPrompts(GuardVocabulary.ENGLISH)
+
+    /** [longPrompts], reading every marker from [vocabulary]. */
+    public fun longPrompts(vocabulary: GuardVocabulary): List<MatchGuard> =
+        standard(vocabulary).map { guard ->
+            if (guard is SubstitutionGuard) {
+                SubstitutionGuard(
+                    stopwords = vocabulary.stopwords,
+                    units = vocabulary.units,
+                    maxTokens = SubstitutionGuard.LONG_PROMPT_MAX_TOKENS,
+                )
+            } else {
+                guard
+            }
+        }
 
     /**
      * [standard] with the tolerant edges pulled in: prompts must share meaningfully more wording,

@@ -73,8 +73,9 @@ source; Kmemo ships none and depends on no provider SDK.
 ## Installation
 
 `kmemo-core` is a Kotlin Multiplatform library: JVM (17+), Android via the JVM artifact, iOS, macOS,
-Linux, Windows, JS and WasmJS. The store adapters and framework integrations are JVM-only. Artifacts
-are published to Maven Central under `io.github.nacode-studios`.
+Linux, Windows, JS and WasmJS. `kmemo-store-file` follows it to every one of those targets; the other
+store adapters and the framework integrations are JVM-only, because they wrap drivers that exist
+nowhere else. Artifacts are published to Maven Central under `io.github.nacode-studios`.
 
 ```kotlin
 dependencies {
@@ -143,7 +144,13 @@ SemanticCache(embedder)                                        // MatchGuards.st
 SemanticCache(embedder, guards = MatchGuards.strict())         // trades hit rate for margin
 SemanticCache(embedder, guards = MatchGuards.none())           // the naive similarity-only baseline
 SemanticCache(embedder, guards = MatchGuards.responseAware())  // standard(), plus reads the cached answer
+SemanticCache(embedder, guards = MatchGuards.longPrompts())    // for prompts carrying retrieved context
 ```
+
+`longPrompts()` is `standard()` with one guard bounded, and it exists because of a measurement rather
+than a preference: see [what prompt length does to the guards](#what-prompt-length-does-to-the-guards).
+Reach for it when your prompts carry retrieved passages. On prompts of a dozen content words or fewer
+it is byte-for-byte the same chain, so it costs nothing to pick if you are not sure.
 
 Every guard in `standard()` compares two prompts, which leaves one near miss structurally invisible:
 two honest paraphrases whose answers differ by something neither question contains. "What is the
@@ -178,6 +185,17 @@ val weather: Weather = cache.getOrPut(prompt, weatherCodec) { llm.extractWeather
 
 cache.getOrPutStreaming(prompt) { llm.completeStreaming(it) }.collect { print(it) }
 ```
+
+Concurrent streaming misses are coalesced, on the same switch as `getOrPut`. Fifty callers asking one
+new question together open one provider stream: the first opens it, the rest attach, are replayed
+whatever has already arrived, and then follow it live. Attaching rather than waiting is the point,
+since a streaming caller made to wait for the end is paying the latency they streamed to avoid.
+
+The safety rules do not soften when a stream is shared. A provider that fails partway fails every
+attached collector and writes nothing, because a truncated answer served confidently to fifty people is
+fifty wrong answers rather than one. The provider is stopped when the **last** collector leaves rather
+than the first, so a caller closing a tab no longer takes the answer away from everyone else, while a
+lone caller who cancels still stops the stream and still caches nothing.
 
 ### Observability
 
@@ -363,6 +381,220 @@ indistinguishable from a miss. Kmemo ships the seam and no detector, for the sam
 `Verifier` are seams. Isolation *between* tenants is a different problem and is already `scope`, which
 the store TCK has enforced on every store since M4.
 
+### Which store to use where
+
+| Store | Survives a restart | Shared between processes | Where it runs |
+| --- | --- | --- | --- |
+| `InMemoryStore` | no | no | everywhere `kmemo-core` does |
+| `kmemo-store-file` | **yes** | no | everywhere `kmemo-core` does |
+| `kmemo-store-hnsw` | no | no | JVM |
+| `kmemo-store-postgres` | yes | yes | JVM |
+| `kmemo-store-redis` | yes | yes | JVM |
+| `kmemo-store-qdrant` | yes | yes | JVM and seven native targets |
+
+Read it down the first column. One process that can start cold wants `InMemoryStore`. One process that
+cannot, which is every phone, desktop and edge deployment, wants `kmemo-store-file`. More than one
+process wants a server, and there the first question is what you already run: **if that is Qdrant,
+pick `kmemo-store-qdrant` and operate nothing new**, because a cache holds embeddings and a vector
+database is what you already have for holding embeddings. Otherwise the choice is between Postgres,
+which you probably already run and which reaches filtered lookup through pgvector, and Redis, which is
+faster and remembers less. `kmemo-store-hnsw` is a different axis: in-memory like the first, and for a
+single store large enough that the exact scan has become the cost.
+
+Two things the Qdrant row does not say. It is a fourth store written by the authors of the conformance
+suite, so it proves what the other three prove and no more: the argument for it is adoption friction,
+not validation. And it has no `js` or `wasmJs`, which is Kdrant's decision rather than an omission, on
+the grounds that a Qdrant reachable from a browser is reachable from anyone who opens the developer
+tools and an API key shipped to a browser is a published key. That argument holds at least as well for
+a cache, so this repository states the gap rather than working around it. Use `kmemo-store-file` there.
+
+### A cache that survives the process, on every target
+
+`kmemo-core` has built for iOS, macOS, Linux, Windows, JS and WasmJS since `2.0.0`, and the argument for
+that release was a good one: a phone pays for every call over a mobile network, a browser has no server
+to cache on, and an edge deployment may have no reliable uplink. Those are the deployments where a cache
+pays for itself fastest. They were also the deployments that lost the entire cache on every restart,
+because `InMemoryStore` was the only store that built off the JVM. An iOS app cached for the length of
+one session, so a user who asked the same question on Monday and Tuesday paid twice, on the connection
+that costs most.
+
+```kotlin
+val cache = semanticCache(embedder) {
+    store = FileStore(path = "$appSupportDirectory/kmemo.journal", maxEntries = 5_000)
+}
+```
+
+**It is a journal over the in-memory index, not a database.** The two obvious answers were a
+multiplatform SQLite driver, which brings decades of somebody else's work on durability, and a
+hand-written index on disk, which keeps the dependency count where this README is proud of it. The first
+does not reach WasmJS at all, so it cannot satisfy a store that has to follow `kmemo-core` everywhere,
+and that settles it on availability rather than on taste. The second is the wrong shape: an on-disk
+index exists so the working set can exceed memory, and a cache's working set is bounded by `maxEntries`
+by construction. What was missing was never the index. It was durability across a restart, and that is
+an append-only log. The log puts four operations on the platform seam, read, append, replace and delete,
+instead of a driver.
+
+What it costs, in the order it will bite you. Memory holds everything, so this is `InMemoryStore` with a
+log beside it and a cache bigger than one process still wants a server. A write is a buffered file
+append rather than an fsync, so a power cut can lose the last writes, which for a cache is a future miss
+and the right trade in both directions. And a journal is one file with one tail, so two processes
+pointed at one path will interleave records: give each its own, or use a store that is a server.
+
+The journal is compacted when it outgrows its live set, through a temporary file that is moved into
+place, and a tail truncated by a process that died mid-append is dropped rather than refused. Turning
+one lost write into a lost cache is the wrong direction for a cache to fail in.
+
+The whole of `CacheStoreContract`, the same suite Postgres and Redis pass, runs against it on the JVM,
+Node, WasmJS, `macosArm64` and the iOS simulator on every build. That is what the suite becoming
+multiplatform was for: a store that is conformant on the JVM and untested on iOS is a store that will
+serve a wrong answer on a phone first.
+
+### Caching an evaluation suite
+
+An evaluation suite runs the same prompts against the same model on every push. A golden set of five
+hundred cases is five hundred model calls per run, and the bill grows with the team rather than with the
+product, which is why evaluation suites get moved to a nightly job, then to a manual one, then stop
+running. It is also the workload a semantic cache is best at: an evaluation replays **identical**
+prompts by construction, so the hit rate is high and the false-hit risk this library exists to guard
+against is at its lowest.
+
+There is no adapter to install, and that is the finding rather than an omission.
+[Dokimos](https://github.com/dokimos-dev/dokimos), the evaluation framework for the JVM, plugs in at a
+Spring AI `ChatModel`, a LangChain4j model, a Koog agent or a plain lambda, and `kmemo-spring-ai` and
+`kmemo-langchain4j` already sit at exactly those seams. The system under test is your own code, so the
+cache goes in front of your own model client:
+
+```kotlin
+val cache = semanticCache(embedder)
+
+// The system under test, cached. The suite is unchanged.
+val answer = cache.getOrPut(example.input()) { model.complete(it) }
+```
+
+Measured on a golden set run twice through one cache: every case is a model call on the first run and
+**none of them is on the second**, with the suite reaching the same verdict either way. The judge is the
+second place it pays and has the same shape, because `JudgeLM` is a lambda: judging the same input and
+output pair on every run is the same identical work the task is.
+
+```bash
+./gradlew :examples:test --tests '*Dokimos*'
+```
+
+### On a phone or in a browser, the embedder is a network call
+
+`Embedder`'s documentation names four places to get an implementation, and three of them are network
+providers while the fourth runs only on the JVM. The consequence had never been stated: on the native
+targets and on wasm, embedding is always a round trip. A semantic cache exists to avoid a round trip to
+a model, so a cache that needs one to decide whether to serve saves the difference between two network
+calls rather than the difference between one and none. The token-cost argument survives; the latency
+argument does not.
+
+The alternative was measured rather than assumed. One forward pass at `all-MiniLM-L6-v2` shape,
+arithmetic only, in ordinary Kotlin, on `macosArm64`:
+
+| | |
+| --- | --- |
+| Work per call | 679 MFLOP over a 32-token sequence |
+| Fastest of three runs | **2.5 seconds** |
+| Throughput | 274 MFLOP/s |
+| Encoder weights | 42 MB fp32, 10 MB int8 |
+| Vocabulary table | 46 MB fp32 on top |
+
+An embedding API answers in 50 to 200 ms, and it does so from a phone, which is slower hardware than
+the machine that produced this number. So a pure-Kotlin on-device embedder is an order of magnitude
+slower than the call it exists to avoid, and no amount of tuning closes a gap that size.
+
+**The decision that follows: no separate library.** A viable on-device embedder is a wrapper around a
+platform inference runtime, which means per-platform native binaries, a model format, a tokenizer and a
+licence conversation for the weights. That is a different project from a cache, and shipping it under
+this repository's name would put provider SDKs and native artifacts inside a library whose argument is
+that it has neither. `Embedder`'s documentation now says plainly that on-device embedding is
+unavailable on those targets, which is the honest correction to the silence.
+
+```bash
+./gradlew :kmemo-core:macosArm64Test
+```
+
+### Prompts a regulated team is allowed to store
+
+`CachePolicy` answers "must this never be written". It does not help a clinical, legal or financial
+deployment that has to cache and cannot put a database full of verbatim user questions in front of an
+auditor. Until now the only other answer was to encrypt the database at rest, which protects nothing
+from anyone who can read the database.
+
+`EntryCipher` is the seam and `EncryptedStore` applies it to any store:
+
+```kotlin
+val cache = semanticCache(embedder) {
+    store = EncryptedStore(PostgresStore(dataSource), myCipher)
+}
+```
+
+Kmemo ships no cryptography, for the same reason it ships no embedding model: the key is yours, the
+algorithm is yours, and their lifecycle is not something a cache library is qualified to have opinions
+about. A decorator rather than a flag on each store, because encryption is about what is persisted and
+persistence is what a store owns: written once here it covers Postgres, Redis, HNSW and anything a
+third party writes, and `EncryptedStore` passes `CacheStoreContract` unmodified like every other store.
+
+**The read path pays for it, one decryption per candidate.** The guards read each candidate's prompt as
+text, so every candidate has to be readable before the chain can refuse it: a lookup with the default
+five candidates does five prompt decryptions and one response decryption where an unencrypted store
+does none. There is no arrangement that avoids this. The one that would is deterministic encryption,
+where the guards could work without decrypting, and that is not on offer: identical ciphertext means two
+users asked the same question, and equality across prompts is exactly what an attacker holding the
+database wants. `EncryptedStore` encrypts a probe twice on its first write and refuses to run against a
+cipher that returns the same answer twice, rather than leaving the rule to a comment.
+
+The count is stated and the duration is not, because the duration belongs to the cipher you supply.
+Everything above the store is unchanged: the guards reach the same verdicts, and a hit still reports the
+prompt it matched. Two things are not covered and both are deliberate. The embedding is stored as it
+is, because the store finds entries by comparing vectors; it is a lossy view of the prompt and an
+attacker with the database and the same embedding model can compare a guess against it. Tags and
+metadata also pass through, because a tag is meant to name a source of truth and metadata is payload the
+cache never reads.
+
+### What is worth caching
+
+A different question, and `CachePolicy` cannot answer it: it decides on the content of one prompt and
+one response, never on whether that prompt has ever been seen before. In front of real traffic most
+prompts are asked once and never again, so every miss writing means the store fills with entries that
+will never be hit, `search` scans them, and on the exact-scan stores that cost is linear in the store
+size and lands on every request rather than on the ones that caused it.
+
+`AdmissionPolicy` makes a prompt earn its place. It keeps a fixed-size frequency sketch of what has been
+asked and stores an answer on the second sighting of the exact prompt rather than the first. Off by
+default:
+
+```kotlin
+val cache = semanticCache(embedder) {
+    admissionPolicy = AdmissionPolicy()   // admit on the first repeat
+}
+```
+
+It is a trade and here is the size of it. 20,000 requests over 4,000 distinct prompts drawn Zipf(s=1.0)
+over rank, exact repeats only, one entry per distinct prompt and no eviction:
+
+| Policy | Hit rate | Store size | Writes held back |
+| --- | --- | --- | --- |
+| none (the default) | 85.2% | 2,965 | 0 |
+| admit on the 2nd sighting | 76.1% | 1,907 | 2,883 |
+| admit on the 3rd | 70.2% | 1,224 | 4,738 |
+
+A third off the store for nine points of hit rate, or three fifths off for fifteen. Which of those is
+worth it depends on what your store costs and how flat your traffic is, and on a flatter distribution
+than this one it is worth less.
+
+Two things it will not do. It can only ever suppress a **write**, never a lookup, so a bad admission
+decision costs one future miss and cannot produce a wrong answer. And the sketch is keyed on the exact
+prompt text within a scope, never on similarity: a frequency estimate that counted two different
+questions as one would be the false hit this library exists to prevent, arriving through the write path.
+It does not apply to `put` or `warm`, which are a caller saying "store this" rather than traffic
+arriving.
+
+```bash
+./gradlew :kmemo-core:jvmTest --tests '*AdmissionPolicyTest*'
+```
+
 ### Verifying what lexical guards cannot see
 
 About a third of near misses get past the guards on the blind splits: 25 of 86 on held-out, 33 of 102 on
@@ -397,6 +629,8 @@ build that spends a model call per run is a build nobody keeps.
 | `kmemo-store-redis` | A `CacheStore` on Redis (RediSearch KNN), for a cache shared across processes. |
 | `kmemo-store-postgres` | A durable `CacheStore` on Postgres / pgvector. |
 | `kmemo-store-hnsw` | An opt-in in-process approximate (HNSW) `CacheStore` that scales past the exact scan. |
+| `kmemo-store-file` | A persistent `CacheStore` on an append-only journal. **Multiplatform**: every target `kmemo-core` has. |
+| `kmemo-store-qdrant` | A `CacheStore` on Qdrant, through the Kdrant client. JVM and seven native targets. |
 | `kmemo-micrometer` / `kmemo-slf4j` | A Micrometer `MeterBinder` and an SLF4J logging listener. |
 | `kmemo-spring-boot-starter` / `kmemo-spring-ai` | Auto-config for a `SemanticCache` bean, and a caching `Advisor` for Spring AI's `ChatClient`. |
 | `kmemo-langchain4j` / `kmemo-ktor` | A caching `ChatModel` wrapper, and a Ktor server plugin. |
@@ -469,12 +703,40 @@ own configurations.
 
 ### Is it worth it
 
-The arithmetic whoever approves this is already doing, with the measured numbers in it.
+The cache does this arithmetic itself. Declare what a call costs in a scope and `stats()` reports what
+the hits in it did not cost, from the token counts on the entries that were actually served rather than
+from an average applied to a hit count:
 
-At **Q** queries a day, a hit rate of **H**, and a model call costing **C**:
+```kotlin
+val cache = semanticCache(embedder) {
+    prices["gpt-4o"] = TokenPrices(
+        currency = "USD",
+        perInputToken = 2.50 / 1_000_000,
+        perOutputToken = 10.00 / 1_000_000,
+    )
+}
+
+cache.getOrPut(prompt, scope = "gpt-4o", metadata = mapOf(
+    "inputTokens" to usage.input.toString(),
+    "outputTokens" to usage.output.toString(),
+)) { llm.complete(it) }
+
+cache.stats().savings["gpt-4o"]        // amount, currency, hits, tokens, and the prices behind them
+```
+
+The price comes from you. Kmemo ships no table of provider prices, because prices change weekly, a
+vendored list is wrong the month after it ships, and a library that quietly reports the wrong saving is
+worse than one that reports none. Only hits ever add to the figure, never writes: a write is a call
+somebody made, not a call somebody avoided. `Savings` carries the prices it was computed from and the
+count of hits whose entries had no token counts, so a total that is too small says why instead of
+looking like a disappointing result. The same number reaches Micrometer as `kmemo.cache.saved`, tagged
+by currency.
+
+The rest of the arithmetic is not something the cache can do for you, because it needs an input no
+library has. At **Q** queries a day, a hit rate of **H**, and a model call costing **C**:
 
 ```
-saved per day     = Q × H × C
+saved per day      = Q × H × C
 false hits per day = Q × H × (near-miss share of your traffic) × false-hit rate
 ```
 
@@ -537,6 +799,43 @@ Reproduce them with:
 python tools/external-corpus/fetch.py && ./gradlew :kmemo-core:jvmTest --tests '*ExternalCorpusTest*'
 ```
 
+### What prompt length does to the guards
+
+Most of the gap between the external row and the other three is prompt length, not subject matter.
+The four figures above each average over whatever lengths their split happens to contain, and the
+splits contain very different ones: the three written here run from 19 to 85 characters, PAWS runs
+from 32 to 214. Filing every pair by the mean length of its two prompts and measuring each band
+separately says so directly. `substitution` rejects genuine paraphrases at 0% below 48 characters,
+12% between 48 and 95, and 15% from 96 characters up. The validation split is 76% shorter than 48
+characters and PAWS is 69% longer than 96, so the two averages that looked like 4% against 14% were
+describing different lengths. In the one band where they overlap they read 10% and 12%.
+
+The mechanism is the guard's own arithmetic. It rejects when two prompts have the same content words
+in the same order and differ in exactly one position. One differing word out of five is a term
+somebody swapped; one out of forty is a word somebody chose differently, and the guard cannot tell
+those apart because it counts differing positions and never asks what share of the prompt one position
+is. `MatchGuards.longPrompts()` is the bound that says so: past twelve content words it abstains. On
+the external split that gives up 12 of 647 catches and keeps 125 more of 3,536 paraphrases, about ten
+kept for each one lost, and it changes nothing at all on the three written splits because none of
+their prompts is that long.
+
+There is no cliff further up. Wrapping both sides of every PAWS pair in an identical retrieval
+envelope, which leaves the difference between them untouched and only buries it, holds `substitution`
+at 15% at 512, 1024 and 2048 characters. What does move is a different pair of guards, and no preset
+can bound it away: `entity` goes from 6% to 10% and `direction` from 0% to 4%, because both treat the
+first word of the text they are handed as a sentence opener and stop exempting it once a question has
+passages in front of it. Fixing that needs a way to tell a guard where the question starts, which this
+API does not have.
+
+Two limits on all of the above. The envelope splits are derived from PAWS rather than written, so they
+measure dilution and cannot be read as a fifth independent score. And **nothing here measures a
+written prompt longer than 214 characters**: every long figure comes from wrapping short pairs, which
+is why the report prints its empty bands instead of stopping at the last one with data in it.
+
+```bash
+python tools/external-corpus/fetch.py && ./gradlew :kmemo-core:jvmTest --tests '*GuardLengthTest*'
+```
+
 ## Roadmap
 
 **Shipped (`1.0.0`).** The guarded semantic cache, calibrated thresholds and an optional verifier;
@@ -583,8 +882,15 @@ than one lump, with the decision about replay timing made explicitly in the API.
 puts the harness the eleven built-in guards are held to in a form a consumer can run, so a guard for a
 domain nobody here understands can arrive with a measured number attached rather than with a claim.
 
-**Next.** Nothing is scheduled. Tier 8 is complete, and the 2027 plan is written in December against
-whatever the year's traffic and feedback have shown.
+**In flight (Tier 9).** Reach, cost and the regulated buyer. The guards are measured against prompt
+length rather than explained by register, and the one that moves with it gets a bounded preset. A
+streaming miss under load stops calling the model once per caller. The cache reports what it saved, in
+the currency you declare, from the token counts on the entries it served. A prompt earns its place
+before its answer is stored. A cipher seam lets a regulated deployment keep prompts nobody can read.
+`kmemo-store-file` follows the core onto every target it publishes, so a phone stops starting cold, and
+`kmemo-store-qdrant` means a team already running Qdrant operates nothing new. On-device embedding was
+measured on a native target and ruled out, which is a negative result worth more than the silence it
+replaces.
 
 The plan lives on the [Kmemo board](https://github.com/orgs/NaCode-Studios/projects/5), one item per milestone with its exit
 criterion, and every tier is a [milestone](https://github.com/NaCode-Studios/Kmemo/milestones) in this repository. See

@@ -26,6 +26,10 @@ dependencies {
     // is the question M27 set out to answer, and this module is here to prove the answer from outside
     // kmemo-core, the way a third party would.
     testImplementation(project(":kmemo-guard-tck"))
+    // M40: an evaluation suite is the workload a semantic cache is best at, and the claim is measured
+    // here rather than asserted. Test-only, in the examples module, because nothing in the library
+    // depends on Dokimos and the finding is that nothing should.
+    testImplementation(libs.dokimos.kotlin)
 }
 
 application {

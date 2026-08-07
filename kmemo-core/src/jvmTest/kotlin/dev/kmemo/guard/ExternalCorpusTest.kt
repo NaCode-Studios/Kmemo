@@ -1,15 +1,10 @@
 package dev.kmemo.guard
 
 import dev.kmemo.fixtures.CorpusPair
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import java.io.File
+import dev.kmemo.fixtures.ExternalCorpus
 import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertTrue
-import kotlin.test.fail
 
 /**
  * M24: the guards measured on pairs this repository did not write.
@@ -99,40 +94,12 @@ class ExternalCorpusTest {
     /**
      * The pairs, or `null` when the split is absent and absent is allowed.
      *
-     * The two branches are the whole point. A developer who has never run the fetch script gets a
+     * The two branches are the whole point, and they live in [ExternalCorpus] rather than here because
+     * the length report reads the same file: a developer who has never run the fetch script gets a
      * skip and a sentence telling them how; CI gets a failure, because a floor that silently stops
-     * being enforced is worse than no floor, because it reads as a passing gate.
+     * being enforced is worse than no floor, since it reads as a passing gate.
      */
-    private fun externalPairs(): List<CorpusPair>? {
-        val path = System.getProperty(PATH_PROPERTY)
-        val required = System.getProperty(REQUIRED_PROPERTY).toBoolean()
-        val file = path?.let { File(it) }
-
-        if (file == null || !file.isFile) {
-            val where = path ?: "<no $PATH_PROPERTY set>"
-            if (required) {
-                fail(
-                    "the external corpus is required here and is not at $where. Run " +
-                        "tools/external-corpus/fetch.py, and see its README. A floor nobody notices has " +
-                        "stopped running is not a floor.",
-                )
-            }
-            println("skipping the external corpus: nothing at $where (tools/external-corpus/fetch.py)")
-            return null
-        }
-
-        return Json.parseToJsonElement(file.readText()).jsonObject
-            .getValue("pairs").jsonArray
-            .map { element ->
-                val fields = element.jsonObject
-                CorpusPair(
-                    a = fields.getValue("a").jsonPrimitive.content,
-                    b = fields.getValue("b").jsonPrimitive.content,
-                    shouldMatch = fields.getValue("shouldMatch").jsonPrimitive.content.toBoolean(),
-                    category = fields.getValue("category").jsonPrimitive.content,
-                )
-            }
-    }
+    private fun externalPairs(): List<CorpusPair>? = ExternalCorpus.pairs()
 
     /** Either direction, because either sentence could be the one already cached. */
     private fun rejects(guards: List<MatchGuard>, pair: CorpusPair): Boolean = guards.any {
@@ -141,9 +108,6 @@ class ExternalCorpusTest {
     }
 
     private companion object {
-        private const val PATH_PROPERTY = "kmemo.externalCorpus"
-        private const val REQUIRED_PROPERTY = "kmemo.externalCorpus.required"
-
         // Measured against the pinned revision on the day this shipped: 647 of 4,464 near misses
         // rejected, 2,807 of 3,536 paraphrases kept. Set **at** the measurement rather than under it,
         // because nothing here is stochastic. The guards are pure and the dataset is pinned to a

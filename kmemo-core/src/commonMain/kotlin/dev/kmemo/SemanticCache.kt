@@ -6,20 +6,27 @@ import dev.kmemo.guard.GuardVerdict
 import dev.kmemo.guard.MatchGuard
 import dev.kmemo.guard.MatchGuards
 import dev.kmemo.internal.CandidateOrder
+import dev.kmemo.internal.CountMinSketch
 import dev.kmemo.internal.ExactCache
 import dev.kmemo.internal.GuardChain
 import dev.kmemo.internal.Ids
 import dev.kmemo.internal.KeyedMutex
 import dev.kmemo.internal.NegativeCache
 import dev.kmemo.internal.ShadowRun
+import dev.kmemo.internal.SharedStream
+import dev.kmemo.internal.StreamCoalescer
 import dev.kmemo.store.InMemoryStore
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.concurrent.atomics.AtomicLong
 import kotlin.time.Clock
@@ -89,7 +96,10 @@ import kotlin.time.TimeSource
  *   when a guard rejects the top candidate, the second may still be a correct answer.
  * @param coalesceConcurrentMisses whether concurrent [getOrPut] calls for the same prompt in the
  *   same scope wait for the first one instead of each calling the model. On by default: a cold
- *   cache under load is the case where duplicate calls are most expensive and most likely.
+ *   cache under load is the case where duplicate calls are most expensive and most likely. It governs
+ *   [getOrPutStreaming] too, where callers attach to the one provider stream rather than waiting for
+ *   it, since a streaming caller who waited for the end would be paying the latency they streamed to
+ *   avoid. [getOrPutAll] is the exception and says why.
  * @param embedFailurePolicy what [getOrPut] does when the [Embedder] throws — propagate (the default)
  *   or fall back to [compute] so a lookup is never *worse* than no cache. See [EmbedFailurePolicy].
  *   [lookup], [get] and [put] have no fallback and always propagate. [CancellationException] always
@@ -131,6 +141,18 @@ import kotlin.time.TimeSource
  *   adaptation lowers the threshold as well as raising it, and the only thing that makes lowering safe
  *   is something above the threshold that can tell a right answer from a wrong one. Pass the same object
  *   in [listeners] so it can see the outcomes it adapts on. See [AdaptiveThresholds].
+ * @param admissionPolicy when non-null, makes a prompt earn its place before its answer is stored:
+ *   entries are written on the second sighting of the exact prompt rather than the first, so a store in
+ *   front of real traffic stops filling with questions asked once at three in the morning. Off by
+ *   default. It can only ever suppress a **write**, never a lookup, so a wrong decision costs a future
+ *   miss and nothing else. Applies to the write that follows a miss, not to [put] or [warm]. See
+ *   [AdmissionPolicy] for what it costs in hit rate.
+ * @param prices what a model call costs, per scope, so the cache can report what its hits saved rather
+ *   than leaving a hit count to be multiplied by an average nobody has. Empty by default and empty is
+ *   honest: this library ships no table of provider prices, because one would be wrong the month after
+ *   it shipped. The token counts are read from the served entry's [CacheEntry.metadata] by the keys
+ *   [TokenPrices] names, so a saving is the cost of the call that was actually avoided. Reported in
+ *   [CacheStats.savings] and on [CacheEvent.Hit.saved]. See [TokenPrices].
  * @param cachePolicy vetoes writes of data that must never be persisted, consulted once per write on
  *   every write path including [warm]. `null` (the default) caches everything the cache decides to
  *   cache. A vetoed write is a policy decision, not a failure: the call still returns its response.
@@ -182,6 +204,8 @@ public class SemanticCache(
     private val reranker: CandidateReranker? = null,
     private val deduplicateWrites: Double? = null,
     private val adaptiveThresholds: AdaptiveThresholds? = null,
+    private val prices: Map<String, TokenPrices> = emptyMap(),
+    private val admissionPolicy: AdmissionPolicy? = null,
 ) {
 
     init {
@@ -237,6 +261,14 @@ public class SemanticCache(
 
     private val inFlight = KeyedMutex()
 
+    // In-flight streaming misses, one entry per (scope, prompt) somebody is currently streaming.
+    private val streams = StreamCoalescer()
+
+    // Null unless admission is turned on; the hot path checks it with a single null test.
+    private val sightings: CountMinSketch? = admissionPolicy?.let {
+        CountMinSketch(it.sketchWidth, it.sketchDepth, it.resetAfter)
+    }
+
     // Null unless negative caching is turned on; the hot path checks it with a single null test.
     private val negativeCache: NegativeCache? =
         if (negativeCacheSize > 0) NegativeCache(negativeCacheSize, negativeCacheTtl, clock) else null
@@ -284,12 +316,66 @@ public class SemanticCache(
     private val writeVetoCount = AtomicLong(0)
     private val exactHitCount = AtomicLong(0)
     private val embedderMismatchCount = AtomicLong(0)
+    private val writeNotAdmittedCount = AtomicLong(0)
 
     // One counter per guard, fixed at construction so no entry is ever inserted concurrently — the
     // hot path only ever does an atomic increment on a key that already exists. Guards that share a
     // name (unusual) share a counter, which keeps the per-guard sum equal to [guardRejectionCount].
     private val guardRejectionCountersByName: Map<String, AtomicLong> =
         guards.associate { it.name to AtomicLong(0) }
+
+    // One accumulator per priced scope, fixed at construction for the same reason the guard counters
+    // are: nothing is ever inserted concurrently, so the hot path is an atomic add on a key that
+    // already exists. A scope with no declared price has no accumulator and costs a single map lookup.
+    private val savingsByScope: Map<String, ScopeSavings> = prices.mapValues { ScopeSavings(it.value) }
+
+    /**
+     * Running totals behind one scope's [Savings].
+     *
+     * Tokens are accumulated and money is computed on read, never the other way round. Token counts are
+     * integers and adding a rounded currency amount a million times would drift; multiplying an exact
+     * count once cannot.
+     */
+    private class ScopeSavings(val prices: TokenPrices) {
+        val hits = AtomicLong(0)
+        val inputTokens = AtomicLong(0)
+        val outputTokens = AtomicLong(0)
+        val missingCounts = AtomicLong(0)
+
+        /** Records one hit on [metadata] and returns what that hit alone did not cost. */
+        fun record(metadata: Map<String, String>): Double {
+            val input = metadata[prices.inputTokensKey]?.toLongOrNull()
+            val output = metadata[prices.outputTokensKey]?.toLongOrNull()
+            hits.addAndFetch(1)
+            input?.let { inputTokens.addAndFetch(it) }
+            output?.let { outputTokens.addAndFetch(it) }
+            // Both absent, not either: an entry carrying only an output count is being measured, just
+            // not completely, and calling that a missing measurement would hide the working half.
+            if (input == null && output == null) missingCounts.addAndFetch(1)
+            return (input ?: 0L) * prices.perInputToken +
+                (output ?: 0L) * prices.perOutputToken +
+                prices.perCall
+        }
+
+        fun snapshot(): Savings = Savings(
+            prices = prices,
+            hits = hits.load(),
+            inputTokens = inputTokens.load(),
+            outputTokens = outputTokens.load(),
+            hitsMissingTokenCounts = missingCounts.load(),
+        )
+    }
+
+    /**
+     * Adds one served hit to its scope's saving, and reports what it was worth.
+     *
+     * Only a hit ever adds. A write is a call somebody made, not a call somebody avoided, and counting
+     * one would report a saving for a call that was always going to happen.
+     */
+    private fun recordSaving(scope: String, metadata: Map<String, String>, counted: Boolean): Double {
+        if (!counted) return 0.0
+        return savingsByScope[scope]?.record(metadata) ?: 0.0
+    }
 
     /**
      * Looks up [prompt] and reports the full outcome, including why a miss was a miss.
@@ -574,10 +660,24 @@ public class SemanticCache(
      * **On a miss** the flow from [compute] is passed straight through, chunk by chunk, while being
      * accumulated. Empty chunks are forwarded but not recorded: they carry nothing to replay.
      *
+     * **Concurrent misses are coalesced**, on the same [coalesceConcurrentMisses] switch as [getOrPut]
+     * and for the same reason: fifty requests for one new prompt arriving together is the case a cache
+     * exists for, and streaming is the path a chat product actually serves users on. The first
+     * collector opens the provider stream; the rest attach to it, are replayed whatever has already
+     * arrived, and then follow it live. There is one provider call and everyone sees the same chunks.
+     *
+     * Three consequences worth stating. A failure reaches **every** attached collector and writes
+     * nothing, because a truncated answer served confidently to fifty people is fifty wrong answers
+     * rather than one. The provider stream is stopped when the **last** collector leaves rather than
+     * the first, so a caller who closes a tab no longer takes the answer away from everyone else,
+     * while a lone caller who cancels still cancels the stream and still caches nothing. And an
+     * attached caller sees the provider's own chunk boundaries whatever [replay] it asked for, because
+     * there is one live stream and [replay] describes how a *stored* answer is cut up.
+     *
      * The returned flow is cold: nothing is computed or streamed until it is collected, though the
-     * embedding and the lookup are already done. Concurrent-miss coalescing and write-behind do not
-     * apply to this path. If the embedder throws under [EmbedFailurePolicy.FALL_BACK_TO_COMPUTE], the
-     * raw stream from [compute] is returned uncached.
+     * embedding and the lookup are already done. Write-behind does not apply to this path. If the
+     * embedder throws under [EmbedFailurePolicy.FALL_BACK_TO_COMPUTE], the raw stream from [compute]
+     * is returned uncached.
      *
      * ```kotlin
      * cache.getOrPutStreaming(prompt) { llm.completeStreaming(it) }.collect { chunk -> print(chunk) }
@@ -624,19 +724,96 @@ public class SemanticCache(
         val result = lookup(prompt, scope, embedding, embedNanos = embedNanos)
         if (result is CacheLookup.Hit) return replayed(result, replay)
 
+        if (!coalesceConcurrentMisses) {
+            return flow {
+                val assembled = StringBuilder()
+                val lengths = ArrayList<Int>()
+                compute(prompt).collect { chunk ->
+                    assembled.append(chunk)
+                    // A zero-length chunk is a keep-alive, not content. Forwarded so the caller sees
+                    // the provider's stream unaltered, unrecorded so replay does not emit nothing
+                    // repeatedly.
+                    if (chunk.isNotEmpty()) lengths += chunk.length
+                    emit(chunk)
+                }
+                // Reached only when the upstream flow completed without throwing (and was not
+                // cancelled): a partial stream must never be cached as if it were the whole answer.
+                put(
+                    prompt, assembled.toString(), scope, metadata, embedding,
+                    chunkLengths = lengths, subjectToAdmission = true,
+                )
+            }
+        }
+
+        // The same key shape getOrPut coalesces on, separated the same way: a scope and a prompt
+        // joined by an ordinary character would let one pair of them spell another.
+        val key = "$scope $prompt"
         return flow {
+            val attachment = streams.joinOrLead(key)
+            val shared = attachment.stream
+            try {
+                if (attachment.leader) {
+                    // Deliberately not a child of this collector's job. A child would die with the
+                    // caller who happened to open the stream, taking the answer away from everyone
+                    // attached to it. The producer is instead stopped by StreamCoalescer.leave when the
+                    // last collector goes, which keeps M26's rule intact for the single-caller case and
+                    // only changes the case where somebody else is still reading.
+                    val producer = CoroutineScope(currentCoroutineContext().minusKey(Job) + Job())
+                    shared.leadWith(
+                        producer.launch { produce(shared, key, prompt, scope, metadata, embedding, compute) },
+                    )
+                }
+                shared.collect { chunk -> emit(chunk) }
+            } finally {
+                streams.leave(key, shared)
+            }
+        }
+    }
+
+    /**
+     * The one provider call behind a coalesced streaming miss.
+     *
+     * Every ending goes through [SharedStream], so a collector is never left waiting on a stream whose
+     * producer has stopped: normal completion, a provider that threw, a store write that threw, and
+     * cancellation when the last collector left all terminate it. The store write happens **before**
+     * the completion signal, which keeps the uncoalesced path's behaviour exactly: every chunk has
+     * already been delivered, and a failed write still surfaces as a failed flow rather than being
+     * swallowed because the text happened to arrive.
+     */
+    @Suppress("TooGenericExceptionCaught", "LongParameterList")
+    private suspend fun produce(
+        shared: SharedStream,
+        key: String,
+        prompt: String,
+        scope: String,
+        metadata: Map<String, String>,
+        embedding: FloatArray,
+        compute: suspend (String) -> Flow<String>,
+    ) {
+        try {
             val assembled = StringBuilder()
             val lengths = ArrayList<Int>()
             compute(prompt).collect { chunk ->
                 assembled.append(chunk)
-                // A zero-length chunk is a keep-alive, not content. Forwarded so the caller sees the
-                // provider's stream unaltered, unrecorded so replay does not emit nothing repeatedly.
                 if (chunk.isNotEmpty()) lengths += chunk.length
-                emit(chunk)
+                shared.append(chunk)
             }
-            // Reached only when the upstream flow completed without throwing (and was not cancelled):
-            // a partial stream must never be cached as if it were the whole answer.
-            put(prompt, assembled.toString(), scope, metadata, embedding, chunkLengths = lengths)
+            put(
+                prompt, assembled.toString(), scope, metadata, embedding,
+                chunkLengths = lengths, subjectToAdmission = true,
+            )
+            shared.complete()
+        } catch (e: Throwable) {
+            // Under NonCancellable because the commonest way to get here is the last collector leaving,
+            // and a suspending hand-off skipped by cancellation would strand any collector that had not
+            // yet noticed.
+            withContext(NonCancellable) { shared.fail(e) }
+            // An ordinary provider failure has already reached every collector, so re-throwing it would
+            // only hand a duplicate to an uncaught-exception handler on a coroutine nobody is awaiting.
+            // Cancellation and anything that is not an Exception still propagate.
+            if (e !is Exception || e is CancellationException) throw e
+        } finally {
+            streams.finished(key, shared)
         }
     }
 
@@ -735,6 +912,14 @@ public class SemanticCache(
     public suspend fun size(scope: String? = null): Int = store.size(scope)
 
     /**
+     * Coalesced streams in flight right now.
+     *
+     * Not public API: the registry is reference counted and a leak in it is invisible from outside,
+     * so the tests need a window on it. It must come back to zero.
+     */
+    internal suspend fun inFlightStreams(): Int = streams.size()
+
+    /**
      * Counters since this instance was created. See [CacheStats] for what they tell you.
      *
      * The counters are read one at a time, so a lookup finishing mid-read could otherwise report
@@ -758,6 +943,8 @@ public class SemanticCache(
             writesVetoed = writeVetoCount.load(),
             exactHits = exactHitCount.load(),
             embedderMismatches = embedderMismatchCount.load(),
+            savings = savingsByScope.mapValues { it.value.snapshot() },
+            writesNotAdmitted = writeNotAdmittedCount.load(),
         )
     }
 
@@ -785,11 +972,15 @@ public class SemanticCache(
             hitCount.addAndFetch(1)
             exactHitCount.addAndFetch(1)
         }
+        // A byte-for-byte repeat answered without embedding or searching is still a model call that was
+        // not made, and it saved exactly what the entry it resolved to would have cost.
+        val saved = recordSaving(scope, recalled.entry.metadata, counted)
         store.touch(recalled.entry.id)
         if (observed) {
             emit(
                 CacheEvent.Hit(
                     scope, prompt, recalled.entry.prompt, 1.0, recalled.entry.id, EventTimings.NONE,
+                    saved, prices[scope]?.currency,
                 ),
             )
         }
@@ -880,6 +1071,11 @@ public class SemanticCache(
         // halved the hit rate of the very workload coalescing exists to improve.
         if (counted) lookupCount.addAndFetch(1)
 
+        // The sighting is recorded here, on the lookup, and read later on the write. Recording it at
+        // write time instead would count each prompt once however often it was asked, which is the one
+        // thing a frequency estimate must not do.
+        if (counted) sightings?.addAndEstimate(sightingKey(scope, prompt))
+
         // Timings are only ever measured on the observed, counted path; nanoTime is cheap but not free,
         // and the coalescing re-check must not double-count a stage it did not run.
         val measure = observed && counted
@@ -960,8 +1156,9 @@ public class SemanticCache(
                 continue
             }
 
+            val saved = recordSaving(scope, scored.entry.metadata, counted)
             return hit(scored, counted)
-                .also { emitHit(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted) }
+                .also { emitHit(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted, saved) }
         }
 
         if (refusal == null) {
@@ -993,6 +1190,7 @@ public class SemanticCache(
             .also { emitMiss(scope, prompt, it, embedNanos, searchNanos, verifierNanos, counted, guardName) }
     }
 
+    @Suppress("LongParameterList")
     private fun emitHit(
         scope: String,
         prompt: String,
@@ -1001,12 +1199,14 @@ public class SemanticCache(
         searchNanos: Long,
         verifierNanos: Long,
         counted: Boolean,
+        saved: Double,
     ) {
         if (!observed || !counted) return
         emit(
             CacheEvent.Hit(
                 scope, prompt, hit.matchedPrompt, hit.similarity, hit.entryId,
                 EventTimings(embedNanos, searchNanos, verifierNanos),
+                saved, prices[scope]?.currency,
             ),
         )
     }
@@ -1142,8 +1342,10 @@ public class SemanticCache(
         embedding: FloatArray,
         tags: Set<String> = emptySet(),
         chunkLengths: List<Int> = emptyList(),
+        subjectToAdmission: Boolean = false,
     ): String {
         val entry = buildEntry(prompt, response, scope, metadata, embedding, tags, chunkLengths)
+        if (subjectToAdmission && !admits(entry)) return entry.id
         putEntry(entry)
         return entry.id
     }
@@ -1204,11 +1406,35 @@ public class SemanticCache(
      * Routes a write through the write-behind queue when it is on, or straight to the store when it is
      * off. If the queue is full the write falls through synchronously rather than being dropped or
      * blocking the caller indefinitely, so no write is ever lost.
+     *
+     * Admission is decided **here**, before the queue rather than inside the worker. The queue carries
+     * entries and nothing else, so a flag put into it would have to be carried through the channel; and
+     * a decision taken on the worker would be taken against a sketch that has moved on since the lookup
+     * that triggered it.
      */
     private suspend fun enqueueOrPut(entry: CacheEntry) {
+        if (!admits(entry)) return
         val channel = writeChannel ?: run { putEntry(entry); return }
         if (channel.trySend(entry).isFailure) putEntry(entry)
     }
+
+    /**
+     * Whether [entry]'s prompt has been asked often enough to be worth storing.
+     *
+     * Always true when no [AdmissionPolicy] is configured, which is the default. Refusing here is not a
+     * failure and not a veto: the call that produced the response returned it, and the only cost is
+     * that the next caller asking the same thing misses too. That asymmetry is what makes the whole
+     * mechanism safe, and it is why admission may never be consulted on the read path.
+     */
+    private suspend fun admits(entry: CacheEntry): Boolean {
+        val policy = admissionPolicy ?: return true
+        val sketch = sightings ?: return true
+        if (sketch.estimate(sightingKey(entry.scope, entry.prompt)) >= policy.minSightings) return true
+        writeNotAdmittedCount.addAndFetch(1)
+        return false
+    }
+
+    private fun sightingKey(scope: String, prompt: String): String = "$scope $prompt"
 
     /**
      * Seeds the cache with known prompt/response pairs, embedding them in **one batch call** where the

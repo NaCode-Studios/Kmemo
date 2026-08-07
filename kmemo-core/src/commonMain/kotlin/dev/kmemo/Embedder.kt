@@ -13,6 +13,29 @@ package dev.kmemo
  * ```kotlin
  * val embedder = Embedder { text -> openAi.embeddings(model = "text-embedding-3-small", input = text).vector() }
  * ```
+ *
+ * ### On the native targets and on wasm, an embedder is a network call
+ *
+ * That sentence is the consequence of the four options above and it was never written down. Three of
+ * them are network providers, and the fourth runs only on the JVM: there is no framework-neutral
+ * multiplatform embedder in the Kotlin ecosystem, only a demonstration wrapper around ONNX Runtime
+ * with no releases and a Gemma-focused binding under a licence that rules it out for most consumers.
+ *
+ * It matters because a semantic cache exists to avoid a round trip to a model. If deciding whether to
+ * serve from cache needs a round trip to an embedding API, the saving is the difference between two
+ * network calls rather than between one and none. The latency argument disappears and only the
+ * token-cost argument survives, which is a much weaker case and not the one the multiplatform targets
+ * were added for.
+ *
+ * M41 measured the alternative rather than assuming it. One forward pass at `all-MiniLM-L6-v2` shape,
+ * arithmetic only, in ordinary Kotlin, on `macosArm64`: **2.5 seconds per call** at 274 MFLOP/s, with
+ * 42 MB of encoder weights and a 46 MB vocabulary table beside them. An embedding API answers in 50 to
+ * 200 ms, on hardware slower than the machine that measured this, so a pure-Kotlin on-device embedder
+ * would be an order of magnitude slower than the call it exists to avoid. `OnDeviceEmbeddingTest` is
+ * the measurement and the README carries the decision that follows from it.
+ *
+ * So on `iosArm64`, `macosArm64`, `linuxX64`, `mingwX64`, `js` and `wasmJs`, plan for a network
+ * embedder, or supply a platform-native inference runtime through this seam yourself.
  */
 public fun interface Embedder {
 
