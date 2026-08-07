@@ -63,6 +63,40 @@ first use and CI is a JVM build. See [tools/gptcache-comparison](../tools/gptcac
 recorded numbers carry the SHA-256 of the corpus files they were taken against, and the build fails if a
 corpus changes without the harness being re-run.
 
+## The PAWS target, registered before the attempt
+
+`2.1.0` published a number this project has to answer for: PAWS rejects 647 of 4,464 near misses, 14%,
+against roughly 68% on the blind internal splits. The release notes explained it, and the explanation is
+sound as far as it goes and is not a defence. Deliberately high lexical overlap is the precise case this
+library exists for, and answering "that corpus is hard" concedes the thesis.
+
+So there are two honest outcomes and this section commits to finding out which one is true rather than to
+a particular one. Either a guard chain can be built that holds on high-overlap pairs, in which case the
+current one is undertuned. Or it cannot, in which case the library needs a stated boundary: it catches
+the near misses that arise in traffic, it does not catch adversarially constructed ones, and here is
+where the line is.
+
+**The target is written down here before any guard was changed**, because a number chosen after seeing
+the result is a description rather than a target. What is already known, and what informs it, is the
+per-register and per-length work above: register does not explain the gap, length explains much of it,
+and `entity` alone already catches 11.8% of the declarative near misses at 73% precision where the whole
+chain catches 14.5%.
+
+| Outcome | Definition |
+| --- | --- |
+| **Success** | PAWS near-miss rejection reaches **25%**, roughly a doubling, **and** paraphrase retention stays at or above today's 79%, **and** no written split loses a catch or a paraphrase. |
+| **Boundary** | Rejection improves but retention on PAWS falls below 79%, or any written split regresses. The gain was bought from the API-bill column, which is not an improvement this project counts. |
+| **Failure** | Rejection stays under 25% under those constraints. |
+
+25% rather than the 68% the internal splits reach, because PAWS is adversarial by construction and
+parity with realistic traffic is not a reasonable bar. A doubling is falsifiable, it is far short of
+parity, and it is stated before the attempt rather than after it.
+
+**Failure is publishable and will be published.** The failure mode to avoid is the quiet one: a guard
+tuned until PAWS improves, shipped without checking what it did to the other three splits. A cache that
+rejects more paraphrases has not got better, it has moved cost from the wrong-answer column to the
+API-bill column, and those two columns are not interchangeable.
+
 ## What register does to the guards, and what it does not explain
 
 Register is a property of a deployment, not of a benchmark. A support assistant sees questions, a command
