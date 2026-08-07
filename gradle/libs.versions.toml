@@ -56,6 +56,9 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 assertj-core = { module = "org.assertj:assertj-core", version = "3.27.7" }
 # Test-only: property-based testing for the Vectors maths and the text tokenizer invariants.
 kotest-property = { module = "io.kotest:kotest-property", version = "6.2.3" }
+# Test-only, JVM-only: the model checker M49 holds the concurrency claims to. A data race in
+# commonMain is a data race on every target, so checking one host checks them all.
+lincheck = { module = "org.jetbrains.lincheck:lincheck", version = "3.7" }
 
 # Test-only, in the examples module: the evaluation framework M40 measures a cached suite against.
 dokimos-kotlin = { module = "dev.dokimos:dokimos-kotlin", version.ref = "dokimos" }

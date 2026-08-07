@@ -100,6 +100,10 @@ kotlin {
             // the artifact a third party downloads, not to a private copy of it. See
             // StandardGuardComplianceTest.
             implementation(project(":kmemo-guard-tck"))
+            // The concurrency model checker (M49). JVM-only, which is a real limitation and an
+            // acceptable one: the code it checks is commonMain, and a data race there is a data race
+            // on every target even though the exploration runs on one.
+            implementation(libs.lincheck)
         }
     }
 }
