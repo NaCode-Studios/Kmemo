@@ -79,6 +79,36 @@ All notable changes to this project are documented here. The format follows
   carry no token counts are reported as `hitsMissingTokenCounts` next to the amount, since that is the
   one way the figure can be quietly wrong and a total that is too small should say why.
 
+- **`EntryCipher` and `EncryptedStore` (M33).** `CacheEntry.prompt` is stored verbatim and has to be:
+  the guards re-read it on every hit and reading it as text is the whole mechanism. `kmemo-slf4j`
+  redacts prompts by default because prompts are user input and routinely carry personal data, which is
+  the right instinct applied to the one surface where it was cheap; the store is the surface where it
+  matters and nothing was done there. A clinical, legal or financial deployment could veto the write
+  with a `CachePolicy`, which means not caching, or encrypt the database at rest, which protects nothing
+  from anyone who can read the database. So the cache did not reach the buyers whose wrong answers cost
+  the most, which is an odd place for a library whose whole argument is about not serving wrong answers.
+  `EntryCipher` is the seam and `EncryptedStore` is a decorator that applies it to any store. kmemo
+  ships no cryptography: the key is the caller's, the algorithm is the caller's, for the same reason it
+  ships no embedding model. A decorator rather than a step inside `SemanticCache`, because encryption is
+  about what is persisted and persistence is what a store owns, so one implementation covers Postgres,
+  Redis, HNSW and anything a third party writes. It passes `CacheStoreContract` unmodified.
+  **The read path costs one decryption per candidate**, not one per lookup: the guards read every
+  candidate's prompt as text, so a lookup with the default five candidates does five prompt decryptions
+  and one response decryption. That is stated as a count rather than a duration, because the duration
+  belongs to the cipher the caller supplies. The cheaper design, a tokenized keyed form the guards could
+  read without decrypting, was measured against it and does not survive the exit criterion: keyed tokens
+  are opaque, and `Text.isSameWord` absorbing typos and inflections, `NumericGuard` parsing numbers,
+  `UnitGuard` mapping `km` to `kilometers` and `EntityGuard` recognising an acronym's expansion all stop
+  working on them. The guard chain has to reach the verdicts it reached before or the encryption is
+  worth nothing, so the decryption is the price.
+  Deterministic encryption would remove the price and is refused rather than documented against:
+  `EncryptedStore` encrypts a probe twice on its first write and throws if the two agree. Identical
+  ciphertext means two users asked the same question, and equality across prompts is exactly what an
+  attacker holding the database wants.
+  Two things it does not cover, both deliberate. The embedding is stored as it is, because the store
+  finds entries by comparing vectors; it is a lossy view of the prompt and an attacker with the same
+  embedding model can compare a guess against it. Tags and metadata pass through, because a tag names a
+  source of truth and metadata is payload the cache never reads.
 - **`AdmissionPolicy`, opt-in and off by default (M32).** Every miss wrote. That is the right default
   for a cache being filled deliberately and the wrong one for a cache in front of real traffic, where
   most prompts are asked once and never again: the store fills with entries that will never be hit,

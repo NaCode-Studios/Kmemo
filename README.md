@@ -380,6 +380,44 @@ indistinguishable from a miss. Kmemo ships the seam and no detector, for the sam
 `Verifier` are seams. Isolation *between* tenants is a different problem and is already `scope`, which
 the store TCK has enforced on every store since M4.
 
+### Prompts a regulated team is allowed to store
+
+`CachePolicy` answers "must this never be written". It does not help a clinical, legal or financial
+deployment that has to cache and cannot put a database full of verbatim user questions in front of an
+auditor. Until now the only other answer was to encrypt the database at rest, which protects nothing
+from anyone who can read the database.
+
+`EntryCipher` is the seam and `EncryptedStore` applies it to any store:
+
+```kotlin
+val cache = semanticCache(embedder) {
+    store = EncryptedStore(PostgresStore(dataSource), myCipher)
+}
+```
+
+Kmemo ships no cryptography, for the same reason it ships no embedding model: the key is yours, the
+algorithm is yours, and their lifecycle is not something a cache library is qualified to have opinions
+about. A decorator rather than a flag on each store, because encryption is about what is persisted and
+persistence is what a store owns: written once here it covers Postgres, Redis, HNSW and anything a
+third party writes, and `EncryptedStore` passes `CacheStoreContract` unmodified like every other store.
+
+**The read path pays for it, one decryption per candidate.** The guards read each candidate's prompt as
+text, so every candidate has to be readable before the chain can refuse it: a lookup with the default
+five candidates does five prompt decryptions and one response decryption where an unencrypted store
+does none. There is no arrangement that avoids this. The one that would is deterministic encryption,
+where the guards could work without decrypting, and that is not on offer: identical ciphertext means two
+users asked the same question, and equality across prompts is exactly what an attacker holding the
+database wants. `EncryptedStore` encrypts a probe twice on its first write and refuses to run against a
+cipher that returns the same answer twice, rather than leaving the rule to a comment.
+
+The count is stated and the duration is not, because the duration belongs to the cipher you supply.
+Everything above the store is unchanged: the guards reach the same verdicts, and a hit still reports the
+prompt it matched. Two things are not covered and both are deliberate. The embedding is stored as it
+is, because the store finds entries by comparing vectors; it is a lossy view of the prompt and an
+attacker with the database and the same embedding model can compare a guess against it. Tags and
+metadata also pass through, because a tag is meant to name a source of truth and metadata is payload the
+cache never reads.
+
 ### What is worth caching
 
 A different question, and `CachePolicy` cannot answer it: it decides on the content of one prompt and

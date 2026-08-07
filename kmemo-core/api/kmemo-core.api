@@ -314,6 +314,22 @@ public final class dev/kmemo/Embedder$DefaultImpls {
 	public static fun getIdentity (Ldev/kmemo/Embedder;)Ljava/lang/String;
 }
 
+public abstract interface class dev/kmemo/EntryCipher {
+	public static final field Companion Ldev/kmemo/EntryCipher$Companion;
+	public static final field UNDECLARED Ljava/lang/String;
+	public abstract fun decrypt (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun encrypt (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getIdentity ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/EntryCipher$Companion {
+	public static final field UNDECLARED Ljava/lang/String;
+}
+
+public final class dev/kmemo/EntryCipher$DefaultImpls {
+	public static fun getIdentity (Ldev/kmemo/EntryCipher;)Ljava/lang/String;
+}
+
 public final class dev/kmemo/EventTimings {
 	public static final field Companion Ldev/kmemo/EventTimings$Companion;
 	public fun <init> (JJJ)V
@@ -941,6 +957,17 @@ public final class dev/kmemo/guard/Vocabulary {
 	public final fun getSTOPWORDS ()Ljava/util/Set;
 	public final fun getTEMPORAL_MARKERS ()Ljava/util/Set;
 	public final fun getUNITS ()Ljava/util/Map;
+}
+
+public final class dev/kmemo/store/EncryptedStore : dev/kmemo/CacheStore {
+	public fun <init> (Ldev/kmemo/CacheStore;Ldev/kmemo/EntryCipher;)V
+	public fun clear (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun invalidateByTag (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun put (Ldev/kmemo/CacheEntry;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun remove (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun search (Ljava/lang/String;[FILkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun size (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun touch (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class dev/kmemo/store/InMemoryStore : dev/kmemo/CacheStore {

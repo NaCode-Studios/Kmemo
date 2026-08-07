@@ -135,6 +135,19 @@ abstract interface dev.kmemo/CacheStore { // dev.kmemo/CacheStore|null[0]
     open suspend fun touch(kotlin/String) // dev.kmemo/CacheStore.touch|touch(kotlin.String){}[0]
 }
 
+abstract interface dev.kmemo/EntryCipher { // dev.kmemo/EntryCipher|null[0]
+    open val identity // dev.kmemo/EntryCipher.identity|{}identity[0]
+        open fun <get-identity>(): kotlin/String // dev.kmemo/EntryCipher.identity.<get-identity>|<get-identity>(){}[0]
+
+    abstract suspend fun decrypt(kotlin/String, kotlin/String): kotlin/String // dev.kmemo/EntryCipher.decrypt|decrypt(kotlin.String;kotlin.String){}[0]
+    abstract suspend fun encrypt(kotlin/String, kotlin/String): kotlin/String // dev.kmemo/EntryCipher.encrypt|encrypt(kotlin.String;kotlin.String){}[0]
+
+    final object Companion { // dev.kmemo/EntryCipher.Companion|null[0]
+        final const val UNDECLARED // dev.kmemo/EntryCipher.Companion.UNDECLARED|{}UNDECLARED[0]
+            final fun <get-UNDECLARED>(): kotlin/String // dev.kmemo/EntryCipher.Companion.UNDECLARED.<get-UNDECLARED>|<get-UNDECLARED>(){}[0]
+    }
+}
+
 sealed interface dev.kmemo.guard/GuardVerdict { // dev.kmemo.guard/GuardVerdict|null[0]
     final class Reject : dev.kmemo.guard/GuardVerdict { // dev.kmemo.guard/GuardVerdict.Reject|null[0]
         constructor <init>(kotlin/String) // dev.kmemo.guard/GuardVerdict.Reject.<init>|<init>(kotlin.String){}[0]
@@ -646,6 +659,18 @@ final class dev.kmemo.guard/UnitGuard : dev.kmemo.guard/MatchGuard { // dev.kmem
         final fun <get-name>(): kotlin/String // dev.kmemo.guard/UnitGuard.name.<get-name>|<get-name>(){}[0]
 
     final fun evaluate(kotlin/String, kotlin/String): dev.kmemo.guard/GuardVerdict // dev.kmemo.guard/UnitGuard.evaluate|evaluate(kotlin.String;kotlin.String){}[0]
+}
+
+final class dev.kmemo.store/EncryptedStore : dev.kmemo/CacheStore { // dev.kmemo.store/EncryptedStore|null[0]
+    constructor <init>(dev.kmemo/CacheStore, dev.kmemo/EntryCipher) // dev.kmemo.store/EncryptedStore.<init>|<init>(dev.kmemo.CacheStore;dev.kmemo.EntryCipher){}[0]
+
+    final suspend fun clear(kotlin/String?) // dev.kmemo.store/EncryptedStore.clear|clear(kotlin.String?){}[0]
+    final suspend fun invalidateByTag(kotlin/String, kotlin/String?): kotlin/Int // dev.kmemo.store/EncryptedStore.invalidateByTag|invalidateByTag(kotlin.String;kotlin.String?){}[0]
+    final suspend fun put(dev.kmemo/CacheEntry) // dev.kmemo.store/EncryptedStore.put|put(dev.kmemo.CacheEntry){}[0]
+    final suspend fun remove(kotlin/String): kotlin/Boolean // dev.kmemo.store/EncryptedStore.remove|remove(kotlin.String){}[0]
+    final suspend fun search(kotlin/String, kotlin/FloatArray, kotlin/Int): kotlin.collections/List<dev.kmemo/ScoredEntry> // dev.kmemo.store/EncryptedStore.search|search(kotlin.String;kotlin.FloatArray;kotlin.Int){}[0]
+    final suspend fun size(kotlin/String?): kotlin/Int // dev.kmemo.store/EncryptedStore.size|size(kotlin.String?){}[0]
+    final suspend fun touch(kotlin/String) // dev.kmemo.store/EncryptedStore.touch|touch(kotlin.String){}[0]
 }
 
 final class dev.kmemo.store/InMemoryStore : dev.kmemo/CacheStore { // dev.kmemo.store/InMemoryStore|null[0]
