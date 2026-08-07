@@ -3,6 +3,44 @@
 One section per hop, newest first. Nothing here is a break you can hit by upgrading alone: every item
 says who it affects, and most readers affected by none of them change a version number and stop.
 
+# Migrating from 2.2 to 2.3
+
+`2.3` adds and it does not break. Every published corpus figure still describes the chain you are
+running, because `MatchGuards.standard()` is byte-for-byte what it was.
+
+## Nothing to recompile
+
+The public API grew and no signature moved. `SubstitutionGuard` gained a head-floor factory without
+changing either of its constructors, `Verifier` is untouched, and `GuardVerdict` still has exactly the
+two states it had.
+
+## The published numbers changed shape, and one of them changed meaning
+
+The corpus table has five rows rather than four, every rate carries the 95% interval its sample
+supports, and each split carries a standing. **`held-out` and `validation` are retired**: their
+failures have been read, which cannot be undone, so they stay as regression gates and stop being
+quoted as blind evidence. The blind evidence is the two fetched splits.
+
+If you quoted "68% on the blind validation split", the closest replacement is **65% on the external
+question split**, measured on 2,500 near misses instead of 102 and written by people who had never
+heard of this library. The paraphrase figure moves the other way and is the uncomfortable one: 79%
+there against the 88% the small splits reported.
+
+## What is new and off by default
+
+`MatchGuards.shortQuestions()`, `SubstitutionGuard.withHeadFloor`, `ConfidenceVerifier` and the
+`kmemo-otel` module. A cache that configures none of them behaves exactly as it did.
+
+`ConfidenceVerifier` is the one worth a look if you run a `Verifier`: it returns the confidence your
+model already computes and lets you set where the line falls, which is the dial that was missing when
+the only alternative to 45% paraphrase retention was turning the verifier off.
+
+## The data and the rules are published separately now
+
+`spec/` and the `kmemo-corpus-<version>.zip` attached to the release carry the corpus schema, the
+false-hit metric and each guard's rule with conformance vectors. Nothing in the library depends on
+them; they exist so that a figure can be reproduced without this repository.
+
 # Migrating from 2.1 to 2.2
 
 `2.2` is additive apart from one behaviour change, and everything new is off by default. Most readers

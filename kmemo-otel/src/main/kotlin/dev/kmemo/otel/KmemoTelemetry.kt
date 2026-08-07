@@ -71,7 +71,7 @@ public class KmemoTelemetry @JvmOverloads constructor(
     private val spans: Boolean = true,
 ) : CacheListener {
 
-    private val tracer: Tracer = openTelemetry.getTracer(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION)
+    private val tracer: Tracer = openTelemetry.getTracer(INSTRUMENTATION_NAME)
     private val meter = openTelemetry.getMeter(INSTRUMENTATION_NAME)
 
     private val lookups: LongCounter = meter.counterBuilder(Conventions.METRIC_LOOKUPS)
@@ -246,7 +246,6 @@ public class KmemoTelemetry @JvmOverloads constructor(
 
     private companion object {
         private const val INSTRUMENTATION_NAME = "dev.kmemo"
-        private const val INSTRUMENTATION_VERSION = "2.3.0"
         private const val SYSTEM = "kmemo"
         private const val SPAN_NAME = "cache.lookup"
         private const val NANOS_PER_SECOND = 1_000_000_000.0

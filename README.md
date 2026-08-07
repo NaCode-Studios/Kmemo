@@ -45,7 +45,7 @@ source; Kmemo ships none and depends on no provider SDK.
 > **See it end to end.** [`examples/`](examples) is a runnable demo (no API key needed) that shows a
 > guard catching a live near miss, with a `docker-compose` for the Redis store.
 
-> **Status — `2.3`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
+> **Status — `2.2`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
 > Windows, JS and WasmJS, and so does the persistent store, so a phone no longer starts cold. The
 > framework integrations, the threshold calibrator, the optional verifier and the store adapters that
 > wrap a JVM driver are JVM-side. Everything here is measured against labelled corpora whose blind
