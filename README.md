@@ -242,6 +242,7 @@ switched on. The embedding cannot be encrypted, and that section is the one wort
 | `kmemo-store-postgres` | A durable `CacheStore` on Postgres / pgvector. |
 | `kmemo-store-hnsw` | An opt-in in-process approximate (HNSW) `CacheStore` that scales past the exact scan. |
 | `kmemo-micrometer` / `kmemo-slf4j` | A Micrometer `MeterBinder` and an SLF4J logging listener. |
+| `kmemo-otel` | OpenTelemetry metrics, and a span per lookup with a child per stage. Attribute names proposed as a convention in [docs/OTEL-CONVENTIONS.md](docs/OTEL-CONVENTIONS.md). |
 | `kmemo-spring-boot-starter` / `kmemo-spring-ai` | Auto-config for a `SemanticCache` bean, and a caching `Advisor` for Spring AI's `ChatClient`. |
 | `kmemo-langchain4j` / `kmemo-ktor` | A caching `ChatModel` wrapper, and a Ktor server plugin. |
 | `kmemo-guard-tck` / `kmemo-store-tck` | Conformance suites for a custom `MatchGuard` and a custom `CacheStore`. Test dependencies. |

@@ -10,6 +10,7 @@ hikari = "7.1.0"
 testcontainers = "2.0.5"
 micrometer = "1.17.0"
 slf4j = "2.0.18"
+opentelemetry = "1.64.0"
 logback = "1.6.1"
 jmh = "0.7.3"
 springBoot = "4.1.0"
@@ -49,6 +50,11 @@ testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgr
 # Observability adapters (opt-in modules; never on the kmemo-core classpath).
 micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+# OpenTelemetry is a JVM artifact: there is no multiplatform OpenTelemetry API on Maven Central, which
+# is why kmemo-otel is JVM-only and says so in its own build file rather than in a footnote.
+opentelemetry-api = { module = "io.opentelemetry:opentelemetry-api", version.ref = "opentelemetry" }
+opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk", version.ref = "opentelemetry" }
+opentelemetry-sdk-testing = { module = "io.opentelemetry:opentelemetry-sdk-testing", version.ref = "opentelemetry" }
 # Test-only: a real SLF4J backend the logging adapter's tests attach a ListAppender to and assert on.
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 # Test-only: AssertableApplicationContext (Spring Boot's test runner) implements an AssertJ type, which
