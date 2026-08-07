@@ -45,12 +45,12 @@ source; Kmemo ships none and depends on no provider SDK.
 > **See it end to end.** [`examples/`](examples) is a runnable demo (no API key needed) that shows a
 > guard catching a live near miss, with a `docker-compose` for the Redis store.
 
-> **Status — `2.2`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
+> **Status — `2.3`, stable.** The cache and its eleven guards run on the JVM, iOS, macOS, Linux,
 > Windows, JS and WasmJS, and so does the persistent store, so a phone no longer starts cold. The
 > framework integrations, the threshold calibrator, the optional verifier and the store adapters that
-> wrap a JVM driver are JVM-side. Everything here is measured against labelled corpora with blind
-> splits, one of which this project did not write, and the results are published whichever way they
-> come out. The public API is stable under SemVer, every hop is listed in
+> wrap a JVM driver are JVM-side. Everything here is measured against labelled corpora whose blind
+> splits this project did not write and cannot add to, and the results are published whichever way they
+> come out, with the interval each sample supports. The public API is stable under SemVer, every hop is listed in
 > [docs/MIGRATION.md](docs/MIGRATION.md), the policy is in [STABILITY.md](STABILITY.md), and the plan is
 > on the [board](https://github.com/orgs/NaCode-Studios/projects/5).
 
@@ -60,10 +60,11 @@ source; Kmemo ships none and depends on no provider SDK.
   references, negation, flipped antonyms, reversed comparisons, a different answer being asked for, and a
   clause one prompt adds that narrows the question. They run against four labelled corpora on every
   build.
-- **The numbers are reported whichever way they come out.** The worst of the four corpora was written by
-  somebody else, years earlier, and it scores the guards at 14% where the blind internal splits score
-  them at 68%. Both ship, with the explanation that has been checked rather than the one that sounded
-  right. See [Correctness, measured](#correctness-measured).
+- **The numbers are reported whichever way they come out.** The two corpora nobody here wrote disagree
+  with each other: on external question traffic the guards catch 65% of near misses, and on an
+  adversarial paraphrase set built to defeat lexical overlap they catch 14%. Both ship, and so does the
+  finding that external questions cost 79% paraphrase retention where this project's own splits reported
+  88%. See [Correctness, measured](#correctness-measured).
 - **The costs are asymmetric and the defaults follow that.** A wrong rejection costs one API call; a
   wrong acceptance costs a wrong answer. Guards abstain rather than guess, and every opt-in piece states
   what it trades.
@@ -263,29 +264,36 @@ become the cost.
 
 ## Correctness, measured
 
-The guards are judged against four labelled corpora, three of them blind splits no guard was tuned
-against, run as a CI regression gate on every build. **These figures are guard-only**: no `Verifier` is
-in the loop, so they describe the free lexical layer rather than the cache as a whole.
+The guards are judged against five labelled corpora, two of them blind splits written by other people
+years earlier, run as a CI regression gate on every build. **These figures are guard-only**: no
+`Verifier` is in the loop, so they describe the free lexical layer rather than the cache as a whole.
 
-| Split | Written by | Near misses rejected | Paraphrases kept |
-| --- | --- | --- | --- |
-| tuned | this project, with the guards in view | in-sample, not evidence | in-sample, not evidence |
-| held-out | this project, after the guards existed | 71% | 88% |
-| validation | this project, blind | 68% | 88% |
-| **external**, PAWS-Wiki `test` | **Google Research, 2019** | **14%** (647/4,464) | **79%** (2,807/3,536) |
+Every rate carries the 95% interval its sample supports, because a rate from a hundred pairs and one
+from five thousand are not the same kind of number.
 
-**The external row is much worse than the others, and it is here for that reason.** The first three share
-a weakness no process can remove: the same person wrote the pairs and the guards, so they test the near
-misses that were *thought of* rather than the ones that *exist*.
-[PAWS](https://github.com/google-research-datasets/paws) was built in 2019 to see whether a model can
-separate a paraphrase from a near-paraphrase when word overlap is deliberately high, which is the exact
-case a similarity threshold cannot handle, by people who had never heard of this library. A lower figure
-from a harder source is worth more than another figure from the same source, so both ship.
+| Split | Near misses rejected | Paraphrases kept |
+| --- | --- | --- |
+| tuned | in-sample, not evidence | in-sample, not evidence |
+| held-out | 71% ±9 (61/86) | 88% ±10 (37/42) |
+| validation | 68% ±9 (69/102) | 88% ±9 (45/51) |
+| qqp | 65% ±2 (1634/2500) | 79% ±2 (2205/2796) |
+| external | 14% ±1 (647/4464) | 79% ±1 (2807/3536) |
 
-Two explanations for the gap have been offered and checked. **Prompt length is most of it**: filing every
-pair by length, the guard responsible rejects paraphrases at 0% under 48 characters and 15% above 96, and
-the splits sit on opposite sides of that. **Register is not**: at the same register PAWS still catches 9%
-where validation catches 65%. What is left is difficulty, which is what PAWS was built for.
+**Only the last two rows are evidence, and neither was written here.** `qqp` is Quora Question Pairs;
+`external` is [PAWS](https://github.com/google-research-datasets/paws). The three written splits are a
+fitted set and two spent ones, kept as regression gates because their failures have been read and that
+cannot be undone. [docs/CORPUS.md](docs/CORPUS.md) states the policy.
+
+**The two blind rows disagree, and the disagreement is the line.** On external questions the guards
+catch 65%, at a sample twenty-five times the written splits; on an adversarial paraphrase set they
+catch 14%. Kmemo catches near misses that arise in traffic and does not catch adversarially constructed
+ones at a price worth paying. Those questions also cost 79% paraphrase retention where the small splits
+reported 88%, which is a fifth of real hits refused and the least comfortable number on this page.
+
+Two explanations for the PAWS gap have been offered and checked. **Prompt length is most of it**: filing
+every pair by length, the guard responsible rejects paraphrases at 0% under 48 characters and 15% above
+96, and the splits sit on opposite sides of that. **Register is not**: at the same register PAWS still
+catches 9% where validation catches 65%. What is left is difficulty, which is what PAWS was built for.
 
 **And the number was attacked, against a target written down first.** A guard aimed at how PAWS
 constructs its pairs takes that 14% to 39.7%, past the 25% registered as success, and pays for it with a
@@ -294,9 +302,9 @@ the attempt, so the guard ships in no preset and `standard()` is untouched. The 
 useful part: **Kmemo catches near misses that arise in traffic, and does not catch adversarially
 constructed ones at a price worth paying.**
 
-Against a threshold-only cache on the blind splits, `standard()` cuts the false-hit rate from 1.000 to
-0.291 and 0.324 while keeping 88% of paraphrases. Against GPTCache the result is a trade rather than a
-win, and both halves are published.
+Against a threshold-only cache on the written splits, `standard()` cuts the false-hit rate from 1.000
+to 0.291 and 0.324 while keeping 88% of paraphrases. Against GPTCache the result is a trade rather than
+a win, and both halves are published.
 
 On a retrieval pipeline over SQuAD, a second run of the same questions makes **no model calls at all**,
 and the guards **halve** the wrong answers a threshold-only cache serves there. Folding the retrieved
@@ -308,6 +316,12 @@ An optional `Verifier` stops about four fifths of what the guards still serve, a
 published beside its catch rate**: 22 tokens per avoided false hit on the measured residual, with the
 invocation rates stated as the upper bounds they are, because the corpora are two thirds near misses and
 real traffic is not.
+
+**The data and the rules that grade it are published as a standard.** [`spec/`](spec) carries the corpus
+schema, the false-hit metric and the eleven guard rules written to be implemented without reading this
+repository's Kotlin, with a conformance vector per rule per pair. A Python implementation from that
+specification alone reproduces every figure above to the pair, with no JVM involved, and the directory
+ships as `kmemo-corpus-<version>.zip` on each release.
 
 [**docs/MEASUREMENTS.md**](docs/MEASUREMENTS.md) has all of it: the methodology, the per-register and
 per-length breakdowns, the verifier's catch rate and cost, what admission costs, the on-device embedding

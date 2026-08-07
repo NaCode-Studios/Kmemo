@@ -1,4 +1,7 @@
 {
+  "about": "Written after the guards existed, by an adversarial review given the guard sources and asked to break them. Out of sample once; its failures have since been read, which spends a split, so it keeps its floor as a regression gate and is no longer quoted as blind evidence.",
+  "standing": "retired",
+  "schema": "spec/corpus/SCHEMA.json",
   "pairs": [
     {
       "a": "Is 400 mcg of folic acid enough for a pregnant adult?",

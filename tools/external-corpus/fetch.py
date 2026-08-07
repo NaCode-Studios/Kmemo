@@ -102,6 +102,8 @@ def main() -> int:
             "unrelated to caching, by people who had never heard of it. No guard may be tuned "
             "against it, ever."
         ),
+        "standing": "blind",
+        "schema": "spec/corpus/SCHEMA.json",
         "dataset": DATASET,
         "revision": REVISION,
         "file": FILE,

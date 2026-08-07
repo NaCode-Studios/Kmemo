@@ -4,22 +4,71 @@ kmemo's central claim is that its guards reject near-misses a similarity thresho
 rejecting genuine paraphrases. That claim is only as trustworthy as the data behind it. That data is three
 labelled corpora of prompt pairs, and this document is the process that keeps them honest.
 
-## The four splits
+## The five splits, and the three standings
 
 Every pair is a `(a, b, category, kind)` where `kind` is either a **near-miss** (the two prompts need
-different answers) or a **paraphrase** (they need the same answer). Three splits live in
-`kmemo-core/src/jvmTest/resources/*-corpus.json`; the fourth is fetched rather than committed.
+different answers) or a **paraphrase** (they need the same answer). The shape is published as
+[`spec/corpus/SCHEMA.json`](../spec/corpus/SCHEMA.json) and the measurement as
+[`spec/corpus/METRIC.md`](../spec/corpus/METRIC.md). Three splits live in
+`kmemo-core/src/jvmTest/resources/*-corpus.json`; two are fetched rather than committed.
 
-| Split | Role | May the guards be tuned against it? |
+A split's **standing** is what its number may be quoted as, and it is part of the number rather than
+part of the folklore. It is a field in the file, printed in every report and carried in the JSON
+artifact.
+
+| Standing | What it means |
+| --- | --- |
+| `in-sample` | The guards were written with these pairs in view. The score measures the fitting. |
+| `retired` | Out of sample once; its failures have since been read. A regression gate, no longer evidence. |
+| `blind` | No failure from it has been read, and nobody here can add to it. |
+
+| Split | Standing | Written by |
 | --- | --- | --- |
-| **tuned** | In-sample. The guards were written and tuned with these pairs in view. | Yes, by definition. |
-| **held-out** | Out-of-sample. Written after the guards, never tuned against. | **No.** |
-| **validation** | Blind. Written last, in one sitting, and never looked at while changing a guard. | **Never.** |
-| **external** | Written by somebody else, years earlier, for another purpose. | **Never, and nobody here can add to it.** |
+| **tuned** | `in-sample` | this project, with the guards in view |
+| **held-out** | `retired` | an adversarial review given the guard sources; its failures were read while guards were fixed |
+| **validation** | `retired` | an author shown no guard source; its failures were printed by the corpus report on every run |
+| **qqp** | `blind` | the public, on Quora, labelled by Quora, 2015 to 2017 |
+| **external** | `blind` | Google Research, 2019, for a purpose unrelated to caching |
 
-The whole value of the held-out and validation splits is that no guard was fitted to them. A single
-prompt pair moved from validation into a guard's design destroys that pair's evidentiary value forever.
-So the rule is simple and absolute: **you do not read the validation failures while editing a guard.**
+The rule that governs a blind split is simple and absolute: **you do not read its failures while
+editing a guard.** A single pair moved from a blind split into a guard's design destroys that pair's
+evidentiary value forever, and there is no way to un-see one.
+
+## Retirement, and why two splits are in it
+
+A blind split is **spent** the moment somebody reads which pairs it fails on. Not damaged, not
+suspect: spent, because from then on every subsequent change has had the opportunity to be aimed at it,
+and nobody can prove otherwise, including the person who made the change.
+
+The policy, settled in `2.3.0` rather than left to judgement:
+
+**A split whose failures have been read is retired, never repaired.** Growing it does not help, because
+the pairs somebody read are still in it and the guards fitted to them are still shipped. Splitting off
+the unread half is worse, because it publishes a number under the old split's name.
+
+**A retired split keeps everything except its voice.** Its floors stand, it stays in every report, and
+it goes on failing a build when a rate moves down. A spent split is the best regression gate this
+repository has. What it stops being is the number to quote as blind.
+
+**Retirement is announced with its cause.** `held-out`'s failures were read while guards were being
+fixed. `validation`'s were printed in full by `CorpusTest` on every run, so the tooling performed the
+prohibited act on behalf of everybody who ran the suite, and they were read while M51's substitution
+floor was being investigated.
+
+**A retired split is replaced, not merely mourned.** Blind evidence has to keep arriving, so the
+replacement was found rather than written: two external datasets, an order of magnitude larger, that
+nobody here can add to.
+
+## How large a split has to be
+
+A rate is an estimate, and a hundred pairs support an estimate about nine points wide in each
+direction. Two of this project's headline numbers used to sit on 86 and 102 near misses, so a genuine
+five-point improvement and a lucky run were the same measurement, and nothing said so.
+
+Every rate now carries its 95% Wilson interval, everywhere it is printed. Around a rate near 68%,
+telling five points from noise takes roughly **1,340** near misses. The written splits are two orders
+of magnitude under that; `qqp` holds 2,500 and `external` holds 4,464. `CorpusTest` asserts the first
+fact and `QqpCorpusTest` asserts the second, so neither can drift without the build saying so.
 
 ### The derived envelope splits
 
@@ -76,6 +125,59 @@ from a harder source is worth more than another figure from the same source, and
 on the page that nobody here could have tuned. The README reports it beside the other three with the
 dataset named.
 
+## The question split, and what its selection rule costs
+
+`external` answers the objection that the same person wrote the pairs and the guards. It cannot answer
+a second one: PAWS is declarative Wikipedia prose and the guards read prompts, usually questions, so
+every question-register figure still came from a corpus written here.
+
+`qqp` is **Quora Question Pairs**, GLUE `validation`, 40,430 pairs typed by the public and labelled by
+Quora years before this project existed. Label 1 means one answer serves both, which is a cacheable
+paraphrase; label 0 means it does not, which is a near miss.
+
+Most label-0 pairs are two unrelated questions, and a cache never sees those because the similarity
+threshold rejects them before a guard is asked. So the pairs are filtered to the ones a threshold would
+surface: **the two questions must share at least 60% of their character 4-grams**, Jaccard, over the
+lowercased strings with whitespace collapsed. That leaves 5,296 pairs, 2,500 of them near misses, with a
+median length of 51 characters. Characters rather than words, and the raw string rather than the
+tokenizer, so the rule borrows no part of a guard's own machinery.
+
+Three things belong beside that number rather than in a footnote.
+
+**The selection is not neutral for one guard.** `lexical-divergence` fires when two prompts share almost
+nothing, and this keeps only pairs that share a great deal, so it is silent here by construction. The
+bias runs against the score: the filter removes the pairs that would have been easiest to catch.
+
+**The pairs and the labels are external; the selection is not.** Nobody here can change PAWS at all.
+Here this repository chose one threshold, once, before running a guard against the result. That is
+weaker than PAWS and stronger than anything written here, and it is stated rather than blurred.
+
+**The labels are crowd-applied and noisy.** The dataset's own card says so, and published estimates put
+the disagreement near a twentieth of the pairs. That caps any score taken here in both directions, which
+is a reason to read a change in the number rather than the number itself.
+
+## What a report may print
+
+The rule against reading a blind split's failures is usually broken by a report rather than by a person.
+`CorpusTest` printed the whole validation residual on every run, so anybody who ran the suite read them,
+and that is how the split was spent.
+
+**No test prints an individual pair from a split that is not `in-sample`.** What the reports print
+instead is the count and the distribution by category, which answer the question a reader has and guide
+nothing, because nobody can aim a guard at a category without seeing the pairs.
+
+The pairs stay reachable, because the day somebody is allowed to look at them, which is when a split is
+being retired or replaced, they have to be there. `-PspendABlindSplit=true` prints them, and the flag is
+named for what passing it costs rather than for what it shows.
+
+| Report | May print pairs | Prints |
+| --- | --- | --- |
+| `CorpusTest` | tuned only | rates with intervals, per-guard alone and unique, residual counts by category |
+| `ExternalCorpusTest`, `QqpCorpusTest` | never | rates with intervals, per-guard alone and unique |
+| `GuardLengthTest`, `GuardRegisterTest` | never | per-band and per-register rates and counts |
+| `SubstitutionFloorTest` | never | the floor ladder, per split |
+| the guard TCK compliance report | never | one confusion matrix per corpus, with intervals |
+
 ## What CI enforces
 
 `CorpusTest` runs on every build, and on every PR (see `ci.yml`), and **fails on regression**:
@@ -83,9 +185,17 @@ dataset named.
 - The tuned split must keep **every** paraphrase and catch at least a floor of near-misses.
 - The held-out and validation splits must not drop below their recorded near-miss and paraphrase
   floors (`*_FLOOR` constants in `CorpusTest`).
-- `ExternalCorpusTest` holds the external split to its own floors, set **at** the measurement rather
-  than under it: nothing about it is stochastic, since the guards are pure and the dataset is pinned to
-  a commit, so any movement at all is a real change somebody should have to look at.
+- `ExternalCorpusTest` and `QqpCorpusTest` hold the fetched splits to their own floors, set **at** the
+  measurement rather than under it: nothing about them is stochastic, since the guards are pure and both
+  datasets are pinned to a commit whose bytes the fetch scripts verify, so any movement at all is a real
+  change somebody should have to look at.
+- `GuardSpecTest` holds the published specification to the shipped guards: a rule that changes without
+  `spec/guards/vectors.json` being regenerated fails the build, and regenerating it is a diff somebody
+  approves rather than a number that moved.
+- `PublishedFiguresTest` holds the prose to the measurements. Every figure it can render is checked
+  against the exact line `README.md` and `docs/MEASUREMENTS.md` must carry, so a rate that moves fails
+  the build until the sentence around it is edited. `tools/figures/check.py` re-runs that half with no
+  Gradle involved.
 
 The floors sit just under the current measurement. Their job is to fail when a number moves **down**,
 not to assert the number is good. A change that only helps the tuned set cannot pass unnoticed. The
@@ -101,7 +211,7 @@ Adding pairs is how the corpus stays representative of real traffic. Do it per s
 Free to do anytime. Add pairs, run `./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*'`, and if a new
 near-miss slips through, that is exactly the signal to improve a guard. Raise the tuned floor to match.
 
-### Growing **held-out** or **validation** (out-of-sample)
+### Growing a blind split (should one ever be written here again)
 
 This is the delicate one. To add pairs **without** contaminating the split:
 
@@ -116,15 +226,16 @@ This is the delicate one. To add pairs **without** contaminating the split:
 4. **Never lower a floor to make CI pass.** A floor only ever moves up, and only because the measurement
    genuinely improved. Lowering it is erasing the regression it exists to catch.
 
-### Growing **external**
+### Growing **qqp** or **external**
 
-You cannot, and that is its strongest property. It is somebody else's dataset at a pinned revision. The
-only change anyone here can make to it is to point the script at a different one, which is a decision
-that changes what every recorded number means and belongs in a pull request that says so.
+You cannot, and that is their strongest property. Both are somebody else's dataset at a pinned revision.
+The only change anyone here can make is to point a script at a different one, or to move `qqp`'s
+selection threshold, and either changes what every recorded number means and belongs in a pull request
+that says so.
 
-The one-sentence version: **the tuned split is where you improve the guards; the held-out and validation
-splits are where you find out, honestly, whether it worked; and the external split is where you find out
-what somebody who owes you nothing would have measured.**
+The one-sentence version: **the tuned split is where you improve the guards; the two retired splits are
+where a regression is caught; and the two fetched splits are where you find out what somebody who owes
+you nothing would have measured.**
 
 ## The response corpus, and why it is labelled differently
 

@@ -4,24 +4,156 @@ Kmemo's argument is that a semantic cache can refuse the wrong answer, and an ar
 worth what its evidence is worth. The README carries the headline figures. This document carries the
 rest: the methodology, the per-axis breakdowns, and the results that came out badly.
 
-Every number here is reproducible from this repository with the command printed beside it.
-[CORPUS.md](CORPUS.md) describes the labelled data and the rules that keep it honest.
+Every number here carries the command that produces it, and every one this build can render is
+recorded in [figures.json](figures.json) with the exact line the document must contain, so a
+measurement that moves fails a build until the prose is edited. [CORPUS.md](CORPUS.md) describes the
+labelled data and the rules that keep it honest.
 
 ## The guard chain, per corpus
 
-| Split | Written by | Near misses rejected | Paraphrases kept |
-| --- | --- | --- | --- |
-| tuned | this project, with the guards in view | in-sample, not evidence | in-sample, not evidence |
-| held-out | this project, after the guards existed | 71% | 88% |
-| validation | this project, blind | 68% | 88% |
-| **external**, PAWS-Wiki `test` | **Google Research, 2019** | **14%** (647/4,464) | **79%** (2,807/3,536) |
+Five splits, and the column that matters most is the one saying what each number is worth. Every rate
+carries its 95% Wilson interval, because a rate from 102 pairs and a rate from 4,464 are not the same
+kind of number and a table that prints them in one column says they are.
+
+| Split | Standing | Written by |
+| --- | --- | --- |
+| tuned | in-sample | this project, with the guards in view |
+| held-out | retired | this project, after the guards existed; failures since read |
+| validation | retired | this project, blind; failures since read |
+| qqp | blind | the public, on Quora, labelled by Quora, 2015 to 2017 |
+| external | blind | Google Research, 2019, PAWS-Wiki `test` |
+
+| Split | Near misses rejected | Paraphrases kept |
+| --- | --- | --- |
+| tuned | in-sample, not evidence | in-sample, not evidence |
+| held-out | 71% ±9 (61/86) | 88% ±10 (37/42) |
+| validation | 68% ±9 (69/102) | 88% ±9 (45/51) |
+| qqp | 65% ±2 (1634/2500) | 79% ±2 (2205/2796) |
+| external | 14% ±1 (647/4464) | 79% ±1 (2807/3536) |
 
 Guard-only: no `Verifier` is in the loop, so these describe the free lexical layer rather than the cache
 as a whole.
 
+Three things in that table were not knowable before `2.3.0`.
+
+**The question-register figure survives at scale.** The written splits reported 68% and 71% on 86 and
+102 near misses, which supports an interval nine points wide in each direction. On 2,500 external near
+misses in the same register the chain catches 65%, inside both. The small numbers were not lucky.
+
+**Paraphrase retention was overstated.** The written splits say 88%; external questions say 79%. A fifth
+of genuine hits are refused and paid for with a model call, and the small splits did not show it.
+
+**Two of the old rows are retired rather than blind.** Their failures have been read, which cannot be
+undone. They keep their floors as regression gates, and they stop being the number to quote.
+
 ```bash
 ./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*'
 python tools/external-corpus/fetch.py && ./gradlew :kmemo-core:jvmTest --tests '*ExternalCorpusTest*'
+python tools/qqp-corpus/fetch.py && ./gradlew :kmemo-core:jvmTest --tests '*QqpCorpusTest*'
+```
+
+## What each guard contributes inside the chain
+
+Every guard has been scored alone since `1.0` and never as a member, so an argument about whether
+eleven guards earn their place had numbers on neither side. **Alone** is what a third party installing
+one guard would get. **Unique** is what the chain would lose if it were removed, computed by holding
+each pair against the chain with that guard taken out.
+
+On the two blind splits:
+
+| Guard | qqp: alone | qqp: unique | external: alone | external: unique |
+| --- | --- | --- | --- | --- |
+| numeric | 206 | 82 | 29 | 26 |
+| unit | 1 | 0 | 0 | 0 |
+| temporal | 2 | 1 | 0 | 0 |
+| negation | 30 | 25 | 0 | 0 |
+| antonym | 8 | 4 | 0 | 0 |
+| entity | 1,003 | 215 | 524 | 511 |
+| substitution | 1,192 | 339 | 42 | 38 |
+| scope | 0 | 0 | 0 | 0 |
+| direction | 2 | 2 | 26 | 26 |
+| sub-span | 94 | 75 | 39 | 33 |
+| lexical-divergence | 0 | 0 | 0 | 0 |
+
+Read on the 188 pairs of the two written splits, the same measurement says eight guards contribute
+nothing unique. Read on 6,964 it says seven of the eleven carry unique catches on questions and five on
+PAWS. **The claim that most of the chain is redundant was a sample-size artefact**, and it is the
+clearest thing the larger splits have corrected.
+
+`lexical-divergence` is the exception and it stays. It has never caught anything on any split and has
+cost five paraphrases in 6,471, and that zero is not evidence: every pair in every corpus was written or
+selected *as a pair*, so two prompts sharing almost nothing never appear, and the only way they reach a
+guard is when an embedder proposes one for the other. No corpus here can contain the case it exists
+for. The argument is in the guard's own documentation, where somebody proposing to delete it will read
+it.
+
+### What the chain costs
+
+The other half of that argument, which nothing here had measured either. Wall clock on one JVM over
+2,410 pairs in both directions, every guard run on every candidate:
+
+| | Per candidate |
+| --- | --- |
+| the whole chain | ~24 µs |
+| the most expensive single guard (`sub-span`) | ~3.4 µs |
+| the chain without `lexical-divergence` | ~22 µs |
+
+`SemanticCache` stops at the first rejection, so a lookup pays the full figure only when every guard
+abstains, which is the case that ends in a hit. Against an embedding round trip of 50 to 200 ms, the
+guard layer is not where a lookup's time goes, and performance is not a reason to remove a guard.
+
+```bash
+./gradlew :kmemo-core:jvmTest --tests '*GuardChainCostTest*'
+```
+
+## The substitution floor, argued and then measured
+
+`SubstitutionGuard` refuses to look below four content words, and the reason written beside it was a
+verb: `define recursion` against `explain recursion` is a synonym rather than a swap. That is an
+argument about **which** word differs, applied as a bound on **how many** words there are. Real
+questions are short, so the proxy silences the guard on much of the traffic it exists for.
+
+Read from the mechanism the floor is a crossover: the evidence is the *agreeing* part, which grows with
+every extra word, against the risk that the one differing position is a synonym, which does not shrink
+with length. That settles two things and not a third. A floor must exist, and two is below it, because
+one agreeing word is no agreement. Where three sits against four is where a structural quantity crosses
+an empirical one, and no reasoning about the guard produces it.
+
+So it was measured, on the splits nobody here can tune.
+
+| Split | Standing | minTokens 4 | minTokens 3 | 3, first position exempt |
+| --- | --- | --- | --- | --- |
+| tuned | in-sample | 76 caught, 46 kept | 76, 45 | 76, 46 |
+| held-out | retired | 61, 37 | 65, 37 | 64, 37 |
+| validation | retired | 69, 45 | 84, 44 | 81, 45 |
+| qqp | blind | 1,634, 2,205 | 1,711, 2,142 | 1,699, 2,169 |
+| external | blind | 647, 2,807 | 647, 2,807 | 647, 2,807 |
+
+**Three is a trade, not a gain, and the trade is worse than one already declined.** It buys 77 catches
+on the question split and pays 63 paraphrases for them, and costs the tuned split a paraphrase it has
+never lost. That ratio is 1.2 to 1, against the 2.9 to 1 this project refused for `WordOrderGuard` in
+`2.2.0`. The floor stays at four.
+
+The validation column is why M54 came first. Read there alone, the change looks like fourteen points of
+catch rate for one paraphrase, and that split's failures had been read while the hypothesis was being
+formed. A number that large, published and then found to be an artefact of the corpus it was chosen
+against, is the specific embarrassment the larger blind splits exist to prevent.
+
+**What the mechanism does point at ships as a preset.** If the floor's subject is the verb, the bound
+belongs on the verb, and in a question the verb sits at the head. `SubstitutionGuard.withHeadFloor`
+applies the old floor only to a difference in the first content word:
+
+| Split | Near misses caught | Paraphrases kept |
+| --- | --- | --- |
+| qqp | 1634 → 1699 | 2205 → 2169 |
+
+Free on the tuned split, three and twelve extra catches on the two retired splits for no paraphrase at
+all, and on external questions sixty-five wrong answers stopped for thirty-six extra API calls.
+`MatchGuards.shortQuestions()` is the chain that opts in and `standard()` is untouched, because whether
+that trade is worth it is a question about a domain rather than about a corpus.
+
+```bash
+./gradlew :kmemo-core:jvmTest --tests '*SubstitutionFloorTest*'
 ```
 
 ## Against a threshold-only cache, and against GPTCache

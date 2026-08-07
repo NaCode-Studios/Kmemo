@@ -132,6 +132,8 @@ def main() -> int:
             "never committed: the licence stays with the dataset. No guard may be tuned against it, "
             "ever, and no failure from it may be read while a guard is being changed."
         ),
+        "standing": "blind",
+        "schema": "spec/corpus/SCHEMA.json",
         "dataset": DATASET,
         "revision": REVISION,
         "file": FILE,

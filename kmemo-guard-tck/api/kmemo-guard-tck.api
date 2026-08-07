@@ -1,3 +1,22 @@
+public final class dev/kmemo/guard/tck/ConformanceVector {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)V
+	public final fun getCandidate ()Ljava/lang/String;
+	public final fun getGuard ()Ljava/lang/String;
+	public final fun getQuery ()Ljava/lang/String;
+	public final fun getReason ()Ljava/lang/String;
+	public final fun getReject ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kmemo/guard/tck/ConformanceVectors {
+	public static final field INSTANCE Ldev/kmemo/guard/tck/ConformanceVectors;
+	public static final field RESOURCE Ljava/lang/String;
+	public final fun check (Ldev/kmemo/guard/MatchGuard;Ljava/util/List;)Ljava/util/List;
+	public final fun forGuard (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
+	public final fun parse (Ljava/lang/String;)Ljava/util/List;
+	public final fun shipped ()Ljava/util/List;
+}
+
 public final class dev/kmemo/guard/tck/CorpusScore {
 	public fun <init> (Ljava/lang/String;IIIII)V
 	public final fun getCatchRate ()D
@@ -93,5 +112,12 @@ public final class dev/kmemo/guard/tck/ScoreInterval$Companion {
 	public static synthetic fun trialsToSeparate$default (Ldev/kmemo/guard/tck/ScoreInterval$Companion;DDILjava/lang/Object;)I
 	public final fun wilson (IID)Ldev/kmemo/guard/tck/ScoreInterval;
 	public final fun wilson95 (II)Ldev/kmemo/guard/tck/ScoreInterval;
+}
+
+public final class dev/kmemo/guard/tck/VectorMismatch {
+	public fun <init> (Ldev/kmemo/guard/tck/ConformanceVector;Z)V
+	public final fun getActual ()Z
+	public final fun getVector ()Ldev/kmemo/guard/tck/ConformanceVector;
+	public fun toString ()Ljava/lang/String;
 }
 

@@ -1,0 +1,1589 @@
+{
+    "about": "The English marker sets the guards in spec/guards/SPEC.md read from. They are data, not rules: an implementation that supplies its own markers for another language is still conformant, and the vectors are stated against this pack so that two implementations reading the same data must reach the same verdicts.",
+    "language": "en",
+    "stopwords": [
+        "a",
+        "about",
+        "above",
+        "actually",
+        "again",
+        "against",
+        "all",
+        "also",
+        "am",
+        "an",
+        "and",
+        "any",
+        "anyone",
+        "are",
+        "aren",
+        "arent",
+        "as",
+        "ask",
+        "at",
+        "basically",
+        "be",
+        "because",
+        "been",
+        "being",
+        "below",
+        "between",
+        "both",
+        "but",
+        "by",
+        "can",
+        "cant",
+        "could",
+        "couldn",
+        "couldnt",
+        "d",
+        "did",
+        "didn",
+        "didnt",
+        "do",
+        "does",
+        "doesn",
+        "doesnt",
+        "doing",
+        "dont",
+        "down",
+        "during",
+        "each",
+        "even",
+        "ever",
+        "few",
+        "for",
+        "from",
+        "get",
+        "give",
+        "had",
+        "hadn",
+        "hadnt",
+        "has",
+        "hasn",
+        "hasnt",
+        "have",
+        "havent",
+        "having",
+        "he",
+        "hello",
+        "help",
+        "her",
+        "here",
+        "hers",
+        "hey",
+        "hi",
+        "him",
+        "his",
+        "how",
+        "i",
+        "id",
+        "if",
+        "im",
+        "in",
+        "into",
+        "is",
+        "isn",
+        "isnt",
+        "it",
+        "its",
+        "ive",
+        "just",
+        "kindly",
+        "know",
+        "let",
+        "lets",
+        "ll",
+        "looking",
+        "m",
+        "may",
+        "maybe",
+        "me",
+        "might",
+        "mine",
+        "more",
+        "most",
+        "must",
+        "mustn",
+        "my",
+        "myself",
+        "need",
+        "needn",
+        "nor",
+        "of",
+        "off",
+        "ok",
+        "okay",
+        "on",
+        "once",
+        "only",
+        "or",
+        "other",
+        "our",
+        "ours",
+        "out",
+        "over",
+        "own",
+        "please",
+        "possible",
+        "re",
+        "really",
+        "s",
+        "same",
+        "say",
+        "shall",
+        "shan",
+        "she",
+        "should",
+        "shouldn",
+        "shouldnt",
+        "show",
+        "since",
+        "so",
+        "some",
+        "someone",
+        "sorry",
+        "still",
+        "such",
+        "sure",
+        "t",
+        "tell",
+        "than",
+        "thank",
+        "thanks",
+        "thankyou",
+        "that",
+        "the",
+        "their",
+        "theirs",
+        "them",
+        "then",
+        "there",
+        "these",
+        "they",
+        "theyre",
+        "thing",
+        "things",
+        "this",
+        "those",
+        "through",
+        "to",
+        "too",
+        "try",
+        "trying",
+        "under",
+        "until",
+        "up",
+        "us",
+        "ve",
+        "very",
+        "want",
+        "was",
+        "wasn",
+        "wasnt",
+        "way",
+        "ways",
+        "we",
+        "well",
+        "were",
+        "weren",
+        "werent",
+        "what",
+        "when",
+        "where",
+        "which",
+        "while",
+        "who",
+        "whom",
+        "whose",
+        "why",
+        "will",
+        "with",
+        "wonder",
+        "wondering",
+        "wont",
+        "would",
+        "wouldn",
+        "wouldnt",
+        "yet",
+        "you",
+        "your",
+        "youre",
+        "yours"
+    ],
+    "sentenceOpeners": [
+        "a",
+        "about",
+        "above",
+        "actually",
+        "add",
+        "additionally",
+        "again",
+        "against",
+        "all",
+        "also",
+        "am",
+        "an",
+        "and",
+        "any",
+        "anyone",
+        "are",
+        "aren",
+        "arent",
+        "as",
+        "ask",
+        "assume",
+        "at",
+        "basically",
+        "be",
+        "because",
+        "been",
+        "being",
+        "below",
+        "between",
+        "both",
+        "build",
+        "but",
+        "by",
+        "can",
+        "cant",
+        "check",
+        "compare",
+        "consider",
+        "could",
+        "couldn",
+        "couldnt",
+        "create",
+        "d",
+        "describe",
+        "did",
+        "didn",
+        "didnt",
+        "do",
+        "does",
+        "doesn",
+        "doesnt",
+        "doing",
+        "dont",
+        "down",
+        "draft",
+        "during",
+        "each",
+        "even",
+        "ever",
+        "explain",
+        "few",
+        "finally",
+        "find",
+        "first",
+        "for",
+        "from",
+        "generate",
+        "get",
+        "give",
+        "given",
+        "had",
+        "hadn",
+        "hadnt",
+        "has",
+        "hasn",
+        "hasnt",
+        "have",
+        "havent",
+        "having",
+        "he",
+        "hello",
+        "help",
+        "her",
+        "here",
+        "hers",
+        "hey",
+        "hi",
+        "him",
+        "his",
+        "how",
+        "however",
+        "i",
+        "id",
+        "if",
+        "im",
+        "imagine",
+        "in",
+        "into",
+        "is",
+        "isn",
+        "isnt",
+        "it",
+        "its",
+        "ive",
+        "just",
+        "kindly",
+        "know",
+        "lastly",
+        "let",
+        "lets",
+        "list",
+        "ll",
+        "looking",
+        "m",
+        "make",
+        "may",
+        "maybe",
+        "me",
+        "might",
+        "mine",
+        "more",
+        "most",
+        "must",
+        "mustn",
+        "my",
+        "myself",
+        "need",
+        "needn",
+        "next",
+        "nor",
+        "note",
+        "of",
+        "off",
+        "ok",
+        "okay",
+        "on",
+        "once",
+        "only",
+        "or",
+        "other",
+        "our",
+        "ours",
+        "out",
+        "outline",
+        "over",
+        "own",
+        "please",
+        "possible",
+        "re",
+        "really",
+        "remove",
+        "s",
+        "same",
+        "say",
+        "second",
+        "see",
+        "shall",
+        "shan",
+        "she",
+        "should",
+        "shouldn",
+        "shouldnt",
+        "show",
+        "since",
+        "so",
+        "some",
+        "someone",
+        "sorry",
+        "still",
+        "such",
+        "summarise",
+        "summarize",
+        "suppose",
+        "sure",
+        "t",
+        "tell",
+        "than",
+        "thank",
+        "thanks",
+        "thankyou",
+        "that",
+        "the",
+        "their",
+        "theirs",
+        "them",
+        "then",
+        "there",
+        "these",
+        "they",
+        "theyre",
+        "thing",
+        "things",
+        "this",
+        "those",
+        "through",
+        "to",
+        "too",
+        "try",
+        "trying",
+        "under",
+        "until",
+        "up",
+        "us",
+        "use",
+        "ve",
+        "very",
+        "walk",
+        "want",
+        "was",
+        "wasn",
+        "wasnt",
+        "way",
+        "ways",
+        "we",
+        "well",
+        "were",
+        "weren",
+        "werent",
+        "what",
+        "when",
+        "where",
+        "which",
+        "while",
+        "who",
+        "whom",
+        "whose",
+        "why",
+        "will",
+        "with",
+        "wonder",
+        "wondering",
+        "wont",
+        "would",
+        "wouldn",
+        "wouldnt",
+        "write",
+        "yet",
+        "you",
+        "your",
+        "youre",
+        "yours"
+    ],
+    "nonEntityCapitals": [
+        "i"
+    ],
+    "negationMarkers": [
+        "cannot",
+        "lacking",
+        "lacks",
+        "neither",
+        "never",
+        "no",
+        "non",
+        "none",
+        "nor",
+        "not",
+        "nothing",
+        "unable",
+        "without"
+    ],
+    "temporalMarkers": [
+        "current",
+        "currently",
+        "latest",
+        "now",
+        "nowadays",
+        "presently",
+        "today",
+        "tomorrow",
+        "tonight",
+        "upcoming",
+        "yesterday"
+    ],
+    "scopeMarkers": [
+        "advanced",
+        "beginner",
+        "brief",
+        "briefly",
+        "bullet",
+        "bullets",
+        "checklist",
+        "comprehensive",
+        "concise",
+        "depth",
+        "derivation",
+        "derive",
+        "detail",
+        "detailed",
+        "details",
+        "diagram",
+        "eli5",
+        "essay",
+        "example",
+        "examples",
+        "exhaustive",
+        "extensive",
+        "haiku",
+        "outline",
+        "overview",
+        "paragraph",
+        "paragraphs",
+        "poem",
+        "proof",
+        "sentence",
+        "sentences",
+        "snippet",
+        "sonnet",
+        "story",
+        "summarise",
+        "summarize",
+        "summary",
+        "theory",
+        "thorough",
+        "timeline",
+        "tldr",
+        "tutorial",
+        "walkthrough"
+    ],
+    "directionalCues": [
+        "beats",
+        "better",
+        "bigger",
+        "change",
+        "cheaper",
+        "conversion",
+        "convert",
+        "converting",
+        "converts",
+        "downgrade",
+        "exchange",
+        "faster",
+        "higher",
+        "inferior",
+        "larger",
+        "lower",
+        "map",
+        "migrate",
+        "migrating",
+        "migration",
+        "move",
+        "moving",
+        "outperforms",
+        "port",
+        "porting",
+        "prefer",
+        "preferable",
+        "pricier",
+        "rename",
+        "safer",
+        "slower",
+        "smaller",
+        "stronger",
+        "superior",
+        "switch",
+        "switching",
+        "than",
+        "transfer",
+        "translate",
+        "upgrade",
+        "versus",
+        "vs",
+        "weaker",
+        "worse"
+    ],
+    "qualifierOpeners": [
+        "after",
+        "assuming",
+        "before",
+        "beyond",
+        "during",
+        "excluding",
+        "for",
+        "given",
+        "including",
+        "on",
+        "over",
+        "per",
+        "under",
+        "unless",
+        "until",
+        "using",
+        "via",
+        "with",
+        "within",
+        "without"
+    ],
+    "antonyms": [
+        [
+            "accept",
+            "reject"
+        ],
+        [
+            "activate",
+            "deactivate"
+        ],
+        [
+            "add",
+            "remove"
+        ],
+        [
+            "adding",
+            "removing"
+        ],
+        [
+            "advantage",
+            "disadvantage"
+        ],
+        [
+            "advantages",
+            "disadvantages"
+        ],
+        [
+            "after",
+            "before"
+        ],
+        [
+            "allow",
+            "block"
+        ],
+        [
+            "allow",
+            "deny"
+        ],
+        [
+            "approve",
+            "reject"
+        ],
+        [
+            "asc",
+            "desc"
+        ],
+        [
+            "ascending",
+            "descending"
+        ],
+        [
+            "async",
+            "sync"
+        ],
+        [
+            "asynchronous",
+            "synchronous"
+        ],
+        [
+            "attach",
+            "detach"
+        ],
+        [
+            "benefit",
+            "drawback"
+        ],
+        [
+            "benefits",
+            "drawbacks"
+        ],
+        [
+            "best",
+            "worst"
+        ],
+        [
+            "big",
+            "small"
+        ],
+        [
+            "buy",
+            "sell"
+        ],
+        [
+            "buying",
+            "selling"
+        ],
+        [
+            "cheap",
+            "expensive"
+        ],
+        [
+            "cheaper",
+            "pricier"
+        ],
+        [
+            "close",
+            "open"
+        ],
+        [
+            "closing",
+            "opening"
+        ],
+        [
+            "cold",
+            "hot"
+        ],
+        [
+            "collapse",
+            "expand"
+        ],
+        [
+            "commit",
+            "rollback"
+        ],
+        [
+            "compress",
+            "decompress"
+        ],
+        [
+            "connect",
+            "disconnect"
+        ],
+        [
+            "cons",
+            "pros"
+        ],
+        [
+            "cool",
+            "warm"
+        ],
+        [
+            "create",
+            "delete"
+        ],
+        [
+            "credit",
+            "debit"
+        ],
+        [
+            "decode",
+            "encode"
+        ],
+        [
+            "decrease",
+            "increase"
+        ],
+        [
+            "decreasing",
+            "increasing"
+        ],
+        [
+            "decrement",
+            "increment"
+        ],
+        [
+            "decrypt",
+            "encrypt"
+        ],
+        [
+            "delete",
+            "insert"
+        ],
+        [
+            "deposit",
+            "withdraw"
+        ],
+        [
+            "deserialize",
+            "serialize"
+        ],
+        [
+            "disable",
+            "enable"
+        ],
+        [
+            "disabled",
+            "enabled"
+        ],
+        [
+            "disabling",
+            "enabling"
+        ],
+        [
+            "down",
+            "up"
+        ],
+        [
+            "download",
+            "upload"
+        ],
+        [
+            "dry",
+            "humid"
+        ],
+        [
+            "dry",
+            "wet"
+        ],
+        [
+            "empty",
+            "full"
+        ],
+        [
+            "enter",
+            "exit"
+        ],
+        [
+            "exclude",
+            "include"
+        ],
+        [
+            "export",
+            "import"
+        ],
+        [
+            "false",
+            "true"
+        ],
+        [
+            "fast",
+            "slow"
+        ],
+        [
+            "faster",
+            "slower"
+        ],
+        [
+            "fewer",
+            "more"
+        ],
+        [
+            "first",
+            "last"
+        ],
+        [
+            "gain",
+            "lose"
+        ],
+        [
+            "gaining",
+            "losing"
+        ],
+        [
+            "gains",
+            "losses"
+        ],
+        [
+            "grant",
+            "revoke"
+        ],
+        [
+            "heavy",
+            "light"
+        ],
+        [
+            "hide",
+            "show"
+        ],
+        [
+            "high",
+            "low"
+        ],
+        [
+            "immutable",
+            "mutable"
+        ],
+        [
+            "insecure",
+            "secure"
+        ],
+        [
+            "install",
+            "uninstall"
+        ],
+        [
+            "invalid",
+            "valid"
+        ],
+        [
+            "join",
+            "leave"
+        ],
+        [
+            "last",
+            "next"
+        ],
+        [
+            "left",
+            "right"
+        ],
+        [
+            "less",
+            "more"
+        ],
+        [
+            "lock",
+            "unlock"
+        ],
+        [
+            "long",
+            "short"
+        ],
+        [
+            "loss",
+            "profit"
+        ],
+        [
+            "lower",
+            "raise"
+        ],
+        [
+            "max",
+            "min"
+        ],
+        [
+            "maximum",
+            "minimum"
+        ],
+        [
+            "merge",
+            "split"
+        ],
+        [
+            "mount",
+            "unmount"
+        ],
+        [
+            "negative",
+            "positive"
+        ],
+        [
+            "new",
+            "old"
+        ],
+        [
+            "newest",
+            "oldest"
+        ],
+        [
+            "next",
+            "previous"
+        ],
+        [
+            "nonnullable",
+            "nullable"
+        ],
+        [
+            "off",
+            "on"
+        ],
+        [
+            "private",
+            "public"
+        ],
+        [
+            "pull",
+            "push"
+        ],
+        [
+            "safe",
+            "unsafe"
+        ],
+        [
+            "start",
+            "stop"
+        ],
+        [
+            "starting",
+            "stopping"
+        ],
+        [
+            "strong",
+            "weak"
+        ],
+        [
+            "subscribe",
+            "unsubscribe"
+        ],
+        [
+            "thick",
+            "thin"
+        ]
+    ],
+    "units": {
+        "aud": {
+            "canonical": "aud",
+            "dimension": "currency"
+        },
+        "bitcoin": {
+            "canonical": "btc",
+            "dimension": "currency"
+        },
+        "brl": {
+            "canonical": "brl",
+            "dimension": "currency"
+        },
+        "bst": {
+            "canonical": "bst",
+            "dimension": "timezone"
+        },
+        "btc": {
+            "canonical": "btc",
+            "dimension": "currency"
+        },
+        "byte": {
+            "canonical": "byte",
+            "dimension": "data"
+        },
+        "bytes": {
+            "canonical": "byte",
+            "dimension": "data"
+        },
+        "cad": {
+            "canonical": "cad",
+            "dimension": "currency"
+        },
+        "celsius": {
+            "canonical": "celsius",
+            "dimension": "temperature"
+        },
+        "centigrade": {
+            "canonical": "celsius",
+            "dimension": "temperature"
+        },
+        "cest": {
+            "canonical": "cest",
+            "dimension": "timezone"
+        },
+        "cet": {
+            "canonical": "cet",
+            "dimension": "timezone"
+        },
+        "chf": {
+            "canonical": "chf",
+            "dimension": "currency"
+        },
+        "cl": {
+            "canonical": "cl",
+            "dimension": "volume"
+        },
+        "cm": {
+            "canonical": "cm",
+            "dimension": "length"
+        },
+        "cny": {
+            "canonical": "cny",
+            "dimension": "currency"
+        },
+        "cup": {
+            "canonical": "cup",
+            "dimension": "volume"
+        },
+        "cups": {
+            "canonical": "cup",
+            "dimension": "volume"
+        },
+        "czk": {
+            "canonical": "czk",
+            "dimension": "currency"
+        },
+        "day": {
+            "canonical": "day",
+            "dimension": "time"
+        },
+        "days": {
+            "canonical": "day",
+            "dimension": "time"
+        },
+        "dkk": {
+            "canonical": "dkk",
+            "dimension": "currency"
+        },
+        "dl": {
+            "canonical": "dl",
+            "dimension": "volume"
+        },
+        "dollar": {
+            "canonical": "usd",
+            "dimension": "currency"
+        },
+        "dollars": {
+            "canonical": "usd",
+            "dimension": "currency"
+        },
+        "edt": {
+            "canonical": "edt",
+            "dimension": "timezone"
+        },
+        "est": {
+            "canonical": "est",
+            "dimension": "timezone"
+        },
+        "eth": {
+            "canonical": "eth",
+            "dimension": "currency"
+        },
+        "ether": {
+            "canonical": "eth",
+            "dimension": "currency"
+        },
+        "eur": {
+            "canonical": "eur",
+            "dimension": "currency"
+        },
+        "euro": {
+            "canonical": "eur",
+            "dimension": "currency"
+        },
+        "euros": {
+            "canonical": "eur",
+            "dimension": "currency"
+        },
+        "fahrenheit": {
+            "canonical": "fahrenheit",
+            "dimension": "temperature"
+        },
+        "feet": {
+            "canonical": "ft",
+            "dimension": "length"
+        },
+        "foot": {
+            "canonical": "ft",
+            "dimension": "length"
+        },
+        "franc": {
+            "canonical": "chf",
+            "dimension": "currency"
+        },
+        "francs": {
+            "canonical": "chf",
+            "dimension": "currency"
+        },
+        "ft": {
+            "canonical": "ft",
+            "dimension": "length"
+        },
+        "gallon": {
+            "canonical": "gallon",
+            "dimension": "volume"
+        },
+        "gallons": {
+            "canonical": "gallon",
+            "dimension": "volume"
+        },
+        "gb": {
+            "canonical": "gb",
+            "dimension": "data"
+        },
+        "gbp": {
+            "canonical": "gbp",
+            "dimension": "currency"
+        },
+        "gib": {
+            "canonical": "gib",
+            "dimension": "data"
+        },
+        "gigabyte": {
+            "canonical": "gb",
+            "dimension": "data"
+        },
+        "gigabytes": {
+            "canonical": "gb",
+            "dimension": "data"
+        },
+        "gmt": {
+            "canonical": "utc",
+            "dimension": "timezone"
+        },
+        "gram": {
+            "canonical": "gram",
+            "dimension": "mass"
+        },
+        "grams": {
+            "canonical": "gram",
+            "dimension": "mass"
+        },
+        "hkd": {
+            "canonical": "hkd",
+            "dimension": "currency"
+        },
+        "hour": {
+            "canonical": "hour",
+            "dimension": "time"
+        },
+        "hours": {
+            "canonical": "hour",
+            "dimension": "time"
+        },
+        "huf": {
+            "canonical": "huf",
+            "dimension": "currency"
+        },
+        "inch": {
+            "canonical": "inch",
+            "dimension": "length"
+        },
+        "inches": {
+            "canonical": "inch",
+            "dimension": "length"
+        },
+        "inr": {
+            "canonical": "inr",
+            "dimension": "currency"
+        },
+        "jpy": {
+            "canonical": "jpy",
+            "dimension": "currency"
+        },
+        "kb": {
+            "canonical": "kb",
+            "dimension": "data"
+        },
+        "kelvin": {
+            "canonical": "kelvin",
+            "dimension": "temperature"
+        },
+        "kg": {
+            "canonical": "kg",
+            "dimension": "mass"
+        },
+        "kib": {
+            "canonical": "kib",
+            "dimension": "data"
+        },
+        "kilobyte": {
+            "canonical": "kb",
+            "dimension": "data"
+        },
+        "kilobytes": {
+            "canonical": "kb",
+            "dimension": "data"
+        },
+        "kilogram": {
+            "canonical": "kg",
+            "dimension": "mass"
+        },
+        "kilograms": {
+            "canonical": "kg",
+            "dimension": "mass"
+        },
+        "kilometer": {
+            "canonical": "km",
+            "dimension": "length"
+        },
+        "kilometers": {
+            "canonical": "km",
+            "dimension": "length"
+        },
+        "kilometre": {
+            "canonical": "km",
+            "dimension": "length"
+        },
+        "kilometres": {
+            "canonical": "km",
+            "dimension": "length"
+        },
+        "km": {
+            "canonical": "km",
+            "dimension": "length"
+        },
+        "kmh": {
+            "canonical": "kph",
+            "dimension": "speed"
+        },
+        "knots": {
+            "canonical": "knots",
+            "dimension": "speed"
+        },
+        "kph": {
+            "canonical": "kph",
+            "dimension": "speed"
+        },
+        "krw": {
+            "canonical": "krw",
+            "dimension": "currency"
+        },
+        "lb": {
+            "canonical": "pound",
+            "dimension": "mass"
+        },
+        "lbs": {
+            "canonical": "pound",
+            "dimension": "mass"
+        },
+        "liter": {
+            "canonical": "liter",
+            "dimension": "volume"
+        },
+        "liters": {
+            "canonical": "liter",
+            "dimension": "volume"
+        },
+        "litre": {
+            "canonical": "liter",
+            "dimension": "volume"
+        },
+        "litres": {
+            "canonical": "liter",
+            "dimension": "volume"
+        },
+        "mb": {
+            "canonical": "mb",
+            "dimension": "data"
+        },
+        "megabyte": {
+            "canonical": "mb",
+            "dimension": "data"
+        },
+        "megabytes": {
+            "canonical": "mb",
+            "dimension": "data"
+        },
+        "meter": {
+            "canonical": "meter",
+            "dimension": "length"
+        },
+        "meters": {
+            "canonical": "meter",
+            "dimension": "length"
+        },
+        "metre": {
+            "canonical": "meter",
+            "dimension": "length"
+        },
+        "metres": {
+            "canonical": "meter",
+            "dimension": "length"
+        },
+        "mg": {
+            "canonical": "mg",
+            "dimension": "mass"
+        },
+        "mi": {
+            "canonical": "mile",
+            "dimension": "length"
+        },
+        "mib": {
+            "canonical": "mib",
+            "dimension": "data"
+        },
+        "mile": {
+            "canonical": "mile",
+            "dimension": "length"
+        },
+        "miles": {
+            "canonical": "mile",
+            "dimension": "length"
+        },
+        "millisecond": {
+            "canonical": "ms",
+            "dimension": "time"
+        },
+        "milliseconds": {
+            "canonical": "ms",
+            "dimension": "time"
+        },
+        "minute": {
+            "canonical": "minute",
+            "dimension": "time"
+        },
+        "minutes": {
+            "canonical": "minute",
+            "dimension": "time"
+        },
+        "ml": {
+            "canonical": "ml",
+            "dimension": "volume"
+        },
+        "mm": {
+            "canonical": "mm",
+            "dimension": "length"
+        },
+        "month": {
+            "canonical": "month",
+            "dimension": "time"
+        },
+        "months": {
+            "canonical": "month",
+            "dimension": "time"
+        },
+        "mph": {
+            "canonical": "mph",
+            "dimension": "speed"
+        },
+        "ms": {
+            "canonical": "ms",
+            "dimension": "time"
+        },
+        "mxn": {
+            "canonical": "mxn",
+            "dimension": "currency"
+        },
+        "nok": {
+            "canonical": "nok",
+            "dimension": "currency"
+        },
+        "nzd": {
+            "canonical": "nzd",
+            "dimension": "currency"
+        },
+        "ounce": {
+            "canonical": "ounce",
+            "dimension": "mass"
+        },
+        "ounces": {
+            "canonical": "ounce",
+            "dimension": "mass"
+        },
+        "oz": {
+            "canonical": "ounce",
+            "dimension": "mass"
+        },
+        "pb": {
+            "canonical": "pb",
+            "dimension": "data"
+        },
+        "pdt": {
+            "canonical": "pdt",
+            "dimension": "timezone"
+        },
+        "peso": {
+            "canonical": "mxn",
+            "dimension": "currency"
+        },
+        "pesos": {
+            "canonical": "mxn",
+            "dimension": "currency"
+        },
+        "pint": {
+            "canonical": "pint",
+            "dimension": "volume"
+        },
+        "pints": {
+            "canonical": "pint",
+            "dimension": "volume"
+        },
+        "pln": {
+            "canonical": "pln",
+            "dimension": "currency"
+        },
+        "pound": {
+            "canonical": "pound",
+            "dimension": "mass"
+        },
+        "pounds": {
+            "canonical": "pound",
+            "dimension": "mass"
+        },
+        "pst": {
+            "canonical": "pst",
+            "dimension": "timezone"
+        },
+        "quart": {
+            "canonical": "quart",
+            "dimension": "volume"
+        },
+        "quarts": {
+            "canonical": "quart",
+            "dimension": "volume"
+        },
+        "rupee": {
+            "canonical": "inr",
+            "dimension": "currency"
+        },
+        "rupees": {
+            "canonical": "inr",
+            "dimension": "currency"
+        },
+        "second": {
+            "canonical": "second",
+            "dimension": "time"
+        },
+        "seconds": {
+            "canonical": "second",
+            "dimension": "time"
+        },
+        "sek": {
+            "canonical": "sek",
+            "dimension": "currency"
+        },
+        "sgd": {
+            "canonical": "sgd",
+            "dimension": "currency"
+        },
+        "stone": {
+            "canonical": "stone",
+            "dimension": "mass"
+        },
+        "stones": {
+            "canonical": "stone",
+            "dimension": "mass"
+        },
+        "tablespoon": {
+            "canonical": "tbsp",
+            "dimension": "volume"
+        },
+        "tablespoons": {
+            "canonical": "tbsp",
+            "dimension": "volume"
+        },
+        "tb": {
+            "canonical": "tb",
+            "dimension": "data"
+        },
+        "tbsp": {
+            "canonical": "tbsp",
+            "dimension": "volume"
+        },
+        "teaspoon": {
+            "canonical": "tsp",
+            "dimension": "volume"
+        },
+        "teaspoons": {
+            "canonical": "tsp",
+            "dimension": "volume"
+        },
+        "terabyte": {
+            "canonical": "tb",
+            "dimension": "data"
+        },
+        "terabytes": {
+            "canonical": "tb",
+            "dimension": "data"
+        },
+        "tib": {
+            "canonical": "tib",
+            "dimension": "data"
+        },
+        "ton": {
+            "canonical": "ton",
+            "dimension": "mass"
+        },
+        "tonne": {
+            "canonical": "tonne",
+            "dimension": "mass"
+        },
+        "tonnes": {
+            "canonical": "tonne",
+            "dimension": "mass"
+        },
+        "tons": {
+            "canonical": "ton",
+            "dimension": "mass"
+        },
+        "tsp": {
+            "canonical": "tsp",
+            "dimension": "volume"
+        },
+        "usd": {
+            "canonical": "usd",
+            "dimension": "currency"
+        },
+        "utc": {
+            "canonical": "utc",
+            "dimension": "timezone"
+        },
+        "week": {
+            "canonical": "week",
+            "dimension": "time"
+        },
+        "weeks": {
+            "canonical": "week",
+            "dimension": "time"
+        },
+        "yard": {
+            "canonical": "yard",
+            "dimension": "length"
+        },
+        "yards": {
+            "canonical": "yard",
+            "dimension": "length"
+        },
+        "year": {
+            "canonical": "year",
+            "dimension": "time"
+        },
+        "years": {
+            "canonical": "year",
+            "dimension": "time"
+        },
+        "yen": {
+            "canonical": "jpy",
+            "dimension": "currency"
+        },
+        "zar": {
+            "canonical": "zar",
+            "dimension": "currency"
+        }
+    }
+}

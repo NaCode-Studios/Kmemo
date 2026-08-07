@@ -25,12 +25,21 @@ data class GptCacheResult(
  * does. So the harness is committed and runnable, its output is committed, and the *coupling* between
  * them is what CI enforces.
  *
- * **The coupling is a digest.** Each row carries the SHA-256 of the corpus file it was measured
- * against. [verifyAgainstCorpora] recomputes it. A corpus that grew without the harness being re-run
- * fails the build, rather than leaving a stale comparison in the README with a fresh corpus underneath
- * it — which is the only way a committed measurement can quietly become a lie.
+ * **The coupling is a digest.** Each row carries the SHA-256 of the corpus it was measured against.
+ * [verifyAgainstCorpora] recomputes it. A corpus that grew without the harness being re-run fails the
+ * build, rather than leaving a stale comparison in the README with a fresh corpus underneath it, which
+ * is the only way a committed measurement can quietly become a lie.
+ *
+ * **The digest is over the pairs, not over the file.** It was the file bytes until `2.3.0`, and it
+ * fired the day a provenance field was added to the corpus documents: nothing about the labels had
+ * moved, and the remedy on offer was a model download to record that a prose field had changed. What
+ * the coupling is about is the data, so the digest is over the data: each pair's two prompts and its
+ * label, in file order, separated by a byte that cannot occur in a prompt.
  */
 object GptCacheComparison {
+
+    /** A byte that cannot occur in a prompt, so no pair can be confused with another. */
+    private const val SEPARATOR: Char = '\u0000'
 
     val results: List<GptCacheResult> by lazy { load() }
 
@@ -43,22 +52,27 @@ object GptCacheComparison {
     fun forCorpus(name: String): GptCacheResult =
         results.firstOrNull { it.corpus == name } ?: error("no GPTCache result for $name")
 
-    /** The corpus files this measurement describes must still be the corpus files on disk. */
+    /** The pairs this measurement describes must still be the pairs on disk. */
     fun verifyAgainstCorpora(corpora: List<Corpus>): List<String> = corpora.mapNotNull { corpus ->
         val recorded = forCorpus(corpus.name).corpusSha256
-        val actual = sha256Of("/${corpus.name}-corpus.json")
+        val actual = digestOf(corpus)
         if (recorded == actual) {
             null
         } else {
-            "${corpus.name}-corpus.json has changed since GPTCache was last run against it " +
+            "the ${corpus.name} pairs have changed since GPTCache was last run against them " +
                 "(recorded $recorded, now $actual). Re-run tools/gptcache-comparison/compare.py."
         }
     }
 
-    private fun sha256Of(resource: String): String {
-        val bytes = GptCacheComparison::class.java.getResourceAsStream(resource)?.use { it.readBytes() }
-            ?: error("$resource is missing from the test classpath")
-        return MessageDigest.getInstance("SHA-256").digest(bytes)
+    /**
+     * The canonical digest `compare.py` computes: each pair's two prompts and its label, in file
+     * order, joined by a NUL that cannot occur in a prompt.
+     */
+    fun digestOf(corpus: Corpus): String {
+        val body = corpus.pairs.joinToString("\n") {
+            "${it.a}$SEPARATOR${it.b}$SEPARATOR${it.shouldMatch}"
+        }
+        return MessageDigest.getInstance("SHA-256").digest(body.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
     }
 

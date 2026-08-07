@@ -1,0 +1,155 @@
+{
+    "about": "Every figure the published documents carry, with the command that produces it and, where this build can render it, the exact line the document must contain. tools/figures/check.py re-runs the document half with no Gradle and no Kotlin; tools/corpus-runner recomputes the corpus figures from the published specification with no JVM at all.",
+    "generatedBy": "PublishedFiguresTest",
+    "documents": [
+        "README.md",
+        "docs/MEASUREMENTS.md"
+    ],
+    "figures": [
+        {
+            "id": "corpus.tuned",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*' --tests '*QqpCorpusTest*' --tests '*ExternalCorpusTest*'",
+            "reproducibleOutsideTheJvm": true,
+            "claim": "| tuned | in-sample, not evidence | in-sample, not evidence |",
+            "documents": [
+                "README.md",
+                "docs/MEASUREMENTS.md"
+            ],
+            "note": null
+        },
+        {
+            "id": "corpus.held-out",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*' --tests '*QqpCorpusTest*' --tests '*ExternalCorpusTest*'",
+            "reproducibleOutsideTheJvm": true,
+            "claim": "| held-out | 71% ±9 (61/86) | 88% ±10 (37/42) |",
+            "documents": [
+                "README.md",
+                "docs/MEASUREMENTS.md"
+            ],
+            "note": null
+        },
+        {
+            "id": "corpus.validation",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*' --tests '*QqpCorpusTest*' --tests '*ExternalCorpusTest*'",
+            "reproducibleOutsideTheJvm": true,
+            "claim": "| validation | 68% ±9 (69/102) | 88% ±9 (45/51) |",
+            "documents": [
+                "README.md",
+                "docs/MEASUREMENTS.md"
+            ],
+            "note": null
+        },
+        {
+            "id": "corpus.qqp",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*' --tests '*QqpCorpusTest*' --tests '*ExternalCorpusTest*'",
+            "reproducibleOutsideTheJvm": true,
+            "claim": "| qqp | 65% ±2 (1634/2500) | 79% ±2 (2205/2796) |",
+            "documents": [
+                "README.md",
+                "docs/MEASUREMENTS.md"
+            ],
+            "note": null
+        },
+        {
+            "id": "corpus.external",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*CorpusTest*' --tests '*QqpCorpusTest*' --tests '*ExternalCorpusTest*'",
+            "reproducibleOutsideTheJvm": true,
+            "claim": "| external | 14% ±1 (647/4464) | 79% ±1 (2807/3536) |",
+            "documents": [
+                "README.md",
+                "docs/MEASUREMENTS.md"
+            ],
+            "note": null
+        },
+        {
+            "id": "preset.shortQuestions.qqp",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*SubstitutionFloorTest*'",
+            "reproducibleOutsideTheJvm": true,
+            "claim": "| qqp | 1634 → 1699 | 2205 → 2169 |",
+            "documents": [
+                "docs/MEASUREMENTS.md"
+            ],
+            "note": null
+        },
+        {
+            "id": "verifier.catchRate",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*VerifierCatchRateTest*'",
+            "reproducibleOutsideTheJvm": false,
+            "claim": null,
+            "documents": [],
+            "note": "measured by its own test; not rendered as a claim, so drift in the prose around it is not caught here"
+        },
+        {
+            "id": "verifier.cost",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*VerifierCostTest*'",
+            "reproducibleOutsideTheJvm": false,
+            "claim": null,
+            "documents": [],
+            "note": "measured by its own test; not rendered as a claim, so drift in the prose around it is not caught here"
+        },
+        {
+            "id": "comparison.gptcache",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*ComparativeBenchmarkTest*'",
+            "reproducibleOutsideTheJvm": false,
+            "claim": null,
+            "documents": [],
+            "note": "measured by its own test; not rendered as a claim, so drift in the prose around it is not caught here"
+        },
+        {
+            "id": "register.preset",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*GuardRegisterTest*' --tests '*RegisterPresetTest*'",
+            "reproducibleOutsideTheJvm": false,
+            "claim": null,
+            "documents": [],
+            "note": "measured by its own test; not rendered as a claim, so drift in the prose around it is not caught here"
+        },
+        {
+            "id": "length.buckets",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*GuardLengthTest*'",
+            "reproducibleOutsideTheJvm": false,
+            "claim": null,
+            "documents": [],
+            "note": "measured by its own test; not rendered as a claim, so drift in the prose around it is not caught here"
+        },
+        {
+            "id": "paws.target",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*PawsTargetTest*'",
+            "reproducibleOutsideTheJvm": false,
+            "claim": null,
+            "documents": [],
+            "note": "measured by its own test; not rendered as a claim, so drift in the prose around it is not caught here"
+        },
+        {
+            "id": "admission.workload",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*AdmissionWorkloadTest*'",
+            "reproducibleOutsideTheJvm": false,
+            "claim": null,
+            "documents": [],
+            "note": "measured by its own test; not rendered as a claim, so drift in the prose around it is not caught here"
+        },
+        {
+            "id": "rag.pipeline",
+            "command": "./gradlew :examples:test --tests '*RagPipelineTest*'",
+            "reproducibleOutsideTheJvm": false,
+            "claim": null,
+            "documents": [],
+            "note": "measured by its own test; not rendered as a claim, so drift in the prose around it is not caught here"
+        },
+        {
+            "id": "ondevice.embedding",
+            "command": "./gradlew :kmemo-core:macosArm64Test",
+            "reproducibleOutsideTheJvm": false,
+            "claim": null,
+            "documents": [],
+            "note": "measured by its own test; not rendered as a claim, so drift in the prose around it is not caught here"
+        },
+        {
+            "id": "guards.chainCost",
+            "command": "./gradlew :kmemo-core:jvmTest --tests '*GuardChainCostTest*'",
+            "reproducibleOutsideTheJvm": false,
+            "claim": null,
+            "documents": [],
+            "note": "measured by its own test; not rendered as a claim, so drift in the prose around it is not caught here"
+        }
+    ]
+}

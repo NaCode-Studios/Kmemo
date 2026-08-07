@@ -46,6 +46,12 @@ kotlin {
                     "kmemo.qqpCorpus.required",
                     providers.gradleProperty("qqpCorpusRequired").getOrElse("false"),
                 )
+                // The published specification is generated from these guards and committed, the way
+                // the API dumps are. -PupdateGuardSpec=true rewrites it; without it a drift fails.
+                systemProperty(
+                    "kmemo.updateGuardSpec",
+                    providers.gradleProperty("updateGuardSpec").getOrElse("false"),
+                )
                 testLogging {
                     events("passed", "skipped", "failed")
                     exceptionFormat = TestExceptionFormat.FULL
