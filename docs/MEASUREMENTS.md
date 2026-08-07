@@ -222,6 +222,37 @@ validation. That residual is what an optional `Verifier` exists for.
 Measured against a named reference model rather than a hypothetical one, and it fails closed: a timeout
 or an error rejects rather than serving something unconfirmed.
 
+### And what it costs
+
+A cache sold on saving model calls owes the reader the price of its safety net. The catch rate above says
+how many wrong answers the verifier prevents; on its own it lets a reader construct a worst case and gives
+them no way to rule it out.
+
+| Split | Lookups | Invocations | Per lookup | Tokens per call | Tokens spent |
+| --- | --- | --- | --- | --- | --- |
+| tuned | 129 | 53 | 0.41 | 17.7 | 938 |
+| held-out | 128 | 62 | 0.48 | 20.8 | 1,292 |
+| validation | 153 | 78 | 0.51 | 16.6 | 1,296 |
+| external | 8,000 | 6,624 | 0.83 | 37.3 | 247,059 |
+
+On the residual the reference verifier was actually shown, across held-out and validation: 116
+invocations, **91 false hits avoided**, 1,996 tokens, which is **22 tokens per avoided false hit**.
+
+**Every invocation rate in that table is an upper bound, and the reason is the corpora rather than the
+chain.** These splits are 56% to 67% near misses by construction, because a corpus of realistic traffic
+would be almost all paraphrases and would measure nothing. The verifier runs on what the guards could not
+settle, so a corpus built out of hard pairs sends it most of the lookups. Traffic whose near-miss share is
+a few per cent sends it a few per cent.
+
+Tokens are counted the way the guards tokenize, which is the count this repository can state exactly. A
+provider's tokenizer differs by a constant nobody here can know, so convert with your own before comparing
+22 tokens against what a wrong answer costs you. That comparison is the decision this figure exists to
+hand back.
+
+```bash
+./gradlew :kmemo-core:jvmTest --tests '*VerifierCostTest*'
+```
+
 ## What admission costs
 
 `AdmissionPolicy` stores an answer on the second sighting of a prompt rather than the first. Replayed

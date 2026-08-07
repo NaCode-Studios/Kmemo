@@ -297,9 +297,14 @@ Against a threshold-only cache on the blind splits, `standard()` cuts the false-
 0.291 and 0.324 while keeping 88% of paraphrases. Against GPTCache the result is a trade rather than a
 win, and both halves are published.
 
+An optional `Verifier` stops about four fifths of what the guards still serve, and **its price is
+published beside its catch rate**: 22 tokens per avoided false hit on the measured residual, with the
+invocation rates stated as the upper bounds they are, because the corpora are two thirds near misses and
+real traffic is not.
+
 [**docs/MEASUREMENTS.md**](docs/MEASUREMENTS.md) has all of it: the methodology, the per-register and
-per-length breakdowns, the verifier's catch rate, what admission costs, the on-device embedding result,
-and the command that reproduces each figure. [docs/CORPUS.md](docs/CORPUS.md) has the provenance rules
+per-length breakdowns, the verifier's catch rate and cost, what admission costs, the on-device embedding
+result, and the command that reproduces each figure. [docs/CORPUS.md](docs/CORPUS.md) has the provenance rules
 that keep the data honest.
 
 ```bash
