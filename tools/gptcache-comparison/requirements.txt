@@ -12,5 +12,5 @@
 # advisories with no fix below 5 and would have meant allowing them in CI for the sake of a method name.
 gptcache==0.1.44
 onnxruntime==1.15.1
-transformers==5.5.0
+transformers==5.10.1
 numpy==1.26.4
